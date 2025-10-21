@@ -1,6 +1,6 @@
 // Admin endpoints for menu category management
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 
 // Validation schema
@@ -15,7 +15,7 @@ const categorySchema = z.object({
 // GET - List all categories
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     const { data: categories, error } = await supabase
       .from('menu_categories')
@@ -50,12 +50,12 @@ export async function POST(request: NextRequest) {
     const validation = categorySchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Validation failed', details: validation.error.errors },
+        { error: 'Validation failed', details: validation.error.issues },
         { status: 400 }
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // If no display_order provided, get max + 1
     if (validation.data.display_order === undefined) {

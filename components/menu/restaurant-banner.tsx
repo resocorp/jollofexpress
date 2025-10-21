@@ -9,8 +9,19 @@ export function RestaurantBanner() {
   const { data: status } = useRestaurantStatus();
   const { data: info } = useRestaurantInfo();
 
+  const bannerStyle = info?.banner_url 
+    ? {
+        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${info.banner_url})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : {};
+
   return (
-    <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-12">
+    <div 
+      className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-12"
+      style={bannerStyle}
+    >
       <div className="container mx-auto px-4">
         <div className="max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-2">

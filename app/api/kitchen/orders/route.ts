@@ -1,10 +1,10 @@
 // Get active orders for Kitchen Display System
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Fetch orders that are active (not completed or cancelled)
     // Created today

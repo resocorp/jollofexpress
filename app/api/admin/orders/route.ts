@@ -1,6 +1,6 @@
 // Admin endpoints for order management
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 
 // GET - List all orders with filters
 export async function GET(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Build query
     let query = supabase

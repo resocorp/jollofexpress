@@ -1,6 +1,7 @@
 // Admin endpoints for individual order operations
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
+import { checkAndManageCapacity } from '@/lib/kitchen-capacity';
 import { z } from 'zod';
 
 const orderUpdateSchema = z.object({
@@ -26,12 +27,12 @@ export async function PATCH(
     const validation = orderUpdateSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Validation failed', details: validation.error.errors },
+        { error: 'Validation failed', details: validation.error.issues },
         { status: 400 }
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Update order
     const updateData: any = { ...validation.data };
@@ -64,6 +65,15 @@ export async function PATCH(
         { error: 'Order not found' },
         { status: 404 }
       );
+    }
+
+    // Check if order status changed to completed/cancelled
+    // These reduce active order count, potentially allowing auto-reopen
+    if (validation.data.status === 'completed' || validation.data.status === 'cancelled' || validation.data.status === 'out_for_delivery') {
+      const capacityCheck = await checkAndManageCapacity();
+      if (capacityCheck.action === 'opened') {
+        console.log(`✅ Restaurant reopened: ${capacityCheck.activeOrders}/${capacityCheck.threshold} active orders`);
+      }
     }
 
     return NextResponse.json({

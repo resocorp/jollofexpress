@@ -1,6 +1,6 @@
 // Toggle menu item availability (mark as sold out)
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 
 const availabilitySchema = z.object({
@@ -19,13 +19,13 @@ export async function PATCH(
     const validation = availabilitySchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid data', details: validation.error.errors },
+        { error: 'Invalid data', details: validation.error.issues },
         { status: 400 }
       );
     }
 
     const { is_available } = validation.data;
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Update menu item
     const { data: item, error } = await supabase

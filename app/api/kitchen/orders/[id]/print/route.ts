@@ -1,6 +1,7 @@
 // Manually trigger order reprint
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
+import { formatReceipt } from '@/lib/print/format-receipt';
 
 export async function POST(
   request: NextRequest,
@@ -8,12 +9,15 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
-    // Verify order exists
+    // Fetch full order with items
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, order_number')
+      .select(`
+        *,
+        items:order_items(*)
+      `)
       .eq('id', id)
       .single();
 
@@ -24,12 +28,15 @@ export async function POST(
       );
     }
 
-    // Add to print queue
+    // Format receipt data
+    const receiptData = formatReceipt(order);
+
+    // Add to print queue with formatted data
     const { error: printError } = await supabase
       .from('print_queue')
       .insert({
         order_id: id,
-        type: 'reprint',
+        print_data: receiptData,
         status: 'pending',
       });
 

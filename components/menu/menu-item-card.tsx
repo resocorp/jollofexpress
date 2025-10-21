@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Plus } from 'lucide-react';
+import { Plus, Clock, Heart, Star } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, getDietaryTagIcon } from '@/lib/formatters';
 import type { MenuItemWithDetails } from '@/types/database';
 import { ItemCustomizationDialog } from './item-customization-dialog';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface MenuItemCardProps {
   item: MenuItemWithDetails;
@@ -16,20 +18,39 @@ interface MenuItemCardProps {
 
 export function MenuItemCard({ item }: MenuItemCardProps) {
   const [showCustomization, setShowCustomization] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const hasCustomizations = (item.variations && item.variations.length > 0) || 
                            (item.addons && item.addons.length > 0);
 
+  const cardVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+    hover: { y: -8, transition: { duration: 0.2 } },
+  };
+
+  const buttonVariants = {
+    tap: { scale: 0.95 },
+  };
+
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-        <div className="relative h-48 bg-gray-100">
+      <motion.div
+        variants={cardVariants}
+        initial="initial"
+        animate="animate"
+        whileHover="hover"
+        className="h-full"
+      >
+        <Card className="overflow-hidden h-full flex flex-col group border-0 shadow-md hover:shadow-2xl transition-all duration-300 bg-white">
+          <div className="relative h-56 bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
           {item.image_url ? (
             <Image
               src={item.image_url}
               alt={item.name}
               fill
-              className="object-cover"
+              className="object-contain"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
             <div className="flex items-center justify-center h-full text-6xl">

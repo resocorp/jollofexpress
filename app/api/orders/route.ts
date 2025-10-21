@@ -1,17 +1,18 @@
 // Order creation endpoint with Paystack payment initialization
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
+import { isRestaurantOpen, checkAndManageCapacity } from '@/lib/kitchen-capacity';
 import { z } from 'zod';
 
 // Validation schema for order creation
 const orderSchema = z.object({
   customer_name: z.string().min(2),
   customer_phone: z.string().regex(/^(\+234|0)[789]\d{9}$/),
-  customer_email: z.string().email().optional(),
-  customer_phone_alt: z.string().regex(/^(\+234|0)[789]\d{9}$/).optional(),
+  customer_email: z.string().email().optional().or(z.literal('')),
+  customer_phone_alt: z.string().regex(/^(\+234|0)[789]\d{9}$/).optional().or(z.literal('')),
   order_type: z.enum(['delivery', 'carryout']),
   delivery_city: z.string().optional(),
-  delivery_address: z.string().min(20).optional(),
+  delivery_address: z.string().optional(),
   address_type: z.enum(['house', 'office', 'hotel', 'church', 'school', 'other']).optional(),
   unit_number: z.string().optional(),
   delivery_instructions: z.string().max(200).optional(),
@@ -38,6 +39,31 @@ const orderSchema = z.object({
     special_instructions: z.string().max(200).optional(),
     subtotal: z.number().positive(),
   })).min(1),
+}).superRefine((data, ctx) => {
+  // Only validate delivery fields if order type is 'delivery'
+  if (data.order_type === 'delivery') {
+    if (!data.delivery_city || data.delivery_city.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Delivery city is required for delivery orders',
+        path: ['delivery_city'],
+      });
+    }
+
+    if (!data.delivery_address || data.delivery_address.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Delivery address is required for delivery orders',
+        path: ['delivery_address'],
+      });
+    } else if (data.delivery_address.length < 20) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Delivery address must be at least 20 characters with landmarks',
+        path: ['delivery_address'],
+      });
+    }
+  }
 });
 
 type OrderData = z.infer<typeof orderSchema>;
@@ -117,14 +143,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Validation failed', 
-          details: validationResult.error.errors 
+          details: validationResult.error.issues 
         },
         { status: 400 }
       );
     }
 
     const orderData: OrderData = validationResult.data;
-    const supabase = await createClient();
+    
+    // CHECK 1: Verify restaurant is open
+    const restaurantOpen = await isRestaurantOpen();
+    if (!restaurantOpen) {
+      return NextResponse.json(
+        { 
+          error: 'Restaurant is currently closed',
+          message: 'We are not accepting orders at this time. Please check back during operating hours.'
+        },
+        { status: 403 }
+      );
+    }
+    
+    // CHECK 2: Check kitchen capacity (will auto-close if at capacity)
+    const capacityCheck = await checkAndManageCapacity();
+    if (capacityCheck.action === 'closed') {
+      return NextResponse.json(
+        { 
+          error: 'Kitchen at capacity',
+          message: `We're currently experiencing high demand (${capacityCheck.activeOrders} active orders). Please try again in a few minutes.`,
+          details: {
+            activeOrders: capacityCheck.activeOrders,
+            maxOrders: capacityCheck.threshold,
+          }
+        },
+        { status: 503 }
+      );
+    }
+    
+    const supabase = createServiceClient();
+    console.log('✅ Restaurant open, creating order...');
 
     // Generate unique order number
     const orderNumber = generateOrderNumber();

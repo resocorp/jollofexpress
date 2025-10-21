@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Bike, Store, MapPin, Phone, User, Mail, Home } from 'lucide-react';
+import { Loader2, Bike, Store, MapPin, Phone, User, Mail } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,12 +16,22 @@ import { Separator } from '@/components/ui/separator';
 import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
 import { useCartStore } from '@/store/cart-store';
 import { useCreateOrder } from '@/hooks/use-orders';
+import { useDeliverySettings } from '@/hooks/use-settings';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/formatters';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-export function CheckoutForm() {
+interface CheckoutFormProps {
+  orderType: 'delivery' | 'carryout';
+  onOrderTypeChange: (type: 'delivery' | 'carryout') => void;
+}
+
+export function CheckoutForm({ orderType: externalOrderType, onOrderTypeChange }: CheckoutFormProps) {
   const router = useRouter();
   const { items, discount, promoCode, getSubtotal, clearCart } = useCartStore();
   const createOrder = useCreateOrder();
+  const { data: deliverySettings, isLoading: isLoadingSettings } = useDeliverySettings();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -33,19 +43,33 @@ export function CheckoutForm() {
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      orderType: 'delivery',
-      city: 'Awka',
+      orderType: externalOrderType,
     },
   });
 
   const orderType = watch('orderType');
+  
+  // Sync internal form state with external state
+  useEffect(() => {
+    if (orderType !== externalOrderType) {
+      onOrderTypeChange(orderType);
+    }
+  }, [orderType, externalOrderType, onOrderTypeChange]);
   const subtotal = getSubtotal();
   const taxRate = 7.5;
-  const deliveryFee = orderType === 'delivery' ? 200 : 0;
+  const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
   const tax = Math.round((subtotal * taxRate) / 100);
   const total = subtotal + tax + deliveryFee - discount;
+  const minOrder = deliverySettings?.min_order || 0;
+  const isBelowMinimum = orderType === 'delivery' && subtotal < minOrder;
 
   const onSubmit = async (data: CheckoutFormData) => {
+    // Validate minimum order
+    if (isBelowMinimum) {
+      toast.error(`Minimum order amount is ${formatCurrency(minOrder)} for delivery`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Prepare order items
@@ -73,12 +97,10 @@ export function CheckoutForm() {
       const orderData = {
         customer_name: data.name,
         customer_phone: data.phone,
-        customer_email: data.email || undefined,
+        customer_email: data.email, // Required for payment processing
         order_type: data.orderType,
-        delivery_city: data.orderType === 'delivery' ? data.city : undefined,
+        delivery_city: data.orderType === 'delivery' ? 'Awka' : undefined,
         delivery_address: data.orderType === 'delivery' ? data.fullAddress : undefined,
-        address_type: data.addressType,
-        unit_number: data.unitNumber,
         delivery_instructions: data.deliveryInstructions,
         customer_phone_alt: data.phoneAlt || undefined,
         subtotal,
@@ -92,29 +114,69 @@ export function CheckoutForm() {
 
       const result = await createOrder.mutateAsync(orderData);
 
+      // Verify order was created successfully
+      if (!result || !result.order) {
+        throw new Error('Order creation failed - no order returned');
+      }
+
+      console.log('Order created successfully:', result.order.id);
+
       // Clear cart
       clearCart();
 
       // Redirect to Paystack payment page
       if (result.payment_url) {
+        console.log('Redirecting to payment:', result.payment_url);
         window.location.href = result.payment_url;
       } else {
-        toast.error('Payment initialization failed');
+        toast.error('Payment initialization failed. Please contact support with order #' + result.order.order_number);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create order');
+      console.error('Order creation error:', error);
+      
+      // Show detailed error to user
+      if (error.message?.includes('RLS') || error.message?.includes('security')) {
+        toast.error('System configuration error. Please contact support.');
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        toast.error('Network error. Please check your connection and try again.');
+      } else {
+        toast.error(error.message || 'Failed to create order. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Scroll to first error when validation fails
+  const handleFormError = () => {
+    const firstError = Object.keys(errors)[0];
+    if (firstError) {
+      const element = document.getElementById(firstError);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.focus();
+      }
+      
+      // Show error message
+      const errorMessages = Object.values(errors).map(err => err?.message).filter(Boolean);
+      if (errorMessages.length > 0) {
+        toast.error(errorMessages[0] as string);
+      }
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit, handleFormError)} className="space-y-6">
       {/* Order Type Selection */}
-      <Card>
+      <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
         <CardHeader>
-          <CardTitle>Order Type</CardTitle>
-          <CardDescription>Choose how you want to receive your order</CardDescription>
+          <CardTitle className="text-2xl flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
+              1
+            </span>
+            Order Type
+          </CardTitle>
+          <CardDescription className="text-base">Choose how you want to receive your order</CardDescription>
         </CardHeader>
         <CardContent>
           <RadioGroup
@@ -160,48 +222,29 @@ export function CheckoutForm() {
 
       {/* Delivery Address (only for delivery) */}
       {orderType === 'delivery' && (
-        <Card>
+        <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
+                2
+              </span>
+              <MapPin className="h-6 w-6 text-primary" />
               Delivery Address
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base">
               Provide detailed directions to help our rider find you easily
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* City Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="city">
-                City <span className="text-destructive">*</span>
-              </Label>
-              <Select value={watch('city')} onValueChange={(value) => setValue('city', value)}>
-                <SelectTrigger id="city">
-                  <SelectValue placeholder="Select city" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Awka">Awka</SelectItem>
-                  {/* Future cities can be added here */}
-                </SelectContent>
-              </Select>
-              {errors.city && (
-                <p className="text-sm text-destructive">{errors.city.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                We currently only deliver within Awka
-              </p>
-            </div>
-
             {/* Full Address */}
             <div className="space-y-2">
               <Label htmlFor="fullAddress">
-                Full Address with Directions <span className="text-destructive">*</span>
+                Delivery Address <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="fullAddress"
                 {...register('fullAddress')}
-                placeholder="Enter your full address with clear directions and landmarks. Example: No. 12 Zik Avenue, opposite First Bank, near Aroma Junction, Awka"
+                placeholder="10 Ecwa Road, Coker Village, Awka"
                 rows={4}
                 className={errors.fullAddress ? 'border-destructive' : ''}
               />
@@ -209,49 +252,8 @@ export function CheckoutForm() {
                 <p className="text-sm text-destructive">{errors.fullAddress.message}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                Be as specific as possible. Include street name, house number, nearby landmarks, and any directions. Minimum 20 characters.
+                Provide your address with nearby landmarks. Our rider will call you for additional directions.
               </p>
-            </div>
-
-            {/* Address Type & Unit Number */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="addressType">Address Type</Label>
-                <Select
-                  value={watch('addressType')}
-                  onValueChange={(value: any) => setValue('addressType', value)}
-                >
-                  <SelectTrigger id="addressType">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="house">
-                      <div className="flex items-center gap-2">
-                        <Home className="h-4 w-4" />
-                        House
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="office">Office</SelectItem>
-                    <SelectItem value="hotel">Hotel</SelectItem>
-                    <SelectItem value="church">Church</SelectItem>
-                    <SelectItem value="school">School</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Helps rider know what to expect
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="unitNumber">Unit/Apartment Number</Label>
-                <Input
-                  id="unitNumber"
-                  {...register('unitNumber')}
-                  placeholder="e.g., Flat 3, Room 205"
-                />
-                <p className="text-xs text-muted-foreground">Optional</p>
-              </div>
             </div>
 
             {/* Delivery Instructions */}
@@ -273,13 +275,16 @@ export function CheckoutForm() {
       )}
 
       {/* Contact Information */}
-      <Card>
+      <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+          <CardTitle className="text-2xl flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
+              {orderType === 'delivery' ? '3' : '2'}
+            </span>
+            <User className="h-6 w-6 text-primary" />
             Contact Information
           </CardTitle>
-          <CardDescription>We'll use this to contact you about your order</CardDescription>
+          <CardDescription className="text-base">We'll use this to contact you about your order</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Name */}
@@ -340,14 +345,16 @@ export function CheckoutForm() {
 
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
+            <Label htmlFor="email">
+              Email Address <span className="text-destructive">*</span>
+            </Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="email"
                 type="email"
                 {...register('email')}
-                placeholder="john@example.com (optional)"
+                placeholder="john@example.com"
                 className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
               />
             </div>
@@ -355,11 +362,23 @@ export function CheckoutForm() {
               <p className="text-sm text-destructive">{errors.email.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              We'll send order confirmation to this email
+              Required to process payment and send order confirmation
             </p>
           </div>
         </CardContent>
       </Card>
+
+      {/* Minimum Order Warning */}
+      {isBelowMinimum && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Minimum order amount for delivery is {formatCurrency(minOrder)}. 
+            Your current subtotal is {formatCurrency(subtotal)}. 
+            Please add {formatCurrency(minOrder - subtotal)} more to proceed.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Submit Button */}
       <div className="flex justify-end gap-4">
@@ -371,7 +390,7 @@ export function CheckoutForm() {
         >
           Back to Menu
         </Button>
-        <Button type="submit" size="lg" disabled={isSubmitting}>
+        <Button type="submit" size="lg" disabled={isSubmitting || isBelowMinimum || isLoadingSettings}>
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Proceed to Payment
         </Button>

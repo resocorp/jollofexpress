@@ -1,6 +1,7 @@
 // Verify Paystack payment and update order status
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
+import { formatReceipt } from '@/lib/print/format-receipt';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
 
     if (!paystackSecretKey) {
@@ -77,7 +78,6 @@ export async function POST(request: NextRequest) {
         status: 'confirmed',
         payment_status: 'success',
         payment_reference: reference,
-        payment_data: paymentData,
       })
       .eq('id', order_id)
       .select()
@@ -91,17 +91,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add to print queue
-    await supabase.from('print_queue').insert({
-      order_id: order_id,
-      type: 'new_order',
-      status: 'pending',
-    });
-
-    // TODO: Send confirmation SMS/Email
-    // This would integrate with Termii/Africa's Talking for SMS
-    // and Resend/SendGrid for email
-
     // Fetch complete order with items
     const { data: completeOrder } = await supabase
       .from('orders')
@@ -111,6 +100,22 @@ export async function POST(request: NextRequest) {
       `)
       .eq('id', order_id)
       .single();
+
+    // Format receipt data
+    if (completeOrder) {
+      const receiptData = formatReceipt(completeOrder);
+
+      // Add to print queue with formatted data
+      await supabase.from('print_queue').insert({
+        order_id: order_id,
+        print_data: receiptData,
+        status: 'pending',
+      });
+    }
+
+    // TODO: Send confirmation SMS/Email
+    // This would integrate with Termii/Africa's Talking for SMS
+    // and Resend/SendGrid for email
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 // Admin endpoint to process refunds
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 
 const refundSchema = z.object({
@@ -20,13 +20,13 @@ export async function POST(
     const validation = refundSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Validation failed', details: validation.error.errors },
+        { error: 'Validation failed', details: validation.error.issues },
         { status: 400 }
       );
     }
 
     const { reason, amount } = validation.data;
-    const supabase = await createClient();
+    const supabase = createServiceClient();
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
 
     if (!paystackSecretKey) {

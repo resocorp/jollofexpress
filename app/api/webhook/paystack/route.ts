@@ -1,6 +1,7 @@
 // Paystack webhook handler for payment events
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
+import { formatReceipt } from '@/lib/print/format-receipt';
 import crypto from 'crypto';
 
 // Verify webhook signature
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     const event = JSON.parse(body);
     const { event: eventType, data } = event;
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Handle different event types
     switch (eventType) {
@@ -76,16 +77,29 @@ export async function POST(request: NextRequest) {
             status: 'confirmed',
             payment_status: 'success',
             payment_reference: reference,
-            payment_data: data,
           })
           .eq('id', orderId);
 
-        // Add to print queue
-        await supabase.from('print_queue').insert({
-          order_id: orderId,
-          type: 'new_order',
-          status: 'pending',
-        });
+        // Fetch complete order with items for receipt
+        const { data: completeOrder } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            items:order_items(*)
+          `)
+          .eq('id', orderId)
+          .single();
+
+        // Format and add to print queue
+        if (completeOrder) {
+          const receiptData = formatReceipt(completeOrder);
+          
+          await supabase.from('print_queue').insert({
+            order_id: orderId,
+            print_data: receiptData,
+            status: 'pending',
+          });
+        }
 
         // TODO: Send confirmation SMS/Email
         console.log(`Payment successful for order ${orderId}`);
@@ -103,7 +117,6 @@ export async function POST(request: NextRequest) {
             .update({
               payment_status: 'failed',
               payment_reference: reference,
-              payment_data: data,
             })
             .eq('id', orderId);
 

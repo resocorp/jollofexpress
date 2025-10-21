@@ -38,7 +38,7 @@ export function useVerifyPayment() {
     mutationFn: ({ orderId, reference }: { orderId: string; reference: string }) =>
       post<OrderWithItems>('/api/orders/verify-payment', {
         order_id: orderId,
-        payment_reference: reference,
+        reference: reference,
       }),
     onSuccess: (data) => {
       queryClient.setQueryData(['order', data.id], data);
@@ -102,8 +102,10 @@ export function useAdminOrders(params?: {
   
   return useQuery({
     queryKey: ['admin-orders', params],
-    queryFn: () =>
-      get<OrderWithItems[]>(`/api/admin/orders${queryString ? `?${queryString}` : ''}`),
+    queryFn: async () => {
+      const response = await get<{ orders: OrderWithItems[]; pagination: any }>(`/api/admin/orders${queryString ? `?${queryString}` : ''}`);
+      return response.orders;
+    },
   });
 }
 

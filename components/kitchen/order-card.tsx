@@ -13,7 +13,7 @@ import {
   User,
   Home
 } from 'lucide-react';
-import { formatCurrency, formatRelativeTime, getOrderAgeMinutes, getOrderAgeColor, formatPhoneNumber } from '@/lib/formatters';
+import { formatCurrency, formatKitchenTime, getOrderAgeMinutes, getOrderAgeColor, formatPhoneNumber } from '@/lib/formatters';
 import { useUpdateOrderStatus, useReprintOrder } from '@/hooks/use-orders';
 import { toast } from 'sonner';
 import type { OrderWithItems, OrderStatus } from '@/types/database';
@@ -87,7 +87,7 @@ export function OrderCard({ order }: OrderCardProps) {
               <h3 className="text-2xl font-bold text-gray-900">{order.order_number}</h3>
               <div className="flex items-center gap-2 mt-1">
                 <Clock className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-600">{formatRelativeTime(order.created_at)}</span>
+                <span className="text-sm text-gray-600">{formatKitchenTime(order.created_at)}</span>
                 <Badge variant={ageInMinutes > 20 ? 'destructive' : ageInMinutes > 10 ? 'secondary' : 'default'}>
                   {ageInMinutes} min
                 </Badge>
@@ -195,7 +195,7 @@ export function OrderCard({ order }: OrderCardProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Order Time</p>
-                <p className="font-medium">{formatRelativeTime(order.created_at)}</p>
+                <p className="font-medium">{formatKitchenTime(order.created_at)}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Age</p>

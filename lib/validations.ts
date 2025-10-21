@@ -11,15 +11,7 @@ export const phoneSchema = z
 // Address validation schema
 export const deliveryAddressSchema = z.object({
   orderType: z.enum(['delivery', 'carryout']),
-  city: z.string().min(1, 'Please select a city').refine((val) => val === 'Awka', {
-    message: 'We currently only deliver within Awka',
-  }),
-  fullAddress: z
-    .string()
-    .min(20, 'Please provide a detailed address with at least 20 characters')
-    .max(500, 'Address is too long'),
-  addressType: z.enum(['house', 'office', 'hotel', 'church', 'school', 'other']).optional(),
-  unitNumber: z.string().max(50).optional(),
+  fullAddress: z.string().optional(),
   phone: phoneSchema,
   phoneAlt: z
     .string()
@@ -35,13 +27,38 @@ export type DeliveryAddressFormData = z.infer<typeof deliveryAddressSchema>;
 export const customerInfoSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
   phone: phoneSchema,
-  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  email: z.string().min(1, 'Email is required to process payment').email('Please enter a valid email address'),
 });
 
 export type CustomerInfoFormData = z.infer<typeof customerInfoSchema>;
 
-// Checkout validation schema
-export const checkoutSchema = deliveryAddressSchema.merge(customerInfoSchema);
+// Checkout validation schema with conditional delivery address validation
+export const checkoutSchema = deliveryAddressSchema
+  .merge(customerInfoSchema)
+  .superRefine((data, ctx) => {
+    // Only validate delivery fields if order type is 'delivery'
+    if (data.orderType === 'delivery') {
+      if (!data.fullAddress || data.fullAddress.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Please provide your delivery address',
+          path: ['fullAddress'],
+        });
+      } else if (data.fullAddress.length < 10) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Please provide a more detailed address (minimum 10 characters)',
+          path: ['fullAddress'],
+        });
+      } else if (data.fullAddress.length > 500) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Address is too long (maximum 500 characters)',
+          path: ['fullAddress'],
+        });
+      }
+    }
+  });
 
 export type CheckoutFormData = z.infer<typeof checkoutSchema>;
 

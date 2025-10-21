@@ -62,6 +62,13 @@ export function formatRelativeTime(date: string | Date): string {
 }
 
 /**
+ * Format exact time for kitchen display (e.g., "Oct 21, 4:30 PM")
+ */
+export function formatKitchenTime(date: string | Date): string {
+  return format(new Date(date), 'MMM d, h:mm a');
+}
+
+/**
  * Get order age in minutes
  */
 export function getOrderAgeMinutes(createdAt: string | Date): number {

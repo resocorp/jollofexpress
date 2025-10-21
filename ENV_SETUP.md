@@ -5,8 +5,14 @@ Create a `.env.local` file in the root directory with the following variables:
 ```bash
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# NEW API Keys (Recommended - Independent rotation, better security)
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...  # Get from Dashboard > API Keys
+SUPABASE_SECRET_KEY=sb_secret_...                         # Get from Dashboard > API Keys
+
+# LEGACY API Keys (Deprecated - Remove after migration)
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJI...          # Old format - being phased out
+# SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJI...              # Old format - being phased out
 
 # Paystack Configuration
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=your_paystack_public_key

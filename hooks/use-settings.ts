@@ -3,7 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { get, patch } from '@/lib/api-client';
 import type {
   RestaurantInfo,
+  OperatingHours,
   DeliverySettings,
+  PaymentSettings,
   OrderSettings,
   RestaurantStatusResponse,
 } from '@/types/database';
@@ -42,6 +44,17 @@ export function useDeliveryCities() {
 }
 
 /**
+ * Fetch delivery settings (public)
+ */
+export function useDeliverySettings() {
+  return useQuery({
+    queryKey: ['delivery-settings'],
+    queryFn: () => get<DeliverySettings>('/api/delivery/settings'),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+/**
  * Fetch all settings (admin)
  */
 export function useAllSettings() {
@@ -50,7 +63,9 @@ export function useAllSettings() {
     queryFn: () =>
       get<{
         restaurant_info: RestaurantInfo;
+        operating_hours: OperatingHours;
         delivery_settings: DeliverySettings;
+        payment_settings: PaymentSettings;
         order_settings: OrderSettings;
       }>('/api/admin/settings'),
   });

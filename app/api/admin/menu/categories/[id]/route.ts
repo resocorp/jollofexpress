@@ -1,6 +1,6 @@
 // Admin endpoints for individual category operations
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 
 const categoryUpdateSchema = z.object({
@@ -24,12 +24,12 @@ export async function PATCH(
     const validation = categoryUpdateSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Validation failed', details: validation.error.errors },
+        { error: 'Validation failed', details: validation.error.issues },
         { status: 400 }
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Update category
     const { data: category, error } = await supabase
@@ -72,7 +72,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Check if category has items
     const { data: items } = await supabase

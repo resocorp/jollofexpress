@@ -1,37 +1,40 @@
 // Admin endpoints for restaurant settings management
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 
 // Validation schemas for different setting types
 const restaurantInfoSchema = z.object({
   name: z.string().min(2).max(100),
   phone: z.string(),
-  email: z.string().email().optional(),
+  email: z.string().email().optional().or(z.literal('')),
   address: z.string(),
-  logo_url: z.string().url().optional(),
-  banner_url: z.string().url().optional(),
-  description: z.string().max(500).optional(),
+  logo_url: z.string().url().optional().or(z.literal('')),
+  banner_url: z.string().url().optional().or(z.literal('')),
+  description: z.string().max(500).optional().or(z.literal('')),
 });
 
 const orderSettingsSchema = z.object({
   is_open: z.boolean(),
   default_prep_time: z.number().int().min(10).max(120),
   current_prep_time: z.number().int().min(10).max(120),
-  max_advance_order_days: z.number().int().min(0).max(30),
+  auto_close_when_busy: z.boolean().optional(),
+  max_active_orders: z.number().int().min(5).max(50).optional(),
+  max_advance_order_days: z.number().int().min(0).max(30).optional(),
 });
 
 const deliverySettingsSchema = z.object({
-  base_fee: z.number().min(0),
+  enabled: z.boolean(),
   cities: z.array(z.string()),
-  max_distance_km: z.number().positive().optional(),
+  min_order: z.number().min(0),
+  delivery_fee: z.number().min(0),
 });
 
 const paymentSettingsSchema = z.object({
   tax_rate: z.number().min(0).max(100),
-  accept_cash: z.boolean(),
-  accept_card: z.boolean(),
-  accept_transfer: z.boolean(),
+  accept_cash: z.boolean().optional(),
+  accept_card: z.boolean().optional(),
+  accept_transfer: z.boolean().optional(),
 });
 
 const operatingHoursSchema = z.object({
@@ -47,7 +50,7 @@ const operatingHoursSchema = z.object({
 // GET - Get all settings
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     const { data: settings, error } = await supabase
       .from('settings')
@@ -63,7 +66,7 @@ export async function GET() {
 
     // Convert array to object for easier access
     const settingsObj: Record<string, any> = {};
-    settings?.forEach(setting => {
+    settings?.forEach((setting: any) => {
       settingsObj[setting.key] = setting.value;
     });
 
@@ -84,6 +87,9 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { key, value } = body;
 
+    console.log('Updating setting:', key);
+    console.log('Value received:', JSON.stringify(value, null, 2));
+
     if (!key || value === undefined) {
       return NextResponse.json(
         { error: 'Key and value are required' },
@@ -103,7 +109,9 @@ export async function PATCH(request: NextRequest) {
           validatedValue = orderSettingsSchema.parse(value);
           break;
         case 'delivery_settings':
+          console.log('Validating delivery settings...');
           validatedValue = deliverySettingsSchema.parse(value);
+          console.log('Validation passed:', validatedValue);
           break;
         case 'payment_settings':
           validatedValue = paymentSettingsSchema.parse(value);
@@ -116,16 +124,17 @@ export async function PATCH(request: NextRequest) {
           break;
       }
     } catch (validationError: any) {
+      console.error('Validation error:', validationError);
       return NextResponse.json(
         { 
           error: 'Validation failed', 
-          details: validationError.errors || validationError.message 
+          details: validationError.issues || validationError.message 
         },
         { status: 400 }
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Update or insert setting
     const { data: setting, error } = await supabase
@@ -136,8 +145,10 @@ export async function PATCH(request: NextRequest) {
 
     if (error) {
       console.error('Error updating setting:', error);
+      console.error('Setting key:', key);
+      console.error('Setting value:', validatedValue);
       return NextResponse.json(
-        { error: 'Failed to update setting' },
+        { error: 'Failed to update setting', details: error.message },
         { status: 500 }
       );
     }

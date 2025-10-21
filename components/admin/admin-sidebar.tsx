@@ -15,7 +15,8 @@ import { Button } from '@/components/ui/button';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Menu Management', href: '/admin/menu', icon: UtensilsCrossed },
+  { name: 'Menu Items', href: '/admin/menu', icon: UtensilsCrossed },
+  { name: 'Categories', href: '/admin/menu/categories', icon: Tag },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
   { name: 'Promo Codes', href: '/admin/promos', icon: Tag },
   { name: 'Settings', href: '/admin/settings', icon: Settings },

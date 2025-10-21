@@ -152,6 +152,7 @@ export interface PrintQueue {
 export interface RestaurantInfo {
   name: string;
   phone: string;
+  email?: string;
   address: string;
   logo_url: string;
   banner_url: string;
@@ -180,6 +181,7 @@ export interface PaymentSettings {
 export interface OrderSettings {
   default_prep_time: number;
   auto_close_when_busy: boolean;
+  max_active_orders?: number;
   is_open: boolean;
   current_prep_time: number;
 }
