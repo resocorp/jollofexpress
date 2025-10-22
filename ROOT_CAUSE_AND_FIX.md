@@ -34,9 +34,9 @@
 ### Step 2: Verify .env.local Has Service Key
 **Check that this line exists:**
 ```bash
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpamdldXNwZmdjY2NveHRqbmJ5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDk0MjY1NiwiZXhwIjoyMDc2NTE4NjU2fQ.iVc2G4r4hVoUNaoMxW-sJM3wWKVOID2ods4LNKHToUM
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
-✅ **CONFIRMED:** This key is already in your .env.local
+✅ **CONFIRMED:** Check your local .env.local file for this key
 
 ### Step 3: Restart Dev Server (CLEAN START)
 ```bash
