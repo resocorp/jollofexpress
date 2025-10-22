@@ -1,18 +1,18 @@
 // Admin endpoints for promo code management
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 
 // Validation schema
 const promoSchema = z.object({
   code: z.string().min(3).max(20).toUpperCase(),
   description: z.string().max(200).optional(),
-  discount_type: z.enum(['percentage', 'fixed']),
+  discount_type: z.enum(['percentage', 'fixed_amount']),
   discount_value: z.number().positive(),
-  max_discount_amount: z.number().positive().optional(),
+  max_discount: z.number().positive().optional(),
   min_order_value: z.number().min(0).optional(),
-  max_uses: z.number().int().positive().optional(),
-  expires_at: z.string().datetime(),
+  usage_limit: z.number().int().positive().optional(),
+  expiry_date: z.string().datetime().optional(),
   is_active: z.boolean().optional(),
 });
 
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const isActive = searchParams.get('is_active');
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     let query = supabase
       .from('promo_codes')
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Check if code already exists
     const { data: existing } = await supabase

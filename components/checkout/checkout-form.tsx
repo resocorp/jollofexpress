@@ -370,29 +370,58 @@ export function CheckoutForm({ orderType: externalOrderType, onOrderTypeChange }
 
       {/* Minimum Order Warning */}
       {isBelowMinimum && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="border-2 border-red-500">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Minimum order amount for delivery is {formatCurrency(minOrder)}. 
-            Your current subtotal is {formatCurrency(subtotal)}. 
-            Please add {formatCurrency(minOrder - subtotal)} more to proceed.
+          <AlertDescription className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-semibold mb-2">Minimum order not met</p>
+              <p>
+                Minimum order amount for delivery is {formatCurrency(minOrder)}. 
+                Your current subtotal is {formatCurrency(subtotal)}. 
+                Please add {formatCurrency(minOrder - subtotal)} more to proceed.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/menu')}
+              className="whitespace-nowrap bg-white hover:bg-gray-50 text-red-600 border-red-600 font-semibold flex-shrink-0"
+            >
+              Add More Items
+            </Button>
           </AlertDescription>
         </Alert>
       )}
 
       {/* Submit Button */}
-      <div className="flex justify-end gap-4">
+      <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4">
         <Button
           type="button"
           variant="outline"
           onClick={() => router.push('/menu')}
           disabled={isSubmitting}
+          size="lg"
+          className="w-full sm:w-auto"
         >
-          Back to Menu
+          ← Back to Menu
         </Button>
-        <Button type="submit" size="lg" disabled={isSubmitting || isBelowMinimum || isLoadingSettings}>
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Proceed to Payment
+        <Button 
+          type="submit" 
+          size="lg" 
+          disabled={isSubmitting || isBelowMinimum || isLoadingSettings}
+          className="w-full sm:w-auto bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-700 text-white font-bold text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              Proceed to Payment →
+            </>
+          )}
         </Button>
       </div>
     </form>

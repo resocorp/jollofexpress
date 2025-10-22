@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/header';
+import { Footer } from '@/components/layout/footer';
 import { OrderTracker } from '@/components/orders/order-tracker';
 import { OrderDetails } from '@/components/orders/order-details';
 import { useOrder, useVerifyPayment } from '@/hooks/use-orders';
@@ -59,6 +60,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
             </p>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -81,6 +83,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
             </CardContent>
           </Card>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -109,6 +112,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
             </CardContent>
           </Card>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -155,6 +159,8 @@ export default function OrderTrackingPage({ params }: PageProps) {
           </Link>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

@@ -8,13 +8,15 @@ import {
   ShoppingBag, 
   Settings, 
   Tag,
-  LogOut
+  LogOut,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Menu Items', href: '/admin/menu', icon: UtensilsCrossed },
   { name: 'Categories', href: '/admin/menu/categories', icon: Tag },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },

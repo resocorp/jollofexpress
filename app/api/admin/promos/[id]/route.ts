@@ -1,17 +1,17 @@
 // Admin endpoints for individual promo code operations
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 
 const promoUpdateSchema = z.object({
   code: z.string().min(3).max(20).toUpperCase().optional(),
   description: z.string().max(200).optional(),
-  discount_type: z.enum(['percentage', 'fixed']).optional(),
+  discount_type: z.enum(['percentage', 'fixed_amount']).optional(),
   discount_value: z.number().positive().optional(),
-  max_discount_amount: z.number().positive().optional(),
+  max_discount: z.number().positive().optional(),
   min_order_value: z.number().min(0).optional(),
-  max_uses: z.number().int().positive().optional(),
-  expires_at: z.string().datetime().optional(),
+  usage_limit: z.number().int().positive().optional(),
+  expiry_date: z.string().datetime().optional(),
   is_active: z.boolean().optional(),
 });
 
@@ -33,7 +33,7 @@ export async function PATCH(
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // If code is being changed, check if new code already exists
     if (validation.data.code) {
@@ -93,7 +93,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Check if promo has been used
     const { data: promo } = await supabase

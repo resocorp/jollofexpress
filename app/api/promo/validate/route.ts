@@ -31,18 +31,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if expired
-    const now = new Date();
-    const expiresAt = new Date(promo.expires_at);
-    
-    if (expiresAt < now) {
-      return NextResponse.json({
-        valid: false,
-        message: 'This promo code has expired',
-      });
+    if (promo.expiry_date) {
+      const now = new Date();
+      const expiryDate = new Date(promo.expiry_date);
+      
+      if (expiryDate < now) {
+        return NextResponse.json({
+          valid: false,
+          message: 'This promo code has expired',
+        });
+      }
     }
 
     // Check usage limit
-    if (promo.max_uses && promo.used_count >= promo.max_uses) {
+    if (promo.usage_limit && promo.used_count >= promo.usage_limit) {
       return NextResponse.json({
         valid: false,
         message: 'This promo code has reached its usage limit',
@@ -65,8 +67,8 @@ export async function POST(request: NextRequest) {
       discountAmount = Math.round((order_total * promo.discount_value) / 100);
       
       // Apply max discount if set
-      if (promo.max_discount_amount && discountAmount > promo.max_discount_amount) {
-        discountAmount = promo.max_discount_amount;
+      if (promo.max_discount && discountAmount > promo.max_discount) {
+        discountAmount = promo.max_discount;
       }
     } else {
       // Fixed amount discount

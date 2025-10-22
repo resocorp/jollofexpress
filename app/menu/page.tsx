@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useMenu } from '@/hooks/use-menu';
 import { Header } from '@/components/layout/header';
+import { Footer } from '@/components/layout/footer';
 import { MenuItemCard } from '@/components/menu/menu-item-card-modern';
 import { EnhancedBanner } from '@/components/menu/enhanced-banner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -149,6 +150,9 @@ export default function MenuPage() {
           </div>
         )}
       </div>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

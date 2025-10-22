@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/header';
+import { Footer } from '@/components/layout/footer';
 import { CheckoutForm } from '@/components/checkout/checkout-form';
 import { OrderSummary } from '@/components/checkout/order-summary';
 import { useCartStore } from '@/store/cart-store';
@@ -38,6 +39,7 @@ export default function CheckoutPage() {
             </Link>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -139,6 +141,9 @@ export default function CheckoutPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
