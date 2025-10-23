@@ -10,7 +10,7 @@ Disallow: /api/
 Disallow: /kitchen/
 
 # Sitemap location
-Sitemap: https://f625546c6fee.ngrok-free.app/sitemap.xml
+Sitemap: https://jollofexpress.com/sitemap.xml
 
 # Crawl delay (optional)
 Crawl-delay: 1
