@@ -230,9 +230,21 @@ export interface MenuResponse {
 }
 
 export interface RestaurantStatusResponse {
-  is_open: boolean;
+  is_open: boolean; // Effective status (within hours AND manually open)
   estimated_prep_time: number;
   message?: string;
+  closed_reason?: string | null; // Why restaurant is closed
+  manual_override?: boolean; // Manual toggle state
+  within_hours?: boolean; // Whether within operating hours
+  hours?: {
+    today: string;
+    all: Record<string, string>;
+  };
+  next_status_change?: {
+    action: 'open' | 'close';
+    time: string;
+    minutes: number;
+  } | null;
 }
 
 export interface PromoValidationResponse {

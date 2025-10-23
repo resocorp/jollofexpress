@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { isRestaurantOpen, checkAndManageCapacity } from '@/lib/kitchen-capacity';
+import { shouldBeOpenNow } from '@/lib/operating-hours';
 import { z } from 'zod';
 
 // Validation schema for order creation
@@ -151,7 +152,22 @@ export async function POST(request: NextRequest) {
 
     const orderData: OrderData = validationResult.data;
     
-    // CHECK 1: Verify restaurant is open
+    // CHECK 0: Verify within operating hours
+    const hoursCheck = await shouldBeOpenNow();
+    if (!hoursCheck.shouldBeOpen) {
+      return NextResponse.json(
+        { 
+          error: 'Outside operating hours',
+          message: hoursCheck.reason,
+          details: {
+            reason: hoursCheck.reason,
+          }
+        },
+        { status: 403 }
+      );
+    }
+    
+    // CHECK 1: Verify restaurant is open (manual toggle or capacity-based)
     const restaurantOpen = await isRestaurantOpen();
     if (!restaurantOpen) {
       return NextResponse.json(

@@ -41,11 +41,25 @@ export async function apiRequest<T>(
     const data = await response.json();
     
     if (!response.ok) {
-      throw new ApiError(
+      // Don't log expected errors (403 for closed restaurant, 503 for capacity)
+      const isExpectedError = response.status === 403 || response.status === 503;
+      
+      const apiError = new ApiError(
         data.error || data.message || 'An error occurred',
         response.status,
         data
       );
+      
+      // Only log unexpected errors to console
+      if (!isExpectedError) {
+        console.error('API Error:', {
+          status: response.status,
+          message: apiError.message,
+          endpoint,
+        });
+      }
+      
+      throw apiError;
     }
     
     return data;
@@ -53,6 +67,9 @@ export async function apiRequest<T>(
     if (error instanceof ApiError) {
       throw error;
     }
+    
+    // Network errors should be logged
+    console.error('Network error:', error);
     
     throw new ApiError(
       'Network error. Please check your connection.',

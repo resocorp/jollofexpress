@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Bike, Store, MapPin, Phone, User, Mail } from 'lucide-react';
+import { Loader2, Bike, Store, MapPin, Phone, User, Mail, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,11 +16,11 @@ import { Separator } from '@/components/ui/separator';
 import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
 import { useCartStore } from '@/store/cart-store';
 import { useCreateOrder } from '@/hooks/use-orders';
-import { useDeliverySettings } from '@/hooks/use-settings';
+import { useDeliverySettings, useRestaurantStatus } from '@/hooks/use-settings';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
 import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CheckoutFormProps {
   orderType: 'delivery' | 'carryout';
@@ -32,6 +32,7 @@ export function CheckoutForm({ orderType: externalOrderType, onOrderTypeChange }
   const { items, discount, promoCode, getSubtotal, clearCart } = useCartStore();
   const createOrder = useCreateOrder();
   const { data: deliverySettings, isLoading: isLoadingSettings } = useDeliverySettings();
+  const { data: restaurantStatus } = useRestaurantStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -132,15 +133,41 @@ export function CheckoutForm({ orderType: externalOrderType, onOrderTypeChange }
         toast.error('Payment initialization failed. Please contact support with order #' + result.order.order_number);
       }
     } catch (error: any) {
-      console.error('Order creation error:', error);
-      
       // Show detailed error to user
-      if (error.message?.includes('RLS') || error.message?.includes('security')) {
+      const errorMessage = error.message || error.error || 'Failed to create order';
+      
+      if (errorMessage.includes('Outside operating hours') || errorMessage.includes('operating hours')) {
+        // Restaurant is closed - show detailed message (expected error, no console log)
+        const reason = error.response?.details?.reason || 'We are currently closed';
+        toast.error('Restaurant Closed', {
+          description: reason + '. Please check our operating hours and try again later.',
+          duration: 6000,
+        });
+      } else if (errorMessage.includes('Kitchen at capacity') || errorMessage.includes('capacity')) {
+        // Kitchen at max capacity (expected error, no console log)
+        const details = error.response?.details;
+        toast.error('Kitchen at Capacity', {
+          description: `We're currently experiencing high demand${details ? ` (${details.activeOrders}/${details.maxOrders} orders)` : ''}. Please try again in a few minutes.`,
+          duration: 6000,
+        });
+      } else if (errorMessage.includes('Restaurant is currently closed')) {
+        // Manually closed (expected error, no console log)
+        toast.error('Restaurant Closed', {
+          description: 'We are not accepting orders at this time. Please check back during operating hours.',
+          duration: 6000,
+        });
+      } else if (errorMessage.includes('RLS') || errorMessage.includes('security')) {
+        // Unexpected error - log to console
+        console.error('Order creation error (RLS):', error);
         toast.error('System configuration error. Please contact support.');
-      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        // Network error - log to console
+        console.error('Order creation error (Network):', error);
         toast.error('Network error. Please check your connection and try again.');
       } else {
-        toast.error(error.message || 'Failed to create order. Please try again.');
+        // Unknown error - log to console
+        console.error('Order creation error:', error);
+        toast.error(errorMessage);
       }
     } finally {
       setIsSubmitting(false);
@@ -167,6 +194,31 @@ export function CheckoutForm({ orderType: externalOrderType, onOrderTypeChange }
 
   return (
     <form onSubmit={handleSubmit(onSubmit, handleFormError)} className="space-y-6">
+      {/* Restaurant Closed Warning */}
+      {!restaurantStatus?.is_open && (
+        <Alert variant="destructive" className="border-2 border-red-500 bg-red-50">
+          <Clock className="h-5 w-5" />
+          <AlertTitle className="text-lg font-bold">Restaurant Currently Closed</AlertTitle>
+          <AlertDescription className="mt-2 space-y-2">
+            <p className="font-medium">{restaurantStatus?.message}</p>
+            {restaurantStatus?.closed_reason && (
+              <p className="text-sm">Reason: {restaurantStatus.closed_reason}</p>
+            )}
+            {restaurantStatus?.hours?.today && (
+              <p className="text-sm">Today's Hours: {restaurantStatus.hours.today}</p>
+            )}
+            {restaurantStatus?.next_status_change?.action === 'open' && (
+              <p className="text-sm font-semibold text-green-700">
+                Opens at {restaurantStatus.next_status_change.time}
+              </p>
+            )}
+            <p className="text-sm mt-2">
+              You can fill out the form, but your order will be rejected when you try to place it.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Order Type Selection */}
       <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
         <CardHeader>

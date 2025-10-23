@@ -25,6 +25,18 @@ export function useCreateOrder() {
   return useMutation({
     mutationFn: (data: Partial<Order> & { items: any[] }) =>
       post<{ order: Order; payment_url: string }>('/api/orders', data),
+    // Don't log expected errors to console (403/503 are handled in UI)
+    onError: (error: any) => {
+      // Suppress console logging for expected errors
+      // They're already handled with user-friendly toast messages
+      const isExpectedError = 
+        error.statusCode === 403 || // Restaurant closed / outside hours
+        error.statusCode === 503;   // Kitchen at capacity
+      
+      if (!isExpectedError) {
+        console.error('Unexpected order creation error:', error);
+      }
+    },
   });
 }
 

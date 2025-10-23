@@ -108,13 +108,41 @@ export function EnhancedBanner() {
             </motion.div>
           </div>
 
-          {/* Closed Message */}
-          {!status?.is_open && status?.message && (
+          {/* Operating Hours & Status Message */}
+          {!status?.is_open && (
             <motion.div 
               variants={item}
-              className="mt-3 p-2.5 bg-black/20 rounded-lg border border-white/10"
+              className="mt-3 p-3 bg-black/20 rounded-lg border border-white/10 space-y-2"
             >
-              <p className="text-white text-sm">{status.message}</p>
+              <p className="text-white text-sm font-medium">{status?.message}</p>
+              {status?.closed_reason && (
+                <p className="text-white/70 text-xs italic">
+                  Reason: {status.closed_reason}
+                </p>
+              )}
+              {status?.hours?.today && (
+                <p className="text-white/80 text-xs">
+                  <span className="font-semibold">Today's Hours:</span> {status.hours.today}
+                </p>
+              )}
+              {status?.next_status_change?.action === 'open' && (
+                <p className="text-green-300 text-xs font-medium">
+                  Opens at {status.next_status_change.time}
+                </p>
+              )}
+            </motion.div>
+          )}
+          
+          {/* Open - Show closing time */}
+          {status?.is_open && status?.next_status_change?.action === 'close' && (
+            <motion.div 
+              variants={item}
+              className="mt-3 p-2.5 bg-black/15 rounded-lg border border-white/10"
+            >
+              <p className="text-white/90 text-xs">
+                <Clock className="h-3 w-3 inline mr-1" />
+                Last orders at {status.next_status_change.time}
+              </p>
             </motion.div>
           )}
         </div>
