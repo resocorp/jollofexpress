@@ -47,3 +47,29 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env.local
+
+# Development documentation (keep these local)
+*_PLAN.md
+*_COMPLETE.md
+*_GUIDE.md
+*_FIX.md
+*_SUMMARY.md
+*_STEPS.md
+*_REFERENCE.md
+*_STATUS.md
+*_CHECKLIST.md
+*_TESTING.md
+*_IMPLEMENTATION.md
+*_PROGRESS.md
+*_ANALYSIS.md
+*_IMPROVEMENTS.md
+*_FEATURES.md
+*_INCIDENT.md
+*_UPDATE.md
+*_SETUP.md
+*_ACTION.md
+QUICKSTART.md
+START_HERE.md
+NEXT_STEPS.md
+# Keep these docs
+!README.md
