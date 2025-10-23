@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Circle, Clock } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Loader2 } from 'lucide-react';
 import { formatOrderStatus, formatDateTime, formatRelativeTime } from '@/lib/formatters';
 import type { OrderWithItems } from '@/types/database';
 
@@ -15,6 +15,7 @@ const ORDER_STAGES = [
   { key: 'preparing', label: 'Preparing', icon: Clock },
   { key: 'ready', label: 'Ready for Pickup', icon: CheckCircle2 },
   { key: 'out_for_delivery', label: 'Out for Delivery', icon: CheckCircle2 },
+  { key: 'completed', label: 'Delivered', icon: CheckCircle2 },
 ];
 
 export function OrderTracker({ order }: OrderTrackerProps) {
@@ -64,7 +65,9 @@ export function OrderTracker({ order }: OrderTrackerProps) {
                         : 'bg-white border-gray-300 text-gray-400'
                     } ${isCurrent ? 'ring-4 ring-primary/20' : ''}`}
                   >
-                    {isCompleted ? (
+                    {isCurrent && order.status !== 'completed' ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : isCompleted ? (
                       <CheckCircle2 className="h-5 w-5" />
                     ) : (
                       <Circle className="h-5 w-5" />

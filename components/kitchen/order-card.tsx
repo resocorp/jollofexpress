@@ -33,7 +33,7 @@ const STATUS_FLOW: Record<OrderStatus, OrderStatus | null> = {
   confirmed: 'preparing',
   preparing: 'ready',
   ready: 'out_for_delivery',
-  out_for_delivery: null,
+  out_for_delivery: 'completed',
   completed: null,
   cancelled: null,
 };
@@ -174,6 +174,7 @@ export function OrderCard({ order }: OrderCardProps) {
                   nextStatus === 'preparing' ? 'Start Preparing' :
                   nextStatus === 'ready' ? 'Mark Ready' :
                   nextStatus === 'out_for_delivery' ? 'Out for Delivery' :
+                  nextStatus === 'completed' ? 'Mark as Delivered' :
                   'Next Stage'
                 }
                 <ChevronRight className="h-4 w-4 ml-1" />
@@ -301,7 +302,10 @@ export function OrderCard({ order }: OrderCardProps) {
               </Button>
               {nextStatus && (
                 <Button onClick={handleAdvanceStatus} disabled={isAdvancing} className="flex-1">
-                  {isAdvancing ? 'Moving...' : `Move to ${nextStatus}`}
+                  {isAdvancing ? 'Moving...' : 
+                    nextStatus === 'completed' ? 'Mark as Delivered' :
+                    `Move to ${nextStatus}`
+                  }
                 </Button>
               )}
             </div>
