@@ -53,6 +53,7 @@ next-env.d.ts
 *_COMPLETE.md
 *_GUIDE.md
 *_FIX.md
+*_FIXES.md
 *_SUMMARY.md
 *_STEPS.md
 *_REFERENCE.md
@@ -68,8 +69,24 @@ next-env.d.ts
 *_UPDATE.md
 *_SETUP.md
 *_ACTION.md
+*_APPLIED.md
+*_KEYS.md
+*_MIGRATION.md
+*_REMEDIATION.md
+*_INSTRUCTIONS.md
+*_CHECKOUT.md
+*_INDEX.md
+*_5MIN.md
+PRINT_*.md
+PROMO_*.md
+QUICK_*.md
 QUICKSTART.md
 START_HERE.md
 NEXT_STEPS.md
+TEST_*.md
+SECURITY_*.md
+SUPABASE_*.md
+README_NETWORK_PRINTING.md
+MIGRATE_*.md
 # Keep these docs
 !README.md
