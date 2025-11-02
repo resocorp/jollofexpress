@@ -1,7 +1,7 @@
 Here's a complete reference of all working commands:
 Complete Test Script - All Features
 powershell# Complete POS Printer Feature Test
-$ip = "192.168.100.160"
+$ip = "10.250.40.14"
 $port = 9100
 
 $client = New-Object System.Net.Sockets.TcpClient($ip, $port)

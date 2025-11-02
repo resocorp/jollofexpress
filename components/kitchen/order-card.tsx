@@ -67,9 +67,12 @@ export function OrderCard({ order }: OrderCardProps) {
 
   const handleReprint = async () => {
     try {
-      await reprintOrder.mutateAsync(order.id);
+      console.log('[REPRINT] Initiating reprint for order:', order.order_number, order.id);
+      const result = await reprintOrder.mutateAsync(order.id);
+      console.log('[REPRINT] Success:', result);
       toast.success('Reprint queued');
     } catch (error: any) {
+      console.error('[REPRINT] Error:', error);
       toast.error(error.message || 'Failed to reprint');
     }
   };
