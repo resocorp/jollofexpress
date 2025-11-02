@@ -17,21 +17,30 @@ export const maxDuration = 60; // Allow up to 60 seconds for processing
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  console.log('[PROCESS-QUEUE] Request received');
+  
   try {
     // Verify authorization (simple token-based auth)
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
     
+    console.log('[PROCESS-QUEUE] Auth header present:', !!authHeader);
+    
     // Check against environment variable
     const expectedToken = process.env.PRINT_PROCESSOR_SECRET || process.env.WEBHOOK_SECRET;
     
+    console.log('[PROCESS-QUEUE] Expected token configured:', !!expectedToken);
+    
     if (!expectedToken || token !== expectedToken) {
-      console.warn('Unauthorized print processor access attempt');
+      console.warn('[PROCESS-QUEUE] Unauthorized access attempt');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    
+    console.log('[PROCESS-QUEUE] Authorization successful');
 
     // Get printer configuration from environment
     const printerHost = process.env.PRINTER_IP_ADDRESS || process.env.PRINT_SERVER_URL?.replace(/^https?:\/\//, '').split(':')[0];
@@ -48,7 +57,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Processing print queue... (printer: ${printerHost}:${printerPort})`);
+    console.log(`[PROCESS-QUEUE] Starting queue processing (printer: ${printerHost}:${printerPort})`);
 
     // Process the print queue (small batch to avoid timeout)
     const result = await processPrintQueue({
@@ -61,6 +70,9 @@ export async function POST(request: NextRequest) {
       batchSize: 3, // Process only 3 jobs at a time to avoid timeout
     });
 
+    const duration = Date.now() - startTime;
+    console.log(`[PROCESS-QUEUE] Completed in ${duration}ms: ${result.processed} processed, ${result.succeeded} succeeded, ${result.failed} failed`);
+
     // Return result
     return NextResponse.json({
       success: true,
@@ -70,6 +82,7 @@ export async function POST(request: NextRequest) {
         failed: result.failed,
         errors: result.errors.length > 0 ? result.errors : undefined,
       },
+      duration,
       timestamp: new Date().toISOString(),
     });
 

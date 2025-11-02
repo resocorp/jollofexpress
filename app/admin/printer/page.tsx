@@ -70,6 +70,33 @@ export default function PrinterStatusPage() {
     }
   };
 
+  const processQueue = async () => {
+    setTesting(true);
+    try {
+      const response = await fetch('/api/print/process-queue', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + prompt('Enter PRINT_PROCESSOR_SECRET:'),
+        },
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success(`Processed ${data.result.processed} jobs: ${data.result.succeeded} succeeded, ${data.result.failed} failed`);
+        // Refresh queue status
+        checkQueue();
+      } else {
+        toast.error(`Failed: ${data.error || data.message}`);
+      }
+      console.log('Process queue result:', data);
+    } catch (error) {
+      toast.error('Failed to process queue');
+      console.error(error);
+    } finally {
+      setTesting(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
@@ -119,6 +146,17 @@ export default function PrinterStatusPage() {
               </>
             ) : (
               'Check Print Queue'
+            )}
+          </Button>
+
+          <Button onClick={processQueue} variant="default" disabled={testing}>
+            {testing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Process Queue Now'
             )}
           </Button>
         </CardContent>
