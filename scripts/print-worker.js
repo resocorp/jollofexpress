@@ -42,9 +42,11 @@ const https = require('https');
 const http = require('http');
 
 // Configuration
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+// Use localhost for internal communication (faster, no proxy issues)
+const APP_URL = process.env.PRINT_WORKER_APP_URL || 'http://localhost:3000';
 const PROCESS_INTERVAL = parseInt(process.env.PRINT_PROCESS_INTERVAL || '15000'); // 15 seconds
 const SECRET = process.env.PRINT_PROCESSOR_SECRET || process.env.WEBHOOK_SECRET;
+const STARTUP_DELAY = parseInt(process.env.PRINT_WORKER_STARTUP_DELAY || '10000'); // Wait 10s for app to start
 
 if (!SECRET) {
   console.error('❌ PRINT_PROCESSOR_SECRET or WEBHOOK_SECRET environment variable required');
@@ -54,6 +56,7 @@ if (!SECRET) {
 console.log('🖨️  Print Queue Worker Starting...');
 console.log(`   App URL: ${APP_URL}`);
 console.log(`   Interval: ${PROCESS_INTERVAL}ms (${PROCESS_INTERVAL / 1000}s)`);
+console.log(`   Startup Delay: ${STARTUP_DELAY}ms (${STARTUP_DELAY / 1000}s)`);
 console.log('');
 
 let isProcessing = false;
@@ -196,16 +199,6 @@ async function healthCheck() {
   }
 }
 
-// Start processing loop
-console.log('🚀 Starting print queue processor...\n');
-setInterval(processPrintQueue, PROCESS_INTERVAL);
-
-// Run immediately on start
-processPrintQueue();
-
-// Health check every 5 minutes
-setInterval(healthCheck, 5 * 60 * 1000);
-
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n🛑 Shutting down print worker...');
@@ -217,4 +210,62 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-console.log('✅ Print worker is running. Press Ctrl+C to stop.\n');
+/**
+ * Wait for app to be ready
+ */
+async function waitForApp() {
+  console.log('⏳ Waiting for app to be ready...');
+  
+  const maxAttempts = 30; // 30 attempts = 30 seconds
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const url = new URL(APP_URL);
+      const protocol = url.protocol === 'https:' ? https : http;
+      
+      await new Promise((resolve, reject) => {
+        const req = protocol.get(APP_URL, { timeout: 2000 }, (res) => {
+          resolve(res.statusCode);
+        });
+        req.on('error', reject);
+        req.on('timeout', () => {
+          req.destroy();
+          reject(new Error('Timeout'));
+        });
+      });
+      
+      console.log('✅ App is ready!\n');
+      return true;
+    } catch (error) {
+      if (i < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  }
+  
+  console.warn('⚠️  App not responding, starting anyway...\n');
+  return false;
+}
+
+/**
+ * Start the worker
+ */
+async function startWorker() {
+  console.log('🚀 Starting print queue processor...\n');
+  
+  // Wait for app to be ready
+  await waitForApp();
+  
+  // Process immediately on start
+  processPrintQueue();
+  
+  // Then process at regular intervals
+  setInterval(processPrintQueue, PROCESS_INTERVAL);
+  
+  // Health check every 5 minutes
+  setInterval(healthCheck, 5 * 60 * 1000);
+  
+  console.log('✅ Print worker is running. Press Ctrl+C to stop.\n');
+}
+
+// Start with a delay to let the main app fully initialize
+setTimeout(startWorker, STARTUP_DELAY);

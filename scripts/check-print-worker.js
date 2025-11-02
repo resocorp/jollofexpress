@@ -5,6 +5,27 @@
  * Usage: node scripts/check-print-worker.js
  */
 
+// Load environment variables from .env.local
+const path = require('path');
+const fs = require('fs');
+
+const envPath = path.resolve(__dirname, '../.env.local');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\n').forEach(line => {
+    line = line.trim();
+    if (line && !line.startsWith('#')) {
+      const [key, ...valueParts] = line.split('=');
+      if (key && valueParts.length > 0) {
+        const value = valueParts.join('=').trim();
+        if (!process.env[key]) {
+          process.env[key] = value;
+        }
+      }
+    }
+  });
+}
+
 const https = require('https');
 const http = require('http');
 const { createClient } = require('@supabase/supabase-js');
