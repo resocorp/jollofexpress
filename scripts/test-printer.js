@@ -9,22 +9,23 @@
 const net = require('net');
 
 // Configuration (read from environment or use defaults)
-const PRINTER_IP = process.env.PRINTER_IP_ADDRESS || '192.168.100.50';
+const PRINTER_IP = process.env.PRINTER_IP_ADDRESS || '192.168.100.160';
 const PRINTER_PORT = parseInt(process.env.PRINTER_PORT || '9100');
 
 console.log('🖨️  Thermal Printer Test Utility');
 console.log('================================\n');
 console.log(`Target Printer: ${PRINTER_IP}:${PRINTER_PORT}\n`);
 
-// ESC/POS Commands
+// ESC/POS Commands (tested working with printer at 192.168.100.160)
 const ESC = '\x1B';
 const GS = '\x1D';
 const LF = '\n';
-const CUT = GS + 'V' + '\x41' + '\x00';
+const CUT = GS + 'V' + '\x00'; // Full cut (tested working)
 const ALIGN_CENTER = ESC + 'a' + '\x01';
 const ALIGN_LEFT = ESC + 'a' + '\x00';
 const NORMAL = ESC + '!' + '\x00';
-const BOLD = ESC + '!' + '\x08';
+const BOLD_ON = ESC + 'E' + '\x01'; // Correct bold command
+const BOLD_OFF = ESC + 'E' + '\x00';
 const LARGE = ESC + '!' + '\x30';
 
 /**
@@ -86,9 +87,9 @@ async function testPrint() {
     
     // Test info
     commands.push(ALIGN_LEFT);
-    commands.push(BOLD);
+    commands.push(BOLD_ON);
     commands.push('PRINTER TEST RECEIPT' + LF);
-    commands.push(NORMAL);
+    commands.push(BOLD_OFF);
     commands.push(LF);
     
     commands.push(`Date: ${new Date().toLocaleString('en-GB')}` + LF);
@@ -107,10 +108,10 @@ async function testPrint() {
     commands.push(LF);
     
     commands.push(ALIGN_CENTER);
-    commands.push(BOLD);
+    commands.push(BOLD_ON);
     commands.push('If you can read this,' + LF);
     commands.push('your printer is working!' + LF);
-    commands.push(NORMAL);
+    commands.push(BOLD_OFF);
     commands.push(LF);
     
     commands.push('='.repeat(48) + LF);

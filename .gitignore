@@ -36,9 +36,9 @@ yarn-error.log*
 .env.production
 .env.development
 .env.test
-
-# Allow .env.example (safe template)
+# Allow example files (these are safe templates)
 !.env.example
+!.env.print.example
 
 # vercel
 .vercel
@@ -90,3 +90,4 @@ README_NETWORK_PRINTING.md
 MIGRATE_*.md
 # Keep these docs
 !README.md
+!PRINTER_SETUP.md

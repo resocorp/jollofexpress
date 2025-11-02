@@ -5,23 +5,32 @@
 
 import type { ReceiptData } from './format-receipt';
 
-// ESC/POS Command Constants
+// ESC/POS Command Constants (Tested with printer at 192.168.100.160)
 const ESC = '\x1B';
 const GS = '\x1D';
 const LF = '\n';
-const CUT = GS + 'V' + '\x41' + '\x00'; // Partial cut
+const CUT = GS + 'V' + '\x00'; // Full cut (tested working)
 
 // Alignment
 const ALIGN_LEFT = ESC + 'a' + '\x00';
 const ALIGN_CENTER = ESC + 'a' + '\x01';
 const ALIGN_RIGHT = ESC + 'a' + '\x02';
 
-// Text Size & Style
+// Text Size (using 1B 21 XX - tested working)
 const NORMAL = ESC + '!' + '\x00';
-const BOLD = ESC + '!' + '\x08';
 const DOUBLE_HEIGHT = ESC + '!' + '\x10';
 const DOUBLE_WIDTH = ESC + '!' + '\x20';
 const LARGE = ESC + '!' + '\x30'; // Double height + double width
+
+// Text Style (using 1B 45 XX - tested working)
+const BOLD_ON = ESC + 'E' + '\x01';
+const BOLD_OFF = ESC + 'E' + '\x00';
+
+// Additional styles (tested working)
+const UNDERLINE_ON = ESC + '-' + '\x01';
+const UNDERLINE_OFF = ESC + '-' + '\x00';
+const INVERTED_ON = GS + 'B' + '\x01';
+const INVERTED_OFF = GS + 'B' + '\x00';
 
 // Character encoding
 const CHAR_SET_USA = ESC + 'R' + '\x00';
@@ -51,17 +60,17 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   
   // Order info
   commands.push(ALIGN_LEFT);
-  commands.push(BOLD);
+  commands.push(BOLD_ON);
   commands.push(`Order: ${receipt.orderNumber}` + LF);
-  commands.push(NORMAL);
+  commands.push(BOLD_OFF);
   commands.push(`Date: ${receipt.orderDate} ${receipt.orderTime}` + LF);
   commands.push(line('-', 48) + LF);
   commands.push(LF);
   
   // Customer details
-  commands.push(BOLD);
+  commands.push(BOLD_ON);
   commands.push('CUSTOMER DETAILS' + LF);
-  commands.push(NORMAL);
+  commands.push(BOLD_OFF);
   commands.push(`Name: ${receipt.customerName}` + LF);
   commands.push(`Phone: ${receipt.customerPhone}` + LF);
   if (receipt.customerPhoneAlt) {
@@ -72,9 +81,9 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   
   // Delivery address
   if (receipt.orderType === 'delivery' && receipt.deliveryAddress) {
-    commands.push(BOLD);
+    commands.push(BOLD_ON);
     commands.push('DELIVERY ADDRESS' + LF);
-    commands.push(NORMAL);
+    commands.push(BOLD_OFF);
     if (receipt.deliveryCity) {
       commands.push(receipt.deliveryCity + LF);
     }
@@ -87,7 +96,7 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
     }
     if (receipt.deliveryInstructions) {
       commands.push(LF);
-      commands.push(BOLD + 'Delivery Instructions:' + NORMAL + LF);
+      commands.push(BOLD_ON + 'Delivery Instructions:' + BOLD_OFF + LF);
       commands.push(receipt.deliveryInstructions + LF);
     }
     commands.push(LF);
@@ -95,9 +104,9 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   
   // Items section
   commands.push(line('-', 48) + LF);
-  commands.push(BOLD);
+  commands.push(BOLD_ON);
   commands.push('ITEMS' + LF);
-  commands.push(NORMAL);
+  commands.push(BOLD_OFF);
   commands.push(line('-', 48) + LF);
   
   // Items
@@ -118,9 +127,9 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   // Special instructions
   if (receipt.specialInstructions.length > 0) {
     commands.push(line('-', 48) + LF);
-    commands.push(BOLD);
+    commands.push(BOLD_ON);
     commands.push('⚠️  SPECIAL INSTRUCTIONS:' + LF);
-    commands.push(NORMAL);
+    commands.push(BOLD_OFF);
     receipt.specialInstructions.forEach(instruction => {
       commands.push(`   • ${instruction}` + LF);
     });
@@ -137,9 +146,10 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
     commands.push(padRight('Discount:', `-${formatCurrency(receipt.discount)}`, 48) + LF);
   }
   commands.push(line('=', 48) + LF);
-  commands.push(BOLD);
+  commands.push(BOLD_ON);
   commands.push(DOUBLE_HEIGHT);
   commands.push(padRight('TOTAL:', formatCurrency(receipt.total), 48) + LF);
+  commands.push(BOLD_OFF);
   commands.push(NORMAL);
   commands.push(line('=', 48) + LF);
   commands.push(LF);
@@ -151,9 +161,10 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   // Kitchen instructions
   commands.push(line('-', 48) + LF);
   commands.push(ALIGN_CENTER);
-  commands.push(BOLD);
+  commands.push(BOLD_ON);
   commands.push(DOUBLE_HEIGHT);
   commands.push('Kitchen - Start Prep Now!' + LF);
+  commands.push(BOLD_OFF);
   commands.push(NORMAL);
   if (receipt.estimatedPrepTime) {
     commands.push(`Estimated Time: ${receipt.estimatedPrepTime} min` + LF);

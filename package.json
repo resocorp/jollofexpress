@@ -7,6 +7,7 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "diagnose": "node scripts/diagnose-localhost.js",
     "print-worker": "node scripts/print-worker.js",
     "test-printer": "node scripts/test-printer.js",
     "pm2:start": "pm2 start ecosystem.config.js",

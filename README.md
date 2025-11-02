@@ -152,13 +152,51 @@ PRINT_VPN_ENABLED=true
    - Sample data for testing
    - Functions and triggers
 
-### 4. Run Development Server
+### 4. Configure Supabase CORS (Important for Localhost)
+
+For the app to work on localhost, you need to configure CORS in Supabase:
+
+1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project
+3. Navigate to **Settings** → **API**
+4. Scroll to **CORS Configuration**
+5. Add these origins:
+   ```
+   http://localhost:3000
+   http://127.0.0.1:3000
+   ```
+6. Click **Save**
+
+**Why this is needed**: The Kitchen Display System uses real-time Supabase subscriptions from the browser, which requires CORS configuration for localhost.
+
+### 5. Run Development Server
 
 ```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
+
+### 🔧 Troubleshooting Localhost Issues
+
+If the app works via ngrok but not on localhost, run the diagnostic tool:
+
+```bash
+npm run diagnose
+```
+
+This will check:
+- ✅ Environment variables are set correctly
+- ✅ Supabase is reachable
+- ✅ Dependencies are installed
+- ✅ Configuration files exist
+
+For detailed troubleshooting, see **[LOCALHOST_TROUBLESHOOTING.md](./LOCALHOST_TROUBLESHOOTING.md)**
+
+**Common issues:**
+- **CORS errors**: Add localhost to Supabase CORS settings (see step 4)
+- **Missing env vars**: Ensure `.env.local` exists and has all required variables
+- **Cached env vars**: Restart dev server after changing `.env.local`
 
 ## 📱 Application Routes
 

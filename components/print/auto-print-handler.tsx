@@ -29,7 +29,13 @@ export function AutoPrintHandler() {
   // Initialize Supabase client
   useEffect(() => {
     if (!supabaseRef.current) {
-      supabaseRef.current = createClient();
+      try {
+        supabaseRef.current = createClient();
+        console.log('✅ Supabase client initialized for print handler');
+      } catch (error) {
+        console.error('❌ Failed to initialize Supabase client:', error);
+        toast.error('Print handler initialization failed. Check console for details.');
+      }
     }
   }, []);
 
