@@ -50,15 +50,15 @@ export async function POST(request: NextRequest) {
 
     console.log(`Processing print queue... (printer: ${printerHost}:${printerPort})`);
 
-    // Process the print queue
+    // Process the print queue (small batch to avoid timeout)
     const result = await processPrintQueue({
       printer: {
         host: printerHost,
         port: printerPort,
-        timeout: 10000, // 10 second timeout
+        timeout: 5000, // 5 second timeout per job
       },
       maxAttempts: 3,
-      batchSize: 10,
+      batchSize: 3, // Process only 3 jobs at a time to avoid timeout
     });
 
     // Return result

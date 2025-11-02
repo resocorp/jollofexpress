@@ -105,9 +105,9 @@ async function processPrintQueue() {
       });
 
       req.on('error', reject);
-      req.setTimeout(30000, () => {
+      req.setTimeout(15000, () => {
         req.destroy();
-        reject(new Error('Request timeout after 30s'));
+        reject(new Error('Request timeout after 15s'));
       });
 
       req.end();
@@ -138,6 +138,11 @@ async function processPrintQueue() {
   } catch (error) {
     console.error(`❌ Processing error: ${error.message}`);
     consecutiveErrors++;
+    
+    // If timeout or connection error, reset isProcessing flag immediately
+    if (error.message.includes('timeout') || error.message.includes('hang up')) {
+      console.log('   Resetting processing flag due to timeout/connection error');
+    }
   } finally {
     isProcessing = false;
     
