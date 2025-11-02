@@ -5,7 +5,7 @@
 
 import { createServiceClient } from '@/lib/supabase/service';
 import { generateESCPOS } from './escpos-generator';
-import { printToNetwork, printToNetworkWithVerification, isPrinterReady, type PrinterConfig } from './network-printer';
+import { printToNetwork, type PrinterConfig } from './network-printer';
 import type { ReceiptData } from './format-receipt';
 
 export interface PrintJob {
@@ -81,10 +81,14 @@ export async function processPrintQueue(
         const newAttempts = job.attempts + 1;
         
         // Generate ESC/POS commands
+        console.log(`  Generating ESC/POS data...`);
         const escposData = generateESCPOS(job.print_data);
+        console.log(`  Generated ${escposData.length} bytes`);
         
-        // Send to printer with status verification
-        const printResult = await printToNetworkWithVerification(escposData, config.printer);
+        // Send to printer (direct, no status verification to avoid timeout)
+        console.log(`  Sending to printer ${config.printer.host}:${config.printer.port}...`);
+        const printResult = await printToNetwork(escposData, config.printer);
+        console.log(`  Print result:`, printResult);
         
         if (printResult.success) {
           // Mark as printed
