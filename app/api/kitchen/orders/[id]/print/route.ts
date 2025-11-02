@@ -12,6 +12,11 @@ export async function POST(
     console.log('[REPRINT] Starting reprint for order ID:', id);
     const supabase = createServiceClient();
 
+    // Determine if id is UUID or order_number
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const queryField = isUUID ? 'id' : 'order_number';
+    console.log(`[REPRINT] Querying by ${queryField}:`, id);
+
     // Fetch full order with items
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -19,7 +24,7 @@ export async function POST(
         *,
         items:order_items(*)
       `)
-      .eq('id', id)
+      .eq(queryField, id)
       .single();
 
     if (orderError || !order) {

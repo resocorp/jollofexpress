@@ -23,13 +23,20 @@ export async function GET(
 
     // Step 2: Fetch order
     diagnostics.steps.push({ step: 2, name: 'Fetch order', status: 'testing' });
+    
+    // Determine if id is UUID or order_number
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const queryField = isUUID ? 'id' : 'order_number';
+    diagnostics.steps[1].queryField = queryField;
+    diagnostics.steps[1].queryValue = id;
+    
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
         *,
         items:order_items(*)
       `)
-      .eq('id', id)
+      .eq(queryField, id)
       .single();
 
     if (orderError || !order) {

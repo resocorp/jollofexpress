@@ -16,11 +16,12 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 const ORDER_ID = process.argv[2];
 
 if (!ORDER_ID) {
-  console.error('❌ Error: Please provide an ORDER_ID');
+  console.error('❌ Error: Please provide an ORDER_ID or ORDER_NUMBER');
   console.log('\nUsage:');
-  console.log('  node scripts/diagnose-reprint.js ORDER_ID');
-  console.log('\nExample:');
-  console.log('  node scripts/diagnose-reprint.js 123e4567-e89b-12d3-a456-426614174000');
+  console.log('  node scripts/diagnose-reprint.js ORDER_ID_OR_NUMBER');
+  console.log('\nExamples:');
+  console.log('  node scripts/diagnose-reprint.js 123e4567-e89b-12d3-a456-426614174000  # UUID');
+  console.log('  node scripts/diagnose-reprint.js ORD-20251023-8779                     # Order Number');
   process.exit(1);
 }
 
@@ -70,7 +71,7 @@ async function runDiagnostics() {
     const diagnostics = response.data;
 
     console.log('📊 Diagnostic Results:\n');
-    console.log(`Order ID: ${diagnostics.orderId}`);
+    console.log(`Order ID/Number: ${diagnostics.orderId}`);
     console.log(`Overall Success: ${diagnostics.success ? '✅' : '❌'}\n`);
 
     if (diagnostics.steps) {
@@ -83,6 +84,9 @@ async function runDiagnostics() {
         
         console.log(`${icon} Step ${step.step}: ${step.name} - ${step.status.toUpperCase()}`);
         
+        if (step.queryField) {
+          console.log(`   Query Field: ${step.queryField} = ${step.queryValue}`);
+        }
         if (step.orderNumber) {
           console.log(`   Order Number: ${step.orderNumber}`);
         }

@@ -24,8 +24,14 @@ PRINTER_PORT=9100
 Run the diagnostic test endpoint to see where the issue occurs:
 
 ```bash
-# Replace ORDER_ID with an actual order ID from your database
-curl https://jollofexpress.app/api/kitchen/orders/ORDER_ID/print/test
+# You can use either the UUID or the order number (e.g., ORD-20251023-8779)
+node scripts/diagnose-reprint.js ORD-20251023-8779
+
+# Or with UUID
+node scripts/diagnose-reprint.js 123e4567-e89b-12d3-a456-426614174000
+
+# Or via curl
+curl https://jollofexpress.app/api/kitchen/orders/ORD-20251023-8779/print/test
 ```
 
 This will show you exactly which step is failing:
