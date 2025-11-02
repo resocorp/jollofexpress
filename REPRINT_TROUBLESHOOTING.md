@@ -1,25 +1,76 @@
-# Reprint Button Troubleshooting Guide
+# Reprint & Printing Troubleshooting Guide
 
-## Issue
-The reprint button in the kitchen display is not working, even though manual printing via command line works:
+## ✅ Status: Reprint Button Fixed!
+
+The reprint button is now working correctly and accepts both order UUIDs and order numbers (e.g., `ORD-20251023-8779`).
+
+**New Features Added:**
+- ✅ Printer status checking with ESC/POS commands
+- ✅ Paper level monitoring
+- ✅ Automatic readiness verification before printing
+- ✅ Detailed diagnostic tools
+
+## Current Issue
+
+Based on diagnostic results, the reprint button **IS working** - jobs are being queued successfully. The issue is that **the print worker is not running or processing the queue**.
+
+## Quick Fix
+
+### 1. Check Print Worker Status
 ```bash
-printf "Hello from Linux\n\n\n" | nc 10.250.40.14 9100
+# On your production server
+pm2 status
 ```
 
-## Diagnostic Steps
-
-### 1. Check Environment Variables
-Verify that your `.env.local` or production environment has the correct printer IP:
+Look for `print-worker` - it should show as "online". If it's not listed or shows as "stopped":
 
 ```bash
-# Your printer is at 10.250.40.14, not 192.168.100.160
-PRINTER_IP_ADDRESS=10.250.40.14
+# Start the print worker
+pm2 start ecosystem.config.js --only print-worker
+pm2 save
+```
+
+### 2. Verify Printer Configuration
+Make sure your environment has the correct printer IP:
+```bash
+# In .env.local or production environment
+PRINTER_IP_ADDRESS=10.250.40.14  # Your actual printer IP
 PRINTER_PORT=9100
+PRINT_PROCESSOR_SECRET=your_secret_here
 ```
 
-**Action**: Update your environment file with the correct IP address.
+### 3. Restart Services
+```bash
+pm2 restart all
+```
 
-### 2. Test the Reprint API Endpoint
+## Diagnostic Tools
+
+### 1. Check Print Worker & Queue Status
+```bash
+node scripts/check-print-worker.js
+```
+
+This will show:
+- Printer configuration
+- Number of pending jobs in the queue
+- Recent job history
+- Whether the print worker is accessible
+- Specific recommendations
+
+### 2. Check Printer Status (ESC/POS Commands)
+```bash
+node scripts/check-printer-status.js 10.250.40.14
+```
+
+This will test:
+- Printer connectivity
+- Printer online/offline status
+- Cover open/closed
+- Paper present/absent
+- Paper level (near end warning)
+
+### 3. Test the Reprint API Endpoint
 
 Run the diagnostic test endpoint to see where the issue occurs:
 
