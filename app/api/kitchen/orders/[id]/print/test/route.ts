@@ -64,7 +64,7 @@ export async function GET(
     const { data: insertedJob, error: printError } = await supabase
       .from('print_queue')
       .insert({
-        order_id: id,
+        order_id: order.id, // Use the actual UUID from the fetched order
         print_data: receiptData,
         status: 'pending',
       })
