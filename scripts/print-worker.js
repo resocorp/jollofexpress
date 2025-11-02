@@ -12,6 +12,32 @@
  *   pm2 start scripts/print-worker.js --name "print-worker"
  */
 
+// Load environment variables from .env.local
+const path = require('path');
+const fs = require('fs');
+
+// Try to load .env.local
+const envPath = path.resolve(__dirname, '../.env.local');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\n').forEach(line => {
+    line = line.trim();
+    if (line && !line.startsWith('#')) {
+      const [key, ...valueParts] = line.split('=');
+      if (key && valueParts.length > 0) {
+        const value = valueParts.join('=').trim();
+        // Only set if not already set (allow env vars to override file)
+        if (!process.env[key]) {
+          process.env[key] = value;
+        }
+      }
+    }
+  });
+  console.log('✅ Loaded .env.local');
+} else {
+  console.warn('⚠️  .env.local not found, using environment variables');
+}
+
 const https = require('https');
 const http = require('http');
 

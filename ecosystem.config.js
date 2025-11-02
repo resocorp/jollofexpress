@@ -20,6 +20,7 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '500M',
+      env_file: './.env.local', // Load environment variables from .env.local
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
@@ -39,6 +40,7 @@ module.exports = {
       restart_delay: 5000, // Wait 5 seconds before restarting
       max_restarts: 10,    // Max 10 restarts within 1 minute
       min_uptime: 10000,   // Consider stable after 10 seconds
+      env_file: './.env.local', // Load environment variables from .env.local
       env: {
         NODE_ENV: 'production',
       },
