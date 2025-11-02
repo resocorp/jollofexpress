@@ -9,7 +9,8 @@ import {
   Settings, 
   Tag,
   LogOut,
-  BarChart3
+  BarChart3,
+  Printer
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'Categories', href: '/admin/menu/categories', icon: Tag },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
   { name: 'Promo Codes', href: '/admin/promos', icon: Tag },
+  { name: 'Printer Status', href: '/admin/printer', icon: Printer },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
