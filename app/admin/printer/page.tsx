@@ -213,59 +213,70 @@ export default function PrinterStatusPage() {
             </div>
 
             {/* Detailed Status */}
-            {status.printer && (
+            {status.status && (
               <div className="border-t pt-4">
                 <h4 className="font-semibold mb-2">Detailed Status</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center gap-2">
-                    {status.printer.connected ? (
+                    {status.status.connected ? (
                       <CheckCircle className="h-4 w-4 text-green-500" />
                     ) : (
                       <XCircle className="h-4 w-4 text-red-500" />
                     )}
                     <span>Connected</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {status.printer.online ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    )}
-                    <span>Online</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {status.printer.coverClosed ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <AlertCircle className="h-4 w-4 text-yellow-500" />
-                    )}
-                    <span>Cover Closed</span>
-                  </div>
+                  {status.status.online !== undefined && (
+                    <div className="flex items-center gap-2">
+                      {status.status.online ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      )}
+                      <span>Online</span>
+                    </div>
+                  )}
+                  {status.status.coverClosed !== undefined && (
+                    <div className="flex items-center gap-2">
+                      {status.status.coverClosed ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 text-yellow-500" />
+                      )}
+                      <span>Cover Closed</span>
+                    </div>
+                  )}
+                  {status.status.paperPresent !== undefined && (
+                    <div className="flex items-center gap-2">
+                      {status.status.paperPresent ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      )}
+                      <span>Paper Present</span>
+                    </div>
+                  )}
+                  {status.status.paperNearEnd !== undefined && (
+                    <div className="flex items-center gap-2">
+                      {status.status.paperNearEnd ? (
+                        <AlertCircle className="h-4 w-4 text-yellow-500" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      )}
+                      <span>{status.status.paperNearEnd ? 'Paper Low' : 'Paper OK'}</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-
-            {status.paper && (
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-2">Paper Status</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    {status.paper.paperPresent ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    )}
-                    <span>Paper Present</span>
+                
+                {/* Raw status bytes for debugging */}
+                {(status.status.rawStatus !== undefined || status.status.rawPaper !== undefined) && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      Raw Status: 
+                      {status.status.rawStatus !== undefined && ` Printer=0x${status.status.rawStatus.toString(16).padStart(2, '0')}`}
+                      {status.status.rawPaper !== undefined && ` Paper=0x${status.status.rawPaper.toString(16).padStart(2, '0')}`}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {status.paper.paperNearEnd ? (
-                      <AlertCircle className="h-4 w-4 text-yellow-500" />
-                    ) : (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    )}
-                    <span>{status.paper.paperNearEnd ? 'Paper Low' : 'Paper OK'}</span>
-                  </div>
-                </div>
+                )}
               </div>
             )}
           </CardContent>
