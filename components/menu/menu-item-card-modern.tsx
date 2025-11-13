@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Plus, Clock, Heart, ShoppingCart, Check, Loader2 } from 'lucide-react';
+import { Plus, Clock, Heart } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,6 @@ interface MenuItemCardProps {
 export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
   const [showCustomization, setShowCustomization] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isAdding, setIsAdding] = useState(false);
 
   const hasCustomizations = (item.variations && item.variations.length > 0) || 
                            (item.addons && item.addons.length > 0);
@@ -42,16 +41,9 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
     hover: { scale: 1.05, transition: { duration: 0.3 } },
   };
 
-  const handleQuickAdd = () => {
-    if (hasCustomizations) {
+  const handleCardClick = () => {
+    if (item.is_available) {
       setShowCustomization(true);
-    } else {
-      setIsAdding(true);
-      // Simulate adding to cart
-      setTimeout(() => {
-        setIsAdding(false);
-        setShowCustomization(true);
-      }, 600);
     }
   };
 
@@ -63,8 +55,9 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
         animate="animate"
         whileHover="hover"
         className="h-full"
+        onClick={handleCardClick}
       >
-        <Card className="overflow-hidden h-full flex flex-col group border-0 shadow-md hover:shadow-2xl transition-all duration-300 bg-white rounded-2xl">
+        <Card className="overflow-hidden h-full flex flex-col group border-0 shadow-md hover:shadow-2xl transition-all duration-300 bg-white rounded-2xl cursor-pointer">
           {/* Image Section */}
           <div className="relative h-56 bg-gradient-to-br from-orange-50 via-white to-red-50 overflow-hidden">
             {item.image_url ? (
@@ -113,33 +106,6 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
               )}
             </div>
 
-            {/* Quick Add Button (appears on hover) */}
-            {item.is_available && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileHover={{ opacity: 1, y: 0 }}
-                className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              >
-                <Button
-                  onClick={handleQuickAdd}
-                  disabled={isAdding}
-                  className="w-full bg-primary hover:bg-primary/90 text-white shadow-xl font-semibold"
-                  size="lg"
-                >
-                  {isAdding ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Quick Add
-                    </>
-                  )}
-                </Button>
-              </motion.div>
-            )}
 
             {/* Sold Out Overlay */}
             {!item.is_available && (
@@ -192,7 +158,10 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
             <Button
               className="w-full group-hover:bg-primary group-hover:text-white transition-all duration-300"
               variant={item.is_available ? "default" : "secondary"}
-              onClick={() => setShowCustomization(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCustomization(true);
+              }}
               disabled={!item.is_available}
               size="lg"
             >
