@@ -25,9 +25,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 interface CheckoutFormProps {
   orderType: 'delivery' | 'carryout';
   onOrderTypeChange: (type: 'delivery' | 'carryout') => void;
+  onSubmitExposed?: (submitFn: () => void) => void;
+  onSubmittingChange?: (isSubmitting: boolean) => void;
 }
 
-export function CheckoutForm({ orderType: externalOrderType, onOrderTypeChange }: CheckoutFormProps) {
+export function CheckoutForm({ 
+  orderType: externalOrderType, 
+  onOrderTypeChange,
+  onSubmitExposed,
+  onSubmittingChange
+}: CheckoutFormProps) {
   const router = useRouter();
   const { items, discount, promoCode, getSubtotal, clearCart } = useCartStore();
   const createOrder = useCreateOrder();
@@ -56,6 +63,24 @@ export function CheckoutForm({ orderType: externalOrderType, onOrderTypeChange }
       onOrderTypeChange(orderType);
     }
   }, [orderType, externalOrderType, onOrderTypeChange]);
+
+  // Expose submit function to parent (only once on mount)
+  useEffect(() => {
+    if (onSubmitExposed) {
+      onSubmitExposed(() => {
+        handleSubmit(onSubmit, handleFormError)();
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onSubmitExposed]);
+
+  // Expose isSubmitting state to parent
+  useEffect(() => {
+    if (onSubmittingChange) {
+      onSubmittingChange(isSubmitting);
+    }
+  }, [isSubmitting, onSubmittingChange]);
+
   const subtotal = getSubtotal();
   const taxRate = 7.5;
   const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
@@ -446,34 +471,17 @@ export function CheckoutForm({ orderType: externalOrderType, onOrderTypeChange }
         </Alert>
       )}
 
-      {/* Submit Button */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4">
+      {/* Back to Menu Button */}
+      <div className="pt-4">
         <Button
           type="button"
           variant="outline"
           onClick={() => router.push('/menu')}
           disabled={isSubmitting}
           size="lg"
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto min-h-[56px]"
         >
           ← Back to Menu
-        </Button>
-        <Button 
-          type="submit" 
-          size="lg" 
-          disabled={isSubmitting || isBelowMinimum || isLoadingSettings}
-          className="w-full sm:w-auto bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-700 text-white font-bold text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              Proceed to Payment →
-            </>
-          )}
         </Button>
       </div>
     </form>

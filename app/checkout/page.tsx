@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { CheckoutForm } from '@/components/checkout/checkout-form';
-import { OrderSummary } from '@/components/checkout/order-summary';
+import { OrderSummaryWithButton } from '@/components/checkout/order-summary';
 import { useCartStore } from '@/store/cart-store';
+import { useDeliverySettings } from '@/hooks/use-settings';
 import { ShoppingBag, Shield, Lock, Truck, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +17,25 @@ import { motion } from 'framer-motion';
 export default function CheckoutPage() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
+  const getSubtotal = useCartStore((state) => state.getSubtotal);
+  const { data: deliverySettings, isLoading: isLoadingSettings } = useDeliverySettings();
   const [orderType, setOrderType] = useState<'delivery' | 'carryout'>('delivery');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitFormRef = useRef<(() => void) | null>(null);
+
+  const subtotal = getSubtotal();
+  const minOrder = deliverySettings?.min_order || 0;
+  const isBelowMinimum = orderType === 'delivery' && subtotal < minOrder;
+
+  const handleSubmitExposed = useCallback((fn: () => void) => {
+    submitFormRef.current = fn;
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    if (submitFormRef.current) {
+      submitFormRef.current();
+    }
+  }, []);
 
   // Redirect to menu if cart is empty
   useEffect(() => {
@@ -125,10 +144,15 @@ export default function CheckoutPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="lg:col-span-2"
           >
-            <CheckoutForm orderType={orderType} onOrderTypeChange={setOrderType} />
+            <CheckoutForm 
+              orderType={orderType} 
+              onOrderTypeChange={setOrderType}
+              onSubmitExposed={handleSubmitExposed}
+              onSubmittingChange={setIsSubmitting}
+            />
           </motion.div>
           
-          {/* Order Summary */}
+          {/* Order Summary with Button */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -136,7 +160,13 @@ export default function CheckoutPage() {
             className="lg:col-span-1"
           >
             <div className="sticky top-24">
-              <OrderSummary orderType={orderType} />
+              <OrderSummaryWithButton 
+                orderType={orderType}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+                isBelowMinimum={isBelowMinimum}
+                isLoadingSettings={isLoadingSettings}
+              />
             </div>
           </motion.div>
         </div>
