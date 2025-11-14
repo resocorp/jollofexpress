@@ -36,7 +36,7 @@ export function CheckoutForm({
   onSubmittingChange
 }: CheckoutFormProps) {
   const router = useRouter();
-  const { items, discount, promoCode, getSubtotal, clearCart } = useCartStore();
+  const { items, discount, promoCode, getSubtotal, setPendingOrder } = useCartStore();
   const createOrder = useCreateOrder();
   const { data: deliverySettings, isLoading: isLoadingSettings } = useDeliverySettings();
   const { data: restaurantStatus } = useRestaurantStatus();
@@ -147,8 +147,8 @@ export function CheckoutForm({
 
       console.log('Order created successfully:', result.order.id);
 
-      // Clear cart
-      clearCart();
+      // Store pending order ID (cart will be cleared after successful payment)
+      setPendingOrder(result.order.id);
 
       // Redirect to Paystack payment page
       if (result.payment_url) {

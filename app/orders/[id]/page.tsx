@@ -1,17 +1,18 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { OrderTracker } from '@/components/orders/order-tracker';
 import { OrderDetails } from '@/components/orders/order-details';
 import { useOrder, useVerifyPayment } from '@/hooks/use-orders';
-import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, ShoppingCart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { useCartStore } from '@/store/cart-store';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -20,12 +21,14 @@ interface PageProps {
 export default function OrderTrackingPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const reference = searchParams.get('reference');
   const phone = searchParams.get('phone');
   
   const [isVerifying, setIsVerifying] = useState(!!reference);
   const { data: order, isLoading, error } = useOrder(resolvedParams.id, phone || undefined);
   const verifyPayment = useVerifyPayment();
+  const { pendingOrderId, clearCart } = useCartStore();
 
   // Verify payment if coming from Paystack redirect
   useEffect(() => {
@@ -38,6 +41,11 @@ export default function OrderTrackingPage({ params }: PageProps) {
         })
         .then(() => {
           toast.success('Payment verified successfully!');
+          // Clear cart only after successful payment verification
+          if (pendingOrderId === resolvedParams.id) {
+            clearCart();
+            console.log('Cart cleared after successful payment');
+          }
         })
         .catch((error: any) => {
           toast.error(error.message || 'Payment verification failed');
@@ -46,6 +54,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
           setIsVerifying(false);
         });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reference, resolvedParams.id]);
 
   if (isLoading || isVerifying) {
@@ -90,6 +99,8 @@ export default function OrderTrackingPage({ params }: PageProps) {
 
   // Show payment failed message
   if (order.payment_status === 'failed') {
+    const hasCartForThisOrder = pendingOrderId === resolvedParams.id;
+    
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -102,12 +113,24 @@ export default function OrderTrackingPage({ params }: PageProps) {
                 Your payment could not be processed. Please try again.
               </p>
               <div className="space-y-2">
+                {hasCartForThisOrder ? (
+                  <>
+                    <Button className="w-full" onClick={() => router.push('/checkout')}>
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Return to Checkout
+                    </Button>
+                    <p className="text-sm text-muted-foreground py-2">
+                      Your cart has been preserved. You can modify it and try again.
+                    </p>
+                  </>
+                ) : (
+                  <Button variant="outline" className="w-full" onClick={() => window.location.reload()}>
+                    Retry Payment
+                  </Button>
+                )}
                 <Link href="/menu">
-                  <Button className="w-full">Back to Menu</Button>
+                  <Button variant="outline" className="w-full">Back to Menu</Button>
                 </Link>
-                <Button variant="outline" className="w-full" onClick={() => window.location.reload()}>
-                  Retry Payment
-                </Button>
               </div>
             </CardContent>
           </Card>

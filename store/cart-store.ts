@@ -7,6 +7,7 @@ interface CartStore {
   items: CartItem[];
   promoCode: string | null;
   discount: number;
+  pendingOrderId: string | null; // Track order ID for cart recovery
   
   // Actions
   addItem: (
@@ -20,6 +21,7 @@ interface CartStore {
   updateItemQuantity: (index: number, quantity: number) => void;
   clearCart: () => void;
   setPromoCode: (code: string | null, discount: number) => void;
+  setPendingOrder: (orderId: string | null) => void;
   
   // Computed values
   getSubtotal: () => number;
@@ -32,6 +34,7 @@ export const useCartStore = create<CartStore>()(
       items: [],
       promoCode: null,
       discount: 0,
+      pendingOrderId: null,
 
       addItem: (item, quantity, selectedVariation, selectedAddons = [], specialInstructions) => {
         // Calculate item subtotal
@@ -99,11 +102,15 @@ export const useCartStore = create<CartStore>()(
       },
 
       clearCart: () => {
-        set({ items: [], promoCode: null, discount: 0 });
+        set({ items: [], promoCode: null, discount: 0, pendingOrderId: null });
       },
 
       setPromoCode: (code, discount) => {
         set({ promoCode: code, discount });
+      },
+
+      setPendingOrder: (orderId) => {
+        set({ pendingOrderId: orderId });
       },
 
       getSubtotal: () => {
