@@ -34,8 +34,8 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
   const [quantity, setQuantity] = useState(1);
   const [selectedVariationIndex, setSelectedVariationIndex] = useState<number | null>(null);
   const [selectedVariationOption, setSelectedVariationOption] = useState<ItemVariationOption | null>(null);
-  const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
-  const [specialInstructions, setSpecialInstructions] = useState('');
+  const [variationQuantity, setVariationQuantity] = useState(1);
+  const [selectedAddonQuantities, setSelectedAddonQuantities] = useState<Record<string, number>>({});
 
   // Reset when dialog opens
   const handleOpenChange = (isOpen: boolean) => {
@@ -43,8 +43,8 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
       setQuantity(1);
       setSelectedVariationIndex(null);
       setSelectedVariationOption(null);
-      setSelectedAddonIds([]);
-      setSpecialInstructions('');
+      setVariationQuantity(1);
+      setSelectedAddonQuantities({});
       onClose();
     }
   };
@@ -53,31 +53,36 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
   const totalPrice = useMemo(() => {
     let price = item.base_price;
     
-    // Add variation price adjustment
+    // Add variation price adjustment (multiplied by variation quantity)
     if (selectedVariationOption) {
-      price += selectedVariationOption.price_adjustment;
+      price += selectedVariationOption.price_adjustment * variationQuantity;
     }
     
-    // Add selected addons
+    // Add selected addons (each with their own quantity)
     if (item.addons) {
-      const selectedAddons = item.addons.filter((addon) => 
-        selectedAddonIds.includes(addon.id)
-      );
-      price += selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
+      const addonsTotal = Object.entries(selectedAddonQuantities).reduce((sum, [addonId, qty]) => {
+        const addon = item.addons?.find(a => a.id === addonId);
+        return sum + (addon ? addon.price * qty : 0);
+      }, 0);
+      price += addonsTotal;
     }
     
     return price * quantity;
-  }, [item, selectedVariationOption, selectedAddonIds, quantity]);
+  }, [item, selectedVariationOption, variationQuantity, selectedAddonQuantities, quantity]);
 
   const handleAddToCart = () => {
-    const selectedAddons = item.addons?.filter((addon) => 
-      selectedAddonIds.includes(addon.id)
-    ) || [];
+    const selectedAddons = Object.entries(selectedAddonQuantities)
+      .map(([addonId, qty]) => {
+        const addon = item.addons?.find(a => a.id === addonId);
+        return addon ? { ...addon, quantity: qty } : null;
+      })
+      .filter((addon): addon is ItemAddon & { quantity: number } => addon !== null);
 
     const variation = selectedVariationIndex !== null && item.variations
       ? {
           variation_name: item.variations[selectedVariationIndex].variation_name,
           option: selectedVariationOption!,
+          quantity: variationQuantity,
         }
       : undefined;
 
@@ -85,8 +90,7 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
       item,
       quantity,
       variation,
-      selectedAddons,
-      specialInstructions || undefined
+      selectedAddons
     );
 
     toast.success(`${item.name} added to cart!`);
@@ -142,6 +146,7 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
                     if (option) {
                       setSelectedVariationIndex(varIndex);
                       setSelectedVariationOption(option);
+                      setVariationQuantity(1); // Reset quantity when changing selection
                     }
                   }}
                 >
@@ -150,12 +155,41 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
                       <RadioGroupItem value={option.name} id={`${variation.id}-${option.name}`} />
                       <Label htmlFor={`${variation.id}-${option.name}`} className="flex-1 cursor-pointer">
                         <div className="flex justify-between items-center">
-                          <span>{option.name}</span>
-                          {option.price_adjustment !== 0 && (
-                            <span className="text-sm text-muted-foreground">
-                              {option.price_adjustment > 0 ? '+' : ''}
-                              {formatCurrency(option.price_adjustment)}
-                            </span>
+                          <div className="flex-1">
+                            <span>{option.name}</span>
+                            {option.price_adjustment !== 0 && (
+                              <span className="text-sm text-muted-foreground ml-2">
+                                {option.price_adjustment > 0 ? '+' : ''}
+                                {formatCurrency(option.price_adjustment)}
+                              </span>
+                            )}
+                          </div>
+                          {selectedVariationIndex === varIndex && selectedVariationOption?.name === option.name && (
+                            <div className="flex items-center gap-2 ml-4" onClick={(e) => e.preventDefault()}>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setVariationQuantity(Math.max(1, variationQuantity - 1));
+                                }}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-8 text-center font-medium text-sm">{variationQuantity}</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setVariationQuantity(Math.min(50, variationQuantity + 1));
+                                }}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </Label>
@@ -171,53 +205,79 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
         {item.addons && item.addons.length > 0 && (
           <div className="space-y-3">
             <Label className="text-base font-semibold">Add-ons (Optional)</Label>
-            {item.addons.map((addon) => (
-              <div key={addon.id} className="flex items-center space-x-2 p-3 border rounded-lg">
-                <Checkbox
-                  id={addon.id}
-                  checked={selectedAddonIds.includes(addon.id)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setSelectedAddonIds([...selectedAddonIds, addon.id]);
-                    } else {
-                      setSelectedAddonIds(selectedAddonIds.filter((id) => id !== addon.id));
-                    }
-                  }}
-                  disabled={!addon.is_available}
-                />
-                <Label htmlFor={addon.id} className="flex-1 cursor-pointer">
-                  <div className="flex justify-between items-center">
-                    <span className={!addon.is_available ? 'text-muted-foreground' : ''}>
-                      {addon.name}
-                      {!addon.is_available && ' (Unavailable)'}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      +{formatCurrency(addon.price)}
-                    </span>
+            {item.addons.map((addon) => {
+              const addonQty = selectedAddonQuantities[addon.id] || 0;
+              const isSelected = addonQty > 0;
+              
+              return (
+                <div key={addon.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id={addon.id}
+                        checked={isSelected}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedAddonQuantities({ ...selectedAddonQuantities, [addon.id]: 1 });
+                          } else {
+                            const newQuantities = { ...selectedAddonQuantities };
+                            delete newQuantities[addon.id];
+                            setSelectedAddonQuantities(newQuantities);
+                          }
+                        }}
+                        disabled={!addon.is_available}
+                      />
+                      <Label htmlFor={addon.id} className="flex-1 cursor-pointer">
+                        <div className="flex justify-between items-center">
+                          <span className={!addon.is_available ? 'text-muted-foreground' : ''}>
+                            {addon.name}
+                            {!addon.is_available && ' (Unavailable)'}
+                          </span>
+                          <span className="text-sm text-muted-foreground ml-2">
+                            +{formatCurrency(addon.price)}
+                          </span>
+                        </div>
+                      </Label>
+                    </div>
                   </div>
-                </Label>
-              </div>
-            ))}
+                  {isSelected && (
+                    <div className="flex items-center gap-2 ml-4">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => {
+                          const newQty = Math.max(1, addonQty - 1);
+                          if (newQty === 0) {
+                            const newQuantities = { ...selectedAddonQuantities };
+                            delete newQuantities[addon.id];
+                            setSelectedAddonQuantities(newQuantities);
+                          } else {
+                            setSelectedAddonQuantities({ ...selectedAddonQuantities, [addon.id]: newQty });
+                          }
+                        }}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-8 text-center font-medium text-sm">{addonQty}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => {
+                          setSelectedAddonQuantities({ ...selectedAddonQuantities, [addon.id]: Math.min(50, addonQty + 1) });
+                        }}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Special Instructions */}
-        <div className="space-y-2">
-          <Label htmlFor="instructions">Special Instructions (Optional)</Label>
-          <Textarea
-            id="instructions"
-            placeholder="E.g., Extra spicy, no onions..."
-            value={specialInstructions}
-            onChange={(e) => setSpecialInstructions(e.target.value)}
-            maxLength={200}
-            rows={3}
-          />
-          <p className="text-xs text-muted-foreground text-right">
-            {specialInstructions.length}/200
-          </p>
-        </div>
-
-        <Separator />
 
         {/* Quantity Selector */}
         <div className="flex items-center justify-between">

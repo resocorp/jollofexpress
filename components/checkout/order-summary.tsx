@@ -95,11 +95,14 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
                 {cartItem.selected_variation && (
                   <p className="text-xs text-muted-foreground mt-1">
                     • {cartItem.selected_variation.option.name}
+                    {cartItem.selected_variation.quantity && cartItem.selected_variation.quantity > 1 && (
+                      <span className="font-medium"> × {cartItem.selected_variation.quantity}</span>
+                    )}
                   </p>
                 )}
                 {cartItem.selected_addons.length > 0 && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    + {cartItem.selected_addons.map(a => a.name).join(', ')}
+                    + {cartItem.selected_addons.map(a => `${a.name} × ${a.quantity}`).join(', ')}
                   </p>
                 )}
               </div>
@@ -306,11 +309,14 @@ export function OrderSummaryWithButton({
                 {cartItem.selected_variation && (
                   <p className="text-xs text-muted-foreground mt-1">
                     • {cartItem.selected_variation.option.name}
+                    {cartItem.selected_variation.quantity && cartItem.selected_variation.quantity > 1 && (
+                      <span className="font-medium"> × {cartItem.selected_variation.quantity}</span>
+                    )}
                   </p>
                 )}
                 {cartItem.selected_addons.length > 0 && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    + {cartItem.selected_addons.map(a => a.name).join(', ')}
+                    + {cartItem.selected_addons.map(a => `${a.name} × ${a.quantity}`).join(', ')}
                   </p>
                 )}
               </div>

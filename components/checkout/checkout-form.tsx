@@ -112,13 +112,14 @@ export function CheckoutForm({
               name: cartItem.selected_variation.variation_name,
               option: cartItem.selected_variation.option.name,
               price_adjustment: cartItem.selected_variation.option.price_adjustment,
+              quantity: cartItem.selected_variation.quantity,
             }
           : undefined,
         selected_addons: cartItem.selected_addons.map((addon) => ({
           name: addon.name,
           price: addon.price,
+          quantity: addon.quantity,
         })),
-        special_instructions: cartItem.special_instructions,
         subtotal: cartItem.subtotal,
       }));
 

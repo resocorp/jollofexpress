@@ -102,11 +102,13 @@ export interface SelectedVariation {
   name: string;
   option: string;
   price_adjustment: number;
+  quantity?: number; // Quantity for this variation option
 }
 
 export interface SelectedAddon {
   name: string;
   price: number;
+  quantity: number; // Quantity for this addon
 }
 
 export interface OrderItem {
@@ -210,9 +212,9 @@ export interface CartItem {
   selected_variation?: {
     variation_name: string;
     option: ItemVariationOption;
+    quantity?: number; // Quantity for this variation
   };
-  selected_addons: ItemAddon[];
-  special_instructions?: string;
+  selected_addons: (ItemAddon & { quantity: number })[]; // Add quantity to addons
   subtotal: number;
 }
 

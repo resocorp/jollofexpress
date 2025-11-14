@@ -13,9 +13,8 @@ interface CartStore {
   addItem: (
     item: MenuItem,
     quantity: number,
-    selectedVariation?: { variation_name: string; option: ItemVariationOption },
-    selectedAddons?: ItemAddon[],
-    specialInstructions?: string
+    selectedVariation?: { variation_name: string; option: ItemVariationOption; quantity?: number },
+    selectedAddons?: (ItemAddon & { quantity: number })[]
   ) => void;
   removeItem: (index: number) => void;
   updateItemQuantity: (index: number, quantity: number) => void;
@@ -36,17 +35,18 @@ export const useCartStore = create<CartStore>()(
       discount: 0,
       pendingOrderId: null,
 
-      addItem: (item, quantity, selectedVariation, selectedAddons = [], specialInstructions) => {
+      addItem: (item, quantity, selectedVariation, selectedAddons = []) => {
         // Calculate item subtotal
         let itemPrice = item.base_price;
         
-        // Add variation price adjustment
+        // Add variation price adjustment (multiplied by variation quantity)
         if (selectedVariation) {
-          itemPrice += selectedVariation.option.price_adjustment;
+          const varQty = selectedVariation.quantity || 1;
+          itemPrice += selectedVariation.option.price_adjustment * varQty;
         }
         
-        // Add addons prices
-        const addonsTotal = selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
+        // Add addons prices (each with their own quantity)
+        const addonsTotal = selectedAddons.reduce((sum, addon) => sum + (addon.price * addon.quantity), 0);
         itemPrice += addonsTotal;
         
         const subtotal = itemPrice * quantity;
@@ -56,7 +56,6 @@ export const useCartStore = create<CartStore>()(
           quantity,
           selected_variation: selectedVariation,
           selected_addons: selectedAddons,
-          special_instructions: specialInstructions,
           subtotal,
         };
 
@@ -85,10 +84,11 @@ export const useCartStore = create<CartStore>()(
           let itemPrice = item.item.base_price;
           
           if (item.selected_variation) {
-            itemPrice += item.selected_variation.option.price_adjustment;
+            const varQty = item.selected_variation.quantity || 1;
+            itemPrice += item.selected_variation.option.price_adjustment * varQty;
           }
           
-          const addonsTotal = item.selected_addons.reduce((sum, addon) => sum + addon.price, 0);
+          const addonsTotal = item.selected_addons.reduce((sum, addon) => sum + (addon.price * addon.quantity), 0);
           itemPrice += addonsTotal;
           
           newItems[index] = {

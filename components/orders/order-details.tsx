@@ -95,11 +95,6 @@ export function OrderDetails({ order }: OrderDetailsProps) {
                       + {item.selected_addons.map((a) => a.name).join(', ')}
                     </p>
                   )}
-                  {item.special_instructions && (
-                    <p className="text-sm text-muted-foreground italic">
-                      Note: {item.special_instructions}
-                    </p>
-                  )}
                 </div>
                 <span className="font-medium whitespace-nowrap">
                   {formatCurrency(item.subtotal)}

@@ -120,18 +120,6 @@ export function OrderCard({ order }: OrderCardProps) {
             )}
           </div>
 
-          {/* Special Instructions */}
-          {order.items?.some(item => item.special_instructions) && (
-            <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
-              <p className="text-xs font-semibold text-yellow-900 mb-1">SPECIAL INSTRUCTIONS:</p>
-              {order.items.filter(item => item.special_instructions).map((item, index) => (
-                <p key={index} className="text-xs text-yellow-800">
-                  • {item.item_name}: {item.special_instructions}
-                </p>
-              ))}
-            </div>
-          )}
-
           {/* Customer Info */}
           <div className="space-y-1 mb-3">
             <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -277,11 +265,6 @@ export function OrderCard({ order }: OrderCardProps) {
                     {item.selected_addons && item.selected_addons.length > 0 && (
                       <p className="text-sm text-muted-foreground">
                         • Add-ons: {item.selected_addons.map(a => a.name).join(', ')}
-                      </p>
-                    )}
-                    {item.special_instructions && (
-                      <p className="text-sm bg-yellow-50 text-yellow-900 p-2 rounded mt-1">
-                        ⚠️ {item.special_instructions}
                       </p>
                     )}
                   </div>

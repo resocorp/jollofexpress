@@ -93,20 +93,16 @@ export function CartSheet() {
               {cartItem.selected_variation && (
                 <p className="text-sm text-muted-foreground">
                   {cartItem.selected_variation.variation_name}: {cartItem.selected_variation.option.name}
+                  {cartItem.selected_variation.quantity && cartItem.selected_variation.quantity > 1 && (
+                    <span className="font-medium"> × {cartItem.selected_variation.quantity}</span>
+                  )}
                 </p>
               )}
               
               {/* Addons */}
               {cartItem.selected_addons.length > 0 && (
                 <p className="text-sm text-muted-foreground">
-                  Add-ons: {cartItem.selected_addons.map(a => a.name).join(', ')}
-                </p>
-              )}
-              
-              {/* Special Instructions */}
-              {cartItem.special_instructions && (
-                <p className="text-sm text-muted-foreground italic">
-                  Note: {cartItem.special_instructions}
+                  Add-ons: {cartItem.selected_addons.map(a => `${a.name} × ${a.quantity}`).join(', ')}
                 </p>
               )}
 
