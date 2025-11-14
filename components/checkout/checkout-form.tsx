@@ -256,44 +256,43 @@ export function CheckoutForm({
           <CardDescription className="text-base">Choose how you want to receive your order</CardDescription>
         </CardHeader>
         <CardContent>
-          <RadioGroup
-            value={orderType}
-            onValueChange={(value: 'delivery' | 'carryout') => setValue('orderType', value)}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div
-                className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
-                  orderType === 'delivery' ? 'border-primary bg-primary/5' : 'border-gray-200'
-                }`}
-                onClick={() => setValue('orderType', 'delivery')}
-              >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
+                orderType === 'delivery' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setValue('orderType', 'delivery')}
+            >
+              <RadioGroup value={orderType} onValueChange={(value: 'delivery' | 'carryout') => setValue('orderType', value)}>
                 <RadioGroupItem value="delivery" id="delivery" />
-                <Label htmlFor="delivery" className="flex items-center gap-3 cursor-pointer flex-1">
-                  <Bike className="h-6 w-6" />
-                  <div>
-                    <p className="font-medium">Delivery</p>
-                    <p className="text-sm text-muted-foreground">Delivered to your address</p>
-                  </div>
-                </Label>
-              </div>
-
-              <div
-                className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
-                  orderType === 'carryout' ? 'border-primary bg-primary/5' : 'border-gray-200'
-                }`}
-                onClick={() => setValue('orderType', 'carryout')}
-              >
-                <RadioGroupItem value="carryout" id="carryout" />
-                <Label htmlFor="carryout" className="flex items-center gap-3 cursor-pointer flex-1">
-                  <Store className="h-6 w-6" />
-                  <div>
-                    <p className="font-medium">Carryout</p>
-                    <p className="text-sm text-muted-foreground">Pick up at restaurant</p>
-                  </div>
-                </Label>
-              </div>
+              </RadioGroup>
+              <Label htmlFor="delivery" className="flex items-center gap-3 cursor-pointer flex-1">
+                <Bike className="h-6 w-6" />
+                <div>
+                  <p className="font-medium">Delivery</p>
+                  <p className="text-sm text-muted-foreground">Delivered to your address</p>
+                </div>
+              </Label>
             </div>
-          </RadioGroup>
+
+            <div
+              className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
+                orderType === 'carryout' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setValue('orderType', 'carryout')}
+            >
+              <RadioGroup value={orderType} onValueChange={(value: 'delivery' | 'carryout') => setValue('orderType', value)}>
+                <RadioGroupItem value="carryout" id="carryout" />
+              </RadioGroup>
+              <Label htmlFor="carryout" className="flex items-center gap-3 cursor-pointer flex-1">
+                <Store className="h-6 w-6" />
+                <div>
+                  <p className="font-medium">Carryout</p>
+                  <p className="text-sm text-muted-foreground">Pick up at restaurant</p>
+                </div>
+              </Label>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
