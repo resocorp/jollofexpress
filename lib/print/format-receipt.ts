@@ -1,6 +1,14 @@
 // Receipt formatter - converts order data to print-ready format
 import type { OrderWithItems } from '@/types/database';
-import { formatCurrency, formatPhoneNumber } from '@/lib/formatters';
+import { formatPhoneNumber } from '@/lib/formatters';
+
+/**
+ * Format currency for thermal printer (using NGN instead of ₦ symbol)
+ */
+function formatCurrency(amount: number): string {
+  const formatted = amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `NGN${formatted}`;
+}
 
 export interface ReceiptData {
   orderNumber: string;

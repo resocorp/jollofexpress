@@ -200,12 +200,12 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
 }
 
 /**
- * Format currency with naira sign (₦)
+ * Format currency with NGN prefix (for thermal printer compatibility)
  */
 function formatCurrency(amount: number): string {
   // Format with proper thousands separator and 2 decimal places
   const formatted = amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return `₦${formatted}`;
+  return `NGN${formatted}`;
 }
 
 /**

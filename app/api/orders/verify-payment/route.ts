@@ -101,16 +101,28 @@ export async function POST(request: NextRequest) {
       .eq('id', order_id)
       .single();
 
-    // Format receipt data
+    // Format receipt data and add to print queue (with idempotency check)
     if (completeOrder) {
-      const receiptData = formatReceipt(completeOrder);
+      // Check if print job already exists for this order
+      const { data: existingPrintJob } = await supabase
+        .from('print_queue')
+        .select('id')
+        .eq('order_id', order_id)
+        .maybeSingle();
 
-      // Add to print queue with formatted data
-      await supabase.from('print_queue').insert({
-        order_id: order_id,
-        print_data: receiptData,
-        status: 'pending',
-      });
+      if (!existingPrintJob) {
+        const receiptData = formatReceipt(completeOrder);
+
+        // Add to print queue with formatted data
+        await supabase.from('print_queue').insert({
+          order_id: order_id,
+          print_data: receiptData,
+          status: 'pending',
+        });
+        console.log(`Added order ${order_id} to print queue`);
+      } else {
+        console.log(`Print job already exists for order ${order_id}, skipping`);
+      }
     }
 
     // TODO: Send confirmation SMS/Email
