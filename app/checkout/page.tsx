@@ -23,6 +23,14 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitFormRef = useRef<(() => void) | null>(null);
 
+  // Debug logging for parent state
+  useEffect(() => {
+    console.log('🏠 Parent CheckoutPage State:', {
+      orderType: orderType,
+      timestamp: new Date().toISOString()
+    });
+  }, [orderType]);
+
   const subtotal = getSubtotal();
   const minOrder = deliverySettings?.min_order || 0;
   const isBelowMinimum = orderType === 'delivery' && subtotal < minOrder;
@@ -146,7 +154,10 @@ export default function CheckoutPage() {
           >
             <CheckoutForm 
               orderType={orderType} 
-              onOrderTypeChange={setOrderType}
+              onOrderTypeChange={(type) => {
+                console.log('🔄 Parent onOrderTypeChange called with:', type);
+                setOrderType(type);
+              }}
               onSubmitExposed={handleSubmitExposed}
               onSubmittingChange={setIsSubmitting}
             />

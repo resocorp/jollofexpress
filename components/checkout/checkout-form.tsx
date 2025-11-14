@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Bike, Store, MapPin, Phone, User, Mail, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +47,7 @@ export function CheckoutForm({
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -56,13 +57,15 @@ export function CheckoutForm({
   });
 
   const orderType = watch('orderType');
-  
-  // Sync internal form state with external state
+
+  // Debug logging for state changes
   useEffect(() => {
-    if (orderType !== externalOrderType) {
-      onOrderTypeChange(orderType);
-    }
-  }, [orderType, externalOrderType, onOrderTypeChange]);
+    console.log('🔍 CheckoutForm State:', {
+      orderType_from_watch: orderType,
+      externalOrderType: externalOrderType,
+      timestamp: new Date().toISOString()
+    });
+  }, [orderType, externalOrderType]);
 
   // Expose submit function to parent (only once on mount)
   useEffect(() => {
@@ -256,43 +259,62 @@ export function CheckoutForm({
           <CardDescription className="text-base">Choose how you want to receive your order</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div
-              className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
-                orderType === 'delivery' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setValue('orderType', 'delivery')}
-            >
-              <RadioGroup value={orderType} onValueChange={(value: 'delivery' | 'carryout') => setValue('orderType', value)}>
-                <RadioGroupItem value="delivery" id="delivery" />
-              </RadioGroup>
-              <Label htmlFor="delivery" className="flex items-center gap-3 cursor-pointer flex-1">
-                <Bike className="h-6 w-6" />
-                <div>
-                  <p className="font-medium">Delivery</p>
-                  <p className="text-sm text-muted-foreground">Delivered to your address</p>
-                </div>
-              </Label>
-            </div>
+          <Controller
+            name="orderType"
+            control={control}
+            render={({ field }) => {
+              console.log('🎨 Controller Render:', {
+                field_value: field.value,
+                field_name: field.name,
+                orderType_from_watch: orderType
+              });
+              
+              return (
+                <RadioGroup 
+                  value={field.value} 
+                  onValueChange={(value: 'delivery' | 'carryout') => {
+                    console.log('📻 RadioGroup onValueChange called:', value);
+                    field.onChange(value);
+                    onOrderTypeChange(value);
+                  }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Label
+                      htmlFor="delivery"
+                      className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
+                        field.value === 'delivery' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <RadioGroupItem value="delivery" id="delivery" />
+                      <div className="flex items-center gap-3 flex-1">
+                        <Bike className="h-6 w-6" />
+                        <div>
+                          <p className="font-medium">Delivery</p>
+                          <p className="text-sm text-muted-foreground">Delivered to your address</p>
+                        </div>
+                      </div>
+                    </Label>
 
-            <div
-              className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
-                orderType === 'carryout' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setValue('orderType', 'carryout')}
-            >
-              <RadioGroup value={orderType} onValueChange={(value: 'delivery' | 'carryout') => setValue('orderType', value)}>
-                <RadioGroupItem value="carryout" id="carryout" />
-              </RadioGroup>
-              <Label htmlFor="carryout" className="flex items-center gap-3 cursor-pointer flex-1">
-                <Store className="h-6 w-6" />
-                <div>
-                  <p className="font-medium">Carryout</p>
-                  <p className="text-sm text-muted-foreground">Pick up at restaurant</p>
-                </div>
-              </Label>
-            </div>
-          </div>
+                    <Label
+                      htmlFor="carryout"
+                      className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
+                        field.value === 'carryout' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <RadioGroupItem value="carryout" id="carryout" />
+                      <div className="flex items-center gap-3 flex-1">
+                        <Store className="h-6 w-6" />
+                        <div>
+                          <p className="font-medium">Carryout</p>
+                          <p className="text-sm text-muted-foreground">Pick up at restaurant</p>
+                        </div>
+                      </div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              );
+            }}
+          />
         </CardContent>
       </Card>
 
