@@ -355,13 +355,13 @@ export function CheckoutForm({
               </p>
             </div>
 
-            {/* Delivery Instructions */}
+            {/* Nearest Landmark */}
             <div className="space-y-2">
-              <Label htmlFor="deliveryInstructions">Delivery Instructions</Label>
+              <Label htmlFor="deliveryInstructions">Nearest Landmark</Label>
               <Textarea
                 id="deliveryInstructions"
                 {...register('deliveryInstructions')}
-                placeholder="Gate code, call on arrival, ring doorbell, leave at security post, etc."
+                placeholder="E.g., Near Total Filling Station, Opposite Shoprite, Behind First Bank, etc."
                 rows={2}
                 maxLength={200}
               />

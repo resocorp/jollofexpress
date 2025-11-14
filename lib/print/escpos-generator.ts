@@ -100,7 +100,7 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
     }
     if (receipt.deliveryInstructions) {
       commands.push(LF);
-      commands.push(BOLD_ON + 'Delivery Instructions:' + BOLD_OFF + LF);
+      commands.push(BOLD_ON + 'Nearest Landmark:' + BOLD_OFF + LF);
       commands.push(receipt.deliveryInstructions + LF);
     }
     commands.push(LF);

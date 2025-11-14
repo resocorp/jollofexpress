@@ -82,7 +82,7 @@ export const PrintReceipt = forwardRef<HTMLDivElement, PrintReceiptProps>(
               )}
               {receipt.deliveryInstructions && (
                 <div className="receipt-instructions">
-                  <div className="receipt-instructions-title">Delivery Instructions:</div>
+                  <div className="receipt-instructions-title">Nearest Landmark:</div>
                   <div className="receipt-instructions-text">{receipt.deliveryInstructions}</div>
                 </div>
               )}

@@ -256,7 +256,7 @@ export default function AdminOrdersPage() {
                     <p className="text-sm">{selectedOrder.delivery_address}</p>
                     {selectedOrder.delivery_instructions && (
                       <p className="text-sm text-muted-foreground mt-2">
-                        Note: {selectedOrder.delivery_instructions}
+                        Landmark: {selectedOrder.delivery_instructions}
                       </p>
                     )}
                   </div>

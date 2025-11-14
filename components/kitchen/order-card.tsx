@@ -239,7 +239,7 @@ export function OrderCard({ order }: OrderCardProps) {
                   )}
                   {order.delivery_instructions && (
                     <div className="mt-3 p-2 bg-white rounded border">
-                      <p className="text-xs font-semibold mb-1">Instructions:</p>
+                      <p className="text-xs font-semibold mb-1">Landmark:</p>
                       <p className="text-sm">{order.delivery_instructions}</p>
                     </div>
                   )}

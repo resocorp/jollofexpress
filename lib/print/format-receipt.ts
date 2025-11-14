@@ -189,7 +189,7 @@ export function formatReceiptText(receipt: ReceiptData): string {
     }
     if (receipt.deliveryInstructions) {
       lines.push('');
-      lines.push('Delivery Instructions:');
+      lines.push('Nearest Landmark:');
       lines.push(receipt.deliveryInstructions);
     }
     lines.push('');

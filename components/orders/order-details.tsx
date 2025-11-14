@@ -64,7 +64,7 @@ export function OrderDetails({ order }: OrderDetailsProps) {
             </div>
             {order.delivery_instructions && (
               <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                <p className="text-xs font-medium text-blue-900 mb-1">Delivery Instructions:</p>
+                <p className="text-xs font-medium text-blue-900 mb-1">Nearest Landmark:</p>
                 <p className="text-sm text-blue-800">{order.delivery_instructions}</p>
               </div>
             )}
