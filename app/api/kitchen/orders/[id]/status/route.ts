@@ -64,8 +64,14 @@ export async function PATCH(
       }
     }
 
-    // TODO: Send notification to customer
-    // SMS/Push notification that order status changed
+    // Send WhatsApp status update notification
+    try {
+      const { sendOrderStatusUpdate } = await import('@/lib/notifications/notification-service');
+      await sendOrderStatusUpdate(order);
+    } catch (notifError) {
+      // Don't fail status update if notification fails, just log it
+      console.error('Failed to send order status notification:', notifError);
+    }
 
     return NextResponse.json({
       success: true,

@@ -125,9 +125,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // TODO: Send confirmation SMS/Email
-    // This would integrate with Termii/Africa's Talking for SMS
-    // and Resend/SendGrid for email
+    // Send WhatsApp confirmation notification
+    if (completeOrder) {
+      try {
+        const { sendOrderConfirmation } = await import('@/lib/notifications/notification-service');
+        await sendOrderConfirmation(completeOrder);
+      } catch (notifError) {
+        // Don't fail order if notification fails, just log it
+        console.error('Failed to send order confirmation notification:', notifError);
+      }
+    }
 
     return NextResponse.json({
       success: true,

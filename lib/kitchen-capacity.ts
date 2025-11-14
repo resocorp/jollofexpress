@@ -162,6 +162,14 @@ export async function checkAndManageCapacity(): Promise<{
     );
 
     if (success) {
+      // Send admin alert
+      try {
+        const { sendKitchenCapacityAlert } = await import('@/lib/notifications/notification-service');
+        await sendKitchenCapacityAlert('closed', activeOrders, maxActiveOrders);
+      } catch (error) {
+        console.error('Failed to send kitchen closed alert:', error);
+      }
+
       return {
         action: 'closed',
         activeOrders,
@@ -179,6 +187,14 @@ export async function checkAndManageCapacity(): Promise<{
     );
 
     if (success) {
+      // Send admin alert
+      try {
+        const { sendKitchenCapacityAlert } = await import('@/lib/notifications/notification-service');
+        await sendKitchenCapacityAlert('reopened', activeOrders, maxActiveOrders);
+      } catch (error) {
+        console.error('Failed to send kitchen reopened alert:', error);
+      }
+
       return {
         action: 'opened',
         activeOrders,

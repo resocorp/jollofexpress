@@ -58,7 +58,7 @@ next-env.d.ts
 *_STEPS.md
 *_REFERENCE.md
 *_STATUS.md
-*_CHECKLIST.md
+# *_CHECKLIST.md
 *_TESTING.md
 *_IMPLEMENTATION.md
 *_PROGRESS.md
@@ -67,7 +67,7 @@ next-env.d.ts
 *_FEATURES.md
 *_INCIDENT.md
 *_UPDATE.md
-*_SETUP.md
+#*_SETUP.md
 *_ACTION.md
 *_APPLIED.md
 *_KEYS.md

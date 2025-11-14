@@ -1,0 +1,197 @@
+===============================================================================
+WHATSAPP NOTIFICATION TROUBLESHOOTING - FIXES APPLIED
+===============================================================================
+Date: 2024-11-14 16:54
+Status: ✅ FIXED
+
+===============================================================================
+ISSUES IDENTIFIED
+===============================================================================
+
+1. ❌ Wrong Content-Type Header
+   - UltraMsg API expects: application/x-www-form-urlencoded
+   - Code was sending: application/json
+   - Result: 400 Bad Request errors
+
+2. ❌ Incorrect Phone Number Format  
+   - UltraMsg expects: 234XXXXXXXXXX (no + sign)
+   - Code was sending: +234XXXXXXXXXX
+   - Result: Invalid phone number errors
+
+3. ❌ TypeScript Schema Cache Errors
+   - notification_logs and notification_settings tables missing from types
+   - Result: Console warnings about missing schema cache
+
+===============================================================================
+FIXES APPLIED
+===============================================================================
+
+✅ Fix 1: Updated API Request Format
+   File: lib/notifications/ultramsg-client.ts (lines 21-43)
+   
+   Changed from:
+   ```typescript
+   body: JSON.stringify({ token, to, body, priority })
+   headers: { 'Content-Type': 'application/json' }
+   ```
+   
+   Changed to:
+   ```typescript
+   const formData = new URLSearchParams();
+   formData.append('token', this.token);
+   formData.append('to', this.formatPhoneNumber(request.to));
+   formData.append('body', request.body);
+   headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+   ```
+
+✅ Fix 2: Updated Phone Number Formatting
+   File: lib/notifications/ultramsg-client.ts (lines 76-90)
+   
+   Changed from:
+   - Returns: +234XXXXXXXXXX
+   
+   Changed to:
+   - Returns: 234XXXXXXXXXX (no + sign)
+   
+   Logic:
+   - Removes all non-digit characters
+   - Replaces leading 0 with 234
+   - Ensures starts with 234
+
+✅ Fix 3: Updated TypeScript Types
+   File: types/database.ts (lines 281-317)
+   
+   Added:
+   - NotificationLog interface
+   - NotificationSettings interface
+   - NotificationStatus, NotificationType, EventType types
+
+===============================================================================
+TESTING INSTRUCTIONS
+===============================================================================
+
+1. RESTART DEV SERVER
+   ```bash
+   # Stop current server (Ctrl+C)
+   npm run dev
+   ```
+
+2. TEST CONNECTION
+   - Go to: http://localhost:3000/admin/notifications/settings
+   - Click "Test Connection"
+   - Should see: ✅ "Connection successful"
+
+3. SEND TEST NOTIFICATION
+   - In settings page, scroll to "Send Test Notification"
+   - Enter your phone number: +234XXXXXXXXXX
+   - Click "Send Test"
+   - Check WhatsApp for message
+   - Should receive: "Test Notification" message
+
+4. VERIFY IN LOGS
+   - Go to: http://localhost:3000/admin/notifications/logs
+   - Should see test notification logged
+   - Status should be "Sent" or "Delivered"
+
+===============================================================================
+PHONE NUMBER FORMAT EXAMPLES
+===============================================================================
+
+Input Formats (All Valid):
+✅ +2348012345678  → Converts to: 2348012345678
+✅ 2348012345678   → Already correct
+✅ 08012345678     → Converts to: 2348012345678
+
+Output Format (Sent to UltraMsg):
+→ 2348012345678 (no + sign, no spaces)
+
+===============================================================================
+VERIFIED CREDENTIALS
+===============================================================================
+
+From your .env.local:
+✅ ULTRAMSG_INSTANCE_ID=instance150203
+✅ ULTRAMSG_TOKEN=uo58tjgx7ie82eav
+
+From UltraMsg dashboard screenshot:
+✅ Instance ID: instance150203
+✅ Token: uo58tjgx7ie82eav
+✅ Status: authenticated (green)
+✅ API URL: https://api.ultramsg.com/instance150203/
+
+===============================================================================
+EXPECTED BEHAVIOR NOW
+===============================================================================
+
+1. Customer Orders:
+   ✅ Order confirmation sent after payment
+   ✅ Status updates sent when order progresses
+   ✅ Completion message sent when order done
+
+2. Admin Alerts:
+   ✅ Kitchen capacity alerts when kitchen closes/reopens
+   ✅ Notifications logged in database
+   ✅ No more 400 errors
+
+3. Admin UI:
+   ✅ Settings page loads without errors
+   ✅ Test connection works
+   ✅ Test notification sends successfully
+   ✅ Logs page shows notification history
+
+===============================================================================
+IF STILL NOT WORKING
+===============================================================================
+
+1. Check UltraMsg Instance Status
+   - Log in to https://user.ultramsg.com
+   - Verify instance is "authenticated" (green)
+   - Ensure WhatsApp is connected to instance
+   - Check phone hasn't been disconnected
+
+2. Check Phone Number Format
+   - Must be Nigerian number: 234XXXXXXXXXX
+   - First digit after 234 must be 7, 8, or 9
+   - Total: 13 digits (234 + 10 digits)
+
+3. Check Network/Firewall
+   - Ensure api.ultramsg.com is accessible
+   - No firewall blocking outbound HTTPS requests
+
+4. Check UltraMsg Quota
+   - Verify you haven't exceeded message limit
+   - Check billing status in dashboard
+
+5. View Detailed Errors
+   - Check browser console for full error messages
+   - Check terminal for server-side errors
+   - Check notification_logs table for error_message field
+
+===============================================================================
+COMMON ERROR MESSAGES
+===============================================================================
+
+❌ "Invalid phone number"
+   → Check format: 234XXXXXXXXXX
+   → First digit after 234 must be 7, 8, or 9
+
+❌ "Connection failed" 
+   → Verify instance_id and token are correct
+   → Check instance is authenticated on dashboard
+
+❌ "Failed to send message"
+   → Check WhatsApp is connected to instance
+   → Verify phone number is valid Nigerian number
+   → Check UltraMsg account has active subscription
+
+===============================================================================
+SUPPORT RESOURCES
+===============================================================================
+
+- UltraMsg Dashboard: https://user.ultramsg.com
+- UltraMsg Docs: https://docs.ultramsg.com
+- API Documentation: https://docs.ultramsg.com/api/post/messages/chat
+- Notification Logs: /admin/notifications/logs
+- Settings Page: /admin/notifications/settings
+
+===============================================================================
