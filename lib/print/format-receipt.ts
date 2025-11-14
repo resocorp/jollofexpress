@@ -31,11 +31,13 @@ export interface ReceiptData {
   // Items
   items: ReceiptItem[];
   
-  // Pricing
+  // Pricing breakdown
   subtotal: number;
   deliveryFee: number;
+  tax: number;
   discount: number;
   total: number;
+  promoCode?: string;
   
   // Payment
   paymentStatus: string;
@@ -90,10 +92,11 @@ export function formatReceipt(order: OrderWithItems): ReceiptData {
     price: item.subtotal,
   })) || [];
 
-  // Calculate subtotal (before delivery fee)
-  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
+  // Get pricing breakdown from order
+  const subtotal = order.subtotal;
   const deliveryFee = order.delivery_fee || 0;
-  const discount = 0; // TODO: Add discount support
+  const tax = order.tax || 0;
+  const discount = order.discount || 0;
   const total = order.total;
 
   return {
@@ -116,8 +119,10 @@ export function formatReceipt(order: OrderWithItems): ReceiptData {
     
     subtotal,
     deliveryFee,
+    tax,
     discount,
     total,
+    promoCode: order.promo_code || undefined,
     
     paymentStatus: order.payment_status === 'success' ? 'PAID' : order.payment_status.toUpperCase(),
     paymentMethod: 'Paystack',
@@ -219,14 +224,24 @@ export function formatReceiptText(receipt: ReceiptData): string {
   
   lines.push(line('-'));
   
-  // Totals
+  // Pricing breakdown
   lines.push(leftRight('Subtotal:', formatCurrency(receipt.subtotal)));
+  
   if (receipt.deliveryFee > 0) {
     lines.push(leftRight('Delivery Fee:', formatCurrency(receipt.deliveryFee)));
   }
-  if (receipt.discount > 0) {
-    lines.push(leftRight('Discount:', `-${formatCurrency(receipt.discount)}`));
+  
+  if (receipt.tax > 0) {
+    lines.push(leftRight('Tax (7.5%):', formatCurrency(receipt.tax)));
   }
+  
+  if (receipt.discount > 0) {
+    const discountLabel = receipt.promoCode 
+      ? `Discount (${receipt.promoCode}):`
+      : 'Discount:';
+    lines.push(leftRight(discountLabel, `-${formatCurrency(receipt.discount)}`));
+  }
+  
   lines.push(line('='));
   lines.push(leftRight('TOTAL:', formatCurrency(receipt.total)));
   lines.push(line('='));
