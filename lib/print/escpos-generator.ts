@@ -115,16 +115,21 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   
   // Items
   receipt.items.forEach(item => {
-    commands.push(`${item.quantity}x ${item.name}` + LF);
+    // Main item line with quantity and name
+    commands.push(`${item.quantity}  ${item.name}` + LF);
+    
+    // Show variation as a bullet point
     if (item.variation) {
-      commands.push(`   • ${item.variation}` + LF);
+      commands.push(`    • ${item.variation}` + LF);
     }
+    
+    // Show addons as bullet points
     if (item.addons.length > 0) {
-      commands.push(`   • Add-ons: ${item.addons.join(', ')}` + LF);
+      item.addons.forEach(addon => {
+        commands.push(`    • ${addon}` + LF);
+      });
     }
-    // Price aligned right
-    const priceStr = formatCurrency(item.price);
-    commands.push(padRight('', priceStr, 48) + LF);
+    
     commands.push(LF);
   });
   
@@ -143,12 +148,23 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   // Totals
   commands.push(line('-', 48) + LF);
   commands.push(padRight('Subtotal:', formatCurrency(receipt.subtotal), 48) + LF);
+  
   if (receipt.deliveryFee > 0) {
     commands.push(padRight('Delivery Fee:', formatCurrency(receipt.deliveryFee), 48) + LF);
   }
-  if (receipt.discount > 0) {
-    commands.push(padRight('Discount:', `-${formatCurrency(receipt.discount)}`, 48) + LF);
+  
+  if (receipt.tax > 0) {
+    commands.push(padRight('Tax (7.5%):', formatCurrency(receipt.tax), 48) + LF);
   }
+  
+  if (receipt.discount > 0) {
+    commands.push(LF);
+    if (receipt.promoCode) {
+      commands.push(`Discount Applied: ${receipt.promoCode}` + LF);
+    }
+    commands.push(padRight('Discount Applied', `-${formatCurrency(receipt.discount)}`, 48) + LF);
+  }
+  
   commands.push(line('=', 48) + LF);
   commands.push(BOLD_ON);
   commands.push(DOUBLE_HEIGHT);

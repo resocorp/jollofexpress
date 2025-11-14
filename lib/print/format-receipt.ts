@@ -201,14 +201,21 @@ export function formatReceiptText(receipt: ReceiptData): string {
   
   // Items
   receipt.items.forEach(item => {
-    lines.push(`${item.quantity}x ${item.name}`);
+    // Main item line with quantity and name
+    lines.push(`${item.quantity}  ${item.name}`);
+    
+    // Show variation as a bullet point
     if (item.variation) {
-      lines.push(`   • ${item.variation}`);
+      lines.push(`    • ${item.variation}`);
     }
+    
+    // Show addons as bullet points
     if (item.addons.length > 0) {
-      lines.push(`   • Add-ons: ${item.addons.join(', ')}`);
+      item.addons.forEach(addon => {
+        lines.push(`    • ${addon}`);
+      });
     }
-    lines.push(leftRight('', formatCurrency(item.price)));
+    
     lines.push('');
   });
   
@@ -236,10 +243,11 @@ export function formatReceiptText(receipt: ReceiptData): string {
   }
   
   if (receipt.discount > 0) {
-    const discountLabel = receipt.promoCode 
-      ? `Discount (${receipt.promoCode}):`
-      : 'Discount:';
-    lines.push(leftRight(discountLabel, `-${formatCurrency(receipt.discount)}`));
+    lines.push('');
+    if (receipt.promoCode) {
+      lines.push(`Discount Applied: ${receipt.promoCode}`);
+    }
+    lines.push(leftRight('Discount Applied', `-${formatCurrency(receipt.discount)}`));
   }
   
   lines.push(line('='));
