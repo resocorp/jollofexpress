@@ -82,7 +82,7 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
       ? {
           variation_name: item.variations[selectedVariationIndex].variation_name,
           option: selectedVariationOption!,
-          quantity: variationQuantity,
+          quantity: selectedVariationOption!.price_adjustment !== 0 ? variationQuantity : undefined,
         }
       : undefined;
 
@@ -164,7 +164,7 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
                               </span>
                             )}
                           </div>
-                          {selectedVariationIndex === varIndex && selectedVariationOption?.name === option.name && (
+                          {selectedVariationIndex === varIndex && selectedVariationOption?.name === option.name && option.price_adjustment !== 0 && (
                             <div className="flex items-center gap-2 ml-4" onClick={(e) => e.preventDefault()}>
                               <Button
                                 variant="outline"
