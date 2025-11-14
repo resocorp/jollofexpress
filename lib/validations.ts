@@ -50,12 +50,6 @@ export const checkoutSchema = deliveryAddressSchema
           message: 'Please provide a more detailed address (minimum 10 characters)',
           path: ['fullAddress'],
         });
-      } else if (data.fullAddress.length > 500) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Address is too long (maximum 500 characters)',
-          path: ['fullAddress'],
-        });
       }
     }
   });
