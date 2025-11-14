@@ -58,11 +58,15 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   commands.push(line('=', 48) + LF);
   commands.push(LF);
   
-  // Order info
-  commands.push(ALIGN_LEFT);
+  // Order info - Make order number prominent
+  commands.push(ALIGN_CENTER);
   commands.push(BOLD_ON);
-  commands.push(`Order: ${receipt.orderNumber}` + LF);
+  commands.push(LARGE);
+  commands.push(`ORDER #${receipt.orderNumber}` + LF);
+  commands.push(NORMAL);
   commands.push(BOLD_OFF);
+  commands.push(LF);
+  commands.push(ALIGN_LEFT);
   commands.push(`Date: ${receipt.orderDate} ${receipt.orderTime}` + LF);
   commands.push(line('-', 48) + LF);
   commands.push(LF);
@@ -158,17 +162,33 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   commands.push(`Payment: ${receipt.paymentStatus} (${receipt.paymentMethod})` + LF);
   commands.push(LF);
   
-  // Kitchen instructions
+  // Kitchen prep time (subtle for customer)
   commands.push(line('-', 48) + LF);
   commands.push(ALIGN_CENTER);
+  if (receipt.estimatedPrepTime) {
+    commands.push(`Prep Time: ~${receipt.estimatedPrepTime} min` + LF);
+  }
+  commands.push(line('-', 48) + LF);
+  commands.push(LF);
+  
+  // Marketing copy and thank you message
   commands.push(BOLD_ON);
   commands.push(DOUBLE_HEIGHT);
-  commands.push('Kitchen - Start Prep Now!' + LF);
+  commands.push('Thank You!' + LF);
   commands.push(BOLD_OFF);
   commands.push(NORMAL);
-  if (receipt.estimatedPrepTime) {
-    commands.push(`Estimated Time: ${receipt.estimatedPrepTime} min` + LF);
-  }
+  commands.push(LF);
+  commands.push('We appreciate your order!' + LF);
+  commands.push('Enjoy authentic Nigerian flavors' + LF);
+  commands.push('made with love.' + LF);
+  commands.push(LF);
+  commands.push(line('-', 48) + LF);
+  commands.push('Order again: www.jollofexpress.app' + LF);
+  commands.push('Follow us @jollofexpress' + LF);
+  commands.push(LF);
+  commands.push(BOLD_ON);
+  commands.push('REFER A FRIEND & GET 10% OFF!' + LF);
+  commands.push(BOLD_OFF);
   commands.push(line('=', 48) + LF);
   
   // Feed and cut
@@ -180,10 +200,12 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
 }
 
 /**
- * Format currency (₦)
+ * Format currency with naira sign (₦)
  */
 function formatCurrency(amount: number): string {
-  return `₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // Format with proper thousands separator and 2 decimal places
+  const formatted = amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `₦${formatted}`;
 }
 
 /**

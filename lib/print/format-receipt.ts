@@ -146,8 +146,9 @@ export function formatReceiptText(receipt: ReceiptData): string {
   lines.push(line());
   lines.push('');
   
-  // Order info
-  lines.push(`Order: ${receipt.orderNumber}`);
+  // Order info - Make order number prominent
+  lines.push(center(`ORDER #${receipt.orderNumber}`));
+  lines.push('');
   lines.push(`Date: ${receipt.orderDate} ${receipt.orderTime}`);
   lines.push(line('-'));
   lines.push('');
@@ -227,11 +228,26 @@ export function formatReceiptText(receipt: ReceiptData): string {
   lines.push(`Payment: ${receipt.paymentStatus} (${receipt.paymentMethod})`);
   lines.push('');
   
+  // Kitchen prep time (subtle for customer)
   lines.push(line('-'));
-  lines.push(center('Kitchen - Start Prep Now!'));
   if (receipt.estimatedPrepTime) {
-    lines.push(center(`Estimated Time: ${receipt.estimatedPrepTime} min`));
+    lines.push(center(`Prep Time: ~${receipt.estimatedPrepTime} min`));
   }
+  lines.push(line('-'));
+  lines.push('');
+  
+  // Marketing copy and thank you message
+  lines.push(center('Thank You!'));
+  lines.push('');
+  lines.push(center('We appreciate your order!'));
+  lines.push(center('Enjoy authentic Nigerian flavors'));
+  lines.push(center('made with love.'));
+  lines.push('');
+  lines.push(line('-'));
+  lines.push(center('Order again: www.jollofexpress.ng'));
+  lines.push(center('Follow us @jollofexpress'));
+  lines.push('');
+  lines.push(center('REFER A FRIEND & GET 10% OFF!'));
   lines.push(line('='));
 
   return lines.join('\n');
