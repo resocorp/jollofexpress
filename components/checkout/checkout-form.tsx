@@ -93,6 +93,24 @@ export function CheckoutForm({
   const isBelowMinimum = orderType === 'delivery' && subtotal < minOrder;
 
   const onSubmit = async (data: CheckoutFormData) => {
+    // Log delivery fee calculation at submission time
+    console.log('[CHECKOUT SUBMIT] Order pricing:', {
+      orderType: data.orderType,
+      deliverySettings,
+      deliveryFee,
+      subtotal,
+      tax,
+      discount,
+      total,
+      calculated_total: subtotal + deliveryFee + tax - discount
+    });
+
+    // Validate delivery settings are loaded for delivery orders
+    if (data.orderType === 'delivery' && (!deliverySettings || isLoadingSettings)) {
+      toast.error('Loading delivery settings, please wait...');
+      return;
+    }
+
     // Validate minimum order
     if (isBelowMinimum) {
       toast.error(`Minimum order amount is ${formatCurrency(minOrder)} for delivery`);
@@ -150,6 +168,14 @@ export function CheckoutForm({
       }
 
       console.log('Order created successfully:', result.order.id);
+      
+      // Show scheduled order notice if applicable
+      if (result.scheduled && result.scheduled_note) {
+        toast.info('Order Scheduled', {
+          description: result.scheduled_note,
+          duration: 8000,
+        });
+      }
 
       // Store pending order ID (cart will be cleared after successful payment)
       setPendingOrder(result.order.id);
@@ -165,24 +191,11 @@ export function CheckoutForm({
       // Show detailed error to user
       const errorMessage = error.message || error.error || 'Failed to create order';
       
-      if (errorMessage.includes('Outside operating hours') || errorMessage.includes('operating hours')) {
-        // Restaurant is closed - show detailed message (expected error, no console log)
-        const reason = error.response?.details?.reason || 'We are currently closed';
-        toast.error('Restaurant Closed', {
-          description: reason + '. Please check our operating hours and try again later.',
-          duration: 6000,
-        });
-      } else if (errorMessage.includes('Kitchen at capacity') || errorMessage.includes('capacity')) {
+      if (errorMessage.includes('Kitchen at capacity') || errorMessage.includes('capacity')) {
         // Kitchen at max capacity (expected error, no console log)
         const details = error.response?.details;
         toast.error('Kitchen at Capacity', {
           description: `We're currently experiencing high demand${details ? ` (${details.activeOrders}/${details.maxOrders} orders)` : ''}. Please try again in a few minutes.`,
-          duration: 6000,
-        });
-      } else if (errorMessage.includes('Restaurant is currently closed')) {
-        // Manually closed (expected error, no console log)
-        toast.error('Restaurant Closed', {
-          description: 'We are not accepting orders at this time. Please check back during operating hours.',
           duration: 6000,
         });
       } else if (errorMessage.includes('RLS') || errorMessage.includes('security')) {
@@ -223,27 +236,21 @@ export function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit, handleFormError)} className="space-y-6">
-      {/* Restaurant Closed Warning */}
+      {/* Restaurant Closed Notice */}
       {!restaurantStatus?.is_open && (
-        <Alert variant="destructive" className="border-2 border-red-500 bg-red-50">
-          <Clock className="h-5 w-5" />
-          <AlertTitle className="text-lg font-bold">Restaurant Currently Closed</AlertTitle>
-          <AlertDescription className="mt-2 space-y-2">
+        <Alert className="border-2 border-amber-500 bg-amber-50">
+          <Clock className="h-5 w-5 text-amber-600" />
+          <AlertTitle className="text-lg font-bold text-amber-900">Restaurant Currently Closed</AlertTitle>
+          <AlertDescription className="mt-2 space-y-2 text-amber-800">
             <p className="font-medium">{restaurantStatus?.message}</p>
-            {restaurantStatus?.closed_reason && (
-              <p className="text-sm">Reason: {restaurantStatus.closed_reason}</p>
-            )}
-            {restaurantStatus?.hours?.today && (
-              <p className="text-sm">Today's Hours: {restaurantStatus.hours.today}</p>
-            )}
-            {restaurantStatus?.next_status_change?.action === 'open' && (
-              <p className="text-sm font-semibold text-green-700">
-                Opens at {restaurantStatus.next_status_change.time}
+            <div className="mt-3 p-3 bg-white rounded-md border border-amber-200">
+              <p className="text-sm font-semibold text-amber-900">
+                📦 You can still place your order!
               </p>
-            )}
-            <p className="text-sm mt-2">
-              You can fill out the form, but your order will be rejected when you try to place it.
-            </p>
+              <p className="text-sm mt-1">
+                Your payment will be processed immediately, and your order will be prepared when we reopen.
+              </p>
+            </div>
           </AlertDescription>
         </Alert>
       )}
@@ -351,7 +358,7 @@ export function CheckoutForm({
                 <p className="text-sm text-destructive">{errors.fullAddress.message}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                Provide your address with nearby landmarks. Our rider will call you for additional directions.
+                Enter your delivery address (minimum 4 characters). Our rider will call you for directions.
               </p>
             </div>
 

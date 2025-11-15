@@ -103,6 +103,30 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      // Process scheduled orders - move them to confirmed status
+      const { data: scheduledOrders, error: scheduledError } = await supabase
+        .from('orders')
+        .select('id, order_number, customer_name')
+        .eq('status', 'scheduled')
+        .eq('payment_status', 'paid');
+
+      if (scheduledError) {
+        console.error('❌ Error fetching scheduled orders:', scheduledError);
+      } else if (scheduledOrders && scheduledOrders.length > 0) {
+        const { error: updateOrdersError } = await supabase
+          .from('orders')
+          .update({ status: 'confirmed' })
+          .eq('status', 'scheduled')
+          .eq('payment_status', 'paid');
+
+        if (updateOrdersError) {
+          console.error('❌ Error updating scheduled orders:', updateOrdersError);
+        } else {
+          console.log(`📦 Activated ${scheduledOrders.length} scheduled order(s):`, 
+            scheduledOrders.map(o => o.order_number).join(', '));
+        }
+      }
+
       actionTaken = 'opened';
       message = `Restaurant auto-opened: ${hoursCheck.reason}`;
       console.log(`🏪 ${message}`);

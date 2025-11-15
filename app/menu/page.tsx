@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useMenu } from '@/hooks/use-menu';
+import { useCartCleanup } from '@/hooks/use-cart-cleanup';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { MenuItemCard } from '@/components/menu/menu-item-card-modern';
@@ -17,6 +18,9 @@ export default function MenuPage() {
   const { data: menu, isLoading } = useMenu();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  // Clean up stale cart if pending order was already paid
+  useCartCleanup();
 
   // Filter items based on search and category
   const filteredCategories = menu?.categories.map((category) => ({

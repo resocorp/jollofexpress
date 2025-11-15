@@ -149,7 +149,8 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   commands.push(line('-', 48) + LF);
   commands.push(padRight('Subtotal:', formatCurrency(receipt.subtotal), 48) + LF);
   
-  if (receipt.deliveryFee > 0) {
+  // Always show delivery fee for delivery orders (even if 0, to highlight the issue)
+  if (receipt.orderType === 'delivery') {
     commands.push(padRight('Delivery Fee:', formatCurrency(receipt.deliveryFee), 48) + LF);
   }
   

@@ -5,7 +5,7 @@ import { checkAndManageCapacity } from '@/lib/kitchen-capacity';
 import { z } from 'zod';
 
 const orderUpdateSchema = z.object({
-  status: z.enum(['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'completed', 'cancelled']).optional(),
+  status: z.enum(['pending', 'scheduled', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'completed', 'cancelled']).optional(),
   payment_status: z.enum(['pending', 'success', 'failed', 'refunded']).optional(),
   delivery_address: z.string().optional(),
   customer_phone: z.string().optional(),

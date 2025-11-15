@@ -8,6 +8,7 @@ import { CheckoutForm } from '@/components/checkout/checkout-form';
 import { OrderSummaryWithButton } from '@/components/checkout/order-summary';
 import { useCartStore } from '@/store/cart-store';
 import { useDeliverySettings } from '@/hooks/use-settings';
+import { useCartCleanup } from '@/hooks/use-cart-cleanup';
 import { ShoppingBag, Shield, Lock, Truck, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,9 @@ export default function CheckoutPage() {
   const [orderType, setOrderType] = useState<'delivery' | 'carryout'>('delivery');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitFormRef = useRef<(() => void) | null>(null);
+
+  // Clean up stale cart if pending order was already paid
+  useCartCleanup();
 
   // Debug logging for parent state
   useEffect(() => {

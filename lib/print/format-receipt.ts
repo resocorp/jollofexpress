@@ -99,6 +99,19 @@ export function formatReceipt(order: OrderWithItems): ReceiptData {
   const discount = order.discount || 0;
   const total = order.total;
 
+  // Debug logging to identify the issue
+  console.log('[RECEIPT FORMAT] Order pricing:', {
+    order_id: order.id,
+    order_number: order.order_number,
+    order_type: order.order_type,
+    subtotal,
+    deliveryFee,
+    tax,
+    discount,
+    total,
+    calculated_total: subtotal + deliveryFee + tax - discount
+  });
+
   return {
     orderNumber: order.order_number,
     orderDate: dateStr,
@@ -234,7 +247,8 @@ export function formatReceiptText(receipt: ReceiptData): string {
   // Pricing breakdown
   lines.push(leftRight('Subtotal:', formatCurrency(receipt.subtotal)));
   
-  if (receipt.deliveryFee > 0) {
+  // Always show delivery fee for delivery orders (even if 0, to highlight the issue)
+  if (receipt.orderType === 'delivery') {
     lines.push(leftRight('Delivery Fee:', formatCurrency(receipt.deliveryFee)));
   }
   

@@ -24,7 +24,7 @@ export function useOrder(orderId: string, phone?: string) {
 export function useCreateOrder() {
   return useMutation({
     mutationFn: (data: Partial<Order> & { items: any[] }) =>
-      post<{ order: Order; payment_url: string }>('/api/orders', data),
+      post<{ order: Order; payment_url: string; scheduled?: boolean; scheduled_note?: string }>('/api/orders', data),
     // Don't log expected errors to console (403/503 are handled in UI)
     onError: (error: any) => {
       // Suppress console logging for expected errors

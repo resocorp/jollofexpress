@@ -57,10 +57,10 @@ const orderSchema = z.object({
         message: 'Delivery address is required for delivery orders',
         path: ['delivery_address'],
       });
-    } else if (data.delivery_address.length < 20) {
+    } else if (data.delivery_address.length < 4) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Delivery address must be at least 20 characters with landmarks',
+        message: 'Delivery address must be at least 4 characters',
         path: ['delivery_address'],
       });
     }
@@ -152,51 +152,61 @@ export async function POST(request: NextRequest) {
 
     const orderData: OrderData = validationResult.data;
     
-    // CHECK 0: Verify within operating hours
+    // Debug logging for order pricing
+    console.log('[ORDER CREATE] Pricing breakdown:', {
+      subtotal: orderData.subtotal,
+      delivery_fee: orderData.delivery_fee,
+      tax: orderData.tax,
+      discount: orderData.discount,
+      total: orderData.total,
+      order_type: orderData.order_type,
+      calculated_total: orderData.subtotal + orderData.delivery_fee + orderData.tax - orderData.discount
+    });
+    
+    // CHECK 0: Check if within operating hours (but allow orders to be scheduled)
     const hoursCheck = await shouldBeOpenNow();
-    if (!hoursCheck.shouldBeOpen) {
-      return NextResponse.json(
-        { 
-          error: 'Outside operating hours',
-          message: hoursCheck.reason,
-          details: {
-            reason: hoursCheck.reason,
-          }
-        },
-        { status: 403 }
-      );
-    }
+    const isOutsideHours = !hoursCheck.shouldBeOpen;
     
-    // CHECK 1: Verify restaurant is open (manual toggle or capacity-based)
+    // CHECK 1: Check if restaurant is manually closed or at capacity
     const restaurantOpen = await isRestaurantOpen();
-    if (!restaurantOpen) {
-      return NextResponse.json(
-        { 
-          error: 'Restaurant is currently closed',
-          message: 'We are not accepting orders at this time. Please check back during operating hours.'
-        },
-        { status: 403 }
-      );
-    }
+    const isManuallyClosedOrAtCapacity = !restaurantOpen && hoursCheck.shouldBeOpen;
     
-    // CHECK 2: Check kitchen capacity (will auto-close if at capacity)
-    const capacityCheck = await checkAndManageCapacity();
-    if (capacityCheck.action === 'closed') {
-      return NextResponse.json(
-        { 
-          error: 'Kitchen at capacity',
-          message: `We're currently experiencing high demand (${capacityCheck.activeOrders} active orders). Please try again in a few minutes.`,
-          details: {
-            activeOrders: capacityCheck.activeOrders,
-            maxOrders: capacityCheck.threshold,
-          }
-        },
-        { status: 503 }
-      );
+    // CHECK 2: Check kitchen capacity only if within operating hours
+    let capacityCheck = null;
+    if (!isOutsideHours) {
+      capacityCheck = await checkAndManageCapacity();
+      if (capacityCheck.action === 'closed') {
+        return NextResponse.json(
+          { 
+            error: 'Kitchen at capacity',
+            message: `We're currently experiencing high demand (${capacityCheck.activeOrders} active orders). Please try again in a few minutes.`,
+            details: {
+              activeOrders: capacityCheck.activeOrders,
+              maxOrders: capacityCheck.threshold,
+            }
+          },
+          { status: 503 }
+        );
+      }
     }
     
     const supabase = createServiceClient();
-    console.log('✅ Restaurant open, creating order...');
+    
+    // Determine order status based on restaurant availability
+    let orderStatus = 'pending';
+    let scheduledNote = '';
+    
+    if (isOutsideHours) {
+      orderStatus = 'scheduled';
+      scheduledNote = `Order placed outside operating hours. Will be processed when restaurant opens: ${hoursCheck.reason}`;
+      console.log('📅 Creating scheduled order (outside operating hours):', scheduledNote);
+    } else if (isManuallyClosedOrAtCapacity) {
+      orderStatus = 'scheduled';
+      scheduledNote = 'Order placed while restaurant was temporarily closed. Will be processed when restaurant reopens.';
+      console.log('📅 Creating scheduled order (manually closed):', scheduledNote);
+    } else {
+      console.log('✅ Restaurant open, creating order...');
+    }
 
     // Generate unique order number
     const orderNumber = generateOrderNumber();
@@ -225,7 +235,7 @@ export async function POST(request: NextRequest) {
         address_type: orderData.address_type,
         unit_number: orderData.unit_number,
         delivery_instructions: orderData.delivery_instructions,
-        status: 'pending',
+        status: orderStatus,
         subtotal: orderData.subtotal,
         delivery_fee: orderData.delivery_fee,
         tax: orderData.tax,
@@ -235,6 +245,7 @@ export async function POST(request: NextRequest) {
         payment_method: 'paystack',
         promo_code: orderData.promo_code,
         estimated_prep_time: prepTime,
+        notes: scheduledNote || undefined,
       })
       .select()
       .single();
@@ -315,6 +326,8 @@ export async function POST(request: NextRequest) {
       {
         order: { ...order, items: orderItems },
         payment_url: paymentUrl,
+        scheduled: orderStatus === 'scheduled',
+        scheduled_note: scheduledNote || undefined,
       },
       { status: 201 }
     );

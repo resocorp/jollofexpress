@@ -20,9 +20,8 @@ export function CartSheet() {
 
   const subtotal = getSubtotal();
   const taxRate = 7.5; // This should come from settings
-  const deliveryFee = 200; // This should come from settings
   const tax = Math.round((subtotal * taxRate) / 100);
-  const total = subtotal + tax + deliveryFee - discount;
+  const total = subtotal + tax - discount;
 
   const handleApplyPromo = async () => {
     if (!promoInput.trim()) {
@@ -183,10 +182,6 @@ export function CartSheet() {
           <span>{formatCurrency(subtotal)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Delivery Fee</span>
-          <span>{formatCurrency(deliveryFee)}</span>
-        </div>
-        <div className="flex justify-between">
           <span className="text-muted-foreground">Tax (7.5%)</span>
           <span>{formatCurrency(tax)}</span>
         </div>
@@ -198,9 +193,12 @@ export function CartSheet() {
         )}
         <Separator />
         <div className="flex justify-between text-lg font-bold">
-          <span>Total</span>
+          <span>Estimated Total</span>
           <span>{formatCurrency(total)}</span>
         </div>
+        <p className="text-xs text-muted-foreground italic pt-1">
+          * Delivery fee will be calculated at checkout based on your order type
+        </p>
       </div>
 
       {/* Checkout Button */}

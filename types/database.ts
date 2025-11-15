@@ -1,7 +1,7 @@
 // Database types matching the PostgreSQL schema
 
 export type UserRole = 'customer' | 'kitchen' | 'admin';
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled';
+export type OrderStatus = 'pending' | 'scheduled' | 'confirmed' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled';
 export type PaymentStatus = 'pending' | 'success' | 'failed' | 'refunded';
 export type OrderType = 'delivery' | 'carryout';
 export type PrintStatus = 'pending' | 'printed' | 'failed';
@@ -91,6 +91,7 @@ export interface Order {
   payment_method?: string;
   promo_code?: string;
   estimated_prep_time?: number;
+  notes?: string;
   print_status: PrintStatus;
   print_attempts: number;
   created_at: string;

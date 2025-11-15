@@ -44,10 +44,10 @@ export const checkoutSchema = deliveryAddressSchema
           message: 'Please provide your delivery address',
           path: ['fullAddress'],
         });
-      } else if (data.fullAddress.length < 10) {
+      } else if (data.fullAddress.length < 4) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Please provide a more detailed address (minimum 10 characters)',
+          message: 'Address must be at least 4 characters',
           path: ['fullAddress'],
         });
       }

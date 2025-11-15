@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create custom types
 CREATE TYPE user_role AS ENUM ('customer', 'kitchen', 'admin');
-CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'completed', 'cancelled');
+CREATE TYPE order_status AS ENUM ('pending', 'scheduled', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'completed', 'cancelled');
 CREATE TYPE payment_status AS ENUM ('pending', 'success', 'failed', 'refunded');
 CREATE TYPE order_type AS ENUM ('delivery', 'carryout');
 CREATE TYPE print_status AS ENUM ('pending', 'printed', 'failed');
@@ -131,6 +131,7 @@ CREATE TABLE orders (
     -- Promo and timing
     promo_code TEXT,
     estimated_prep_time INTEGER, -- in minutes
+    notes TEXT, -- Additional notes (e.g., scheduled order information)
     
     -- Print tracking
     print_status print_status NOT NULL DEFAULT 'pending',
