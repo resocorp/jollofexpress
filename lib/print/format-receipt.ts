@@ -214,8 +214,10 @@ export function formatReceiptText(receipt: ReceiptData): string {
   
   // Items
   receipt.items.forEach(item => {
-    // Main item line with quantity and name
-    lines.push(`${item.quantity}  ${item.name}`);
+    // Main item line with quantity, name, and price
+    const itemLine = `${item.quantity}  ${item.name}`;
+    const priceStr = formatCurrency(item.price);
+    lines.push(leftRight(itemLine, priceStr));
     
     // Show variation as a bullet point
     if (item.variation) {
