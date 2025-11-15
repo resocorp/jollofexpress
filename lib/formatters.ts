@@ -167,7 +167,8 @@ export function calculateTotal(
   discount: number;
   total: number;
 } {
-  const tax = Math.round((subtotal * taxRate) / 100);
+  // VAT should be applied to subtotal + delivery fee
+  const tax = Math.round(((subtotal + deliveryFee) * taxRate) / 100);
   const total = subtotal + tax + deliveryFee - discount;
   
   return {

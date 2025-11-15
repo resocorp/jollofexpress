@@ -41,8 +41,8 @@ export async function apiRequest<T>(
     const data = await response.json();
     
     if (!response.ok) {
-      // Don't log expected errors (403 for closed restaurant, 503 for capacity)
-      const isExpectedError = response.status === 403 || response.status === 503;
+      // Don't log expected errors (503 for capacity)
+      const isExpectedError = response.status === 503;
       
       const apiError = new ApiError(
         data.error || data.message || 'An error occurred',

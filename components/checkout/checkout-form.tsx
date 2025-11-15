@@ -87,7 +87,8 @@ export function CheckoutForm({
   const subtotal = getSubtotal();
   const taxRate = 7.5;
   const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
-  const tax = Math.round((subtotal * taxRate) / 100);
+  // VAT should be applied to subtotal + delivery fee
+  const tax = Math.round(((subtotal + deliveryFee) * taxRate) / 100);
   const total = subtotal + tax + deliveryFee - discount;
   const minOrder = deliverySettings?.min_order || 0;
   const isBelowMinimum = orderType === 'delivery' && subtotal < minOrder;
