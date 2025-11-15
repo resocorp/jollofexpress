@@ -11,17 +11,15 @@ import { Separator } from '@/components/ui/separator';
 import { 
   useNotificationSettings, 
   useUpdateNotificationSettings,
-  useTestNotificationConnection,
   useSendTestNotification 
 } from '@/hooks/use-notifications';
 import { toast } from 'sonner';
-import { Loader2, Save, TestTube, Plus, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Save, Plus, Trash2, Send } from 'lucide-react';
 
 export default function NotificationSettingsPage() {
   const router = useRouter();
   const { data: settings, isLoading } = useNotificationSettings();
   const updateSettings = useUpdateNotificationSettings();
-  const testConnection = useTestNotificationConnection();
   const sendTest = useSendTestNotification();
 
   const [formData, setFormData] = useState({
@@ -71,18 +69,6 @@ export default function NotificationSettingsPage() {
     }
   };
 
-  const handleTestConnection = async () => {
-    try {
-      const result = await testConnection.mutateAsync();
-      if (result.success) {
-        toast.success('Connection successful!');
-      } else {
-        toast.error(result.error || 'Connection failed');
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Connection test failed');
-    }
-  };
 
   const handleSendTest = async () => {
     if (!testPhone) {
@@ -152,45 +138,15 @@ export default function NotificationSettingsPage() {
         </p>
       </div>
 
-      {/* UltraMsg Credentials */}
+      {/* WhatsApp Notifications Toggle */}
       <Card>
         <CardHeader>
-          <CardTitle>UltraMsg Configuration</CardTitle>
+          <CardTitle>WhatsApp Notifications</CardTitle>
           <CardDescription>
-            Enter your UltraMsg API credentials. Get them from{' '}
-            <a href="https://ultramsg.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-              ultramsg.com
-            </a>
+            Enable or disable all WhatsApp notifications for your restaurant
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="instance_id">Instance ID</Label>
-            <Input
-              id="instance_id"
-              placeholder="instance123456"
-              value={formData.ultramsg.instance_id}
-              onChange={(e) => setFormData({
-                ...formData,
-                ultramsg: { ...formData.ultramsg, instance_id: e.target.value }
-              })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="token">API Token</Label>
-            <Input
-              id="token"
-              type="password"
-              placeholder="your_ultramsg_token"
-              value={formData.ultramsg.token}
-              onChange={(e) => setFormData({
-                ...formData,
-                ultramsg: { ...formData.ultramsg, token: e.target.value }
-              })}
-            />
-          </div>
-
+        <CardContent>
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Enable Notifications</Label>
@@ -206,19 +162,6 @@ export default function NotificationSettingsPage() {
               })}
             />
           </div>
-
-          <Button 
-            variant="outline" 
-            onClick={handleTestConnection}
-            disabled={testConnection.isPending}
-          >
-            {testConnection.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <TestTube className="h-4 w-4 mr-2" />
-            )}
-            Test Connection
-          </Button>
         </CardContent>
       </Card>
 
@@ -398,7 +341,7 @@ export default function NotificationSettingsPage() {
               {sendTest.isPending ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <TestTube className="h-4 w-4 mr-2" />
+                <Send className="h-4 w-4 mr-2" />
               )}
               Send Test
             </Button>
