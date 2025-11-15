@@ -106,14 +106,8 @@ export function CheckoutForm({
       calculated_total: subtotal + deliveryFee + tax - discount
     });
 
-    // Validate delivery settings are loaded for delivery orders
-    if (data.orderType === 'delivery' && (!deliverySettings || isLoadingSettings)) {
-      toast.error('Loading delivery settings, please wait...');
-      return;
-    }
-
-    // Validate minimum order
-    if (isBelowMinimum) {
+    // Validate minimum order (only if delivery settings are loaded)
+    if (data.orderType === 'delivery' && deliverySettings && isBelowMinimum) {
       toast.error(`Minimum order amount is ${formatCurrency(minOrder)} for delivery`);
       return;
     }

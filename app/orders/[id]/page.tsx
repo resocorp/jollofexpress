@@ -28,7 +28,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
   const [isVerifying, setIsVerifying] = useState(!!reference);
   const { data: order, isLoading, error } = useOrder(resolvedParams.id, phone || undefined);
   const verifyPayment = useVerifyPayment();
-  const { pendingOrderId, clearCart } = useCartStore();
+  const { pendingOrderId } = useCartStore();
 
   // Verify payment if coming from Paystack redirect
   useEffect(() => {
@@ -41,11 +41,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
         })
         .then(() => {
           toast.success('Payment verified successfully!');
-          // Clear cart only after successful payment verification
-          if (pendingOrderId === resolvedParams.id) {
-            clearCart();
-            console.log('Cart cleared after successful payment');
-          }
+          // Note: Cart is NOT automatically cleared - users can manually clear it or add more items
         })
         .catch((error: any) => {
           toast.error(error.message || 'Payment verification failed');
