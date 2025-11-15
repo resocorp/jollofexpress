@@ -60,36 +60,36 @@ export function Footer() {
   ];
 
   return (
-    <footer className="bg-gradient-to-b from-white to-gray-50 border-t mt-16">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+    <footer className="bg-gradient-to-b from-white to-gray-50 border-t mt-12 sm:mt-16">
+      <div className="container mx-auto px-4 py-8 sm:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
           {/* Brand Section */}
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div className="flex items-center space-x-2">
               {info?.logo_url ? (
                 <img
                   src={info.logo_url}
                   alt={info.name || 'Restaurant Logo'}
-                  className="h-12 w-12 object-cover rounded-full"
+                  className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-full"
                 />
               ) : (
-                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 text-white font-bold text-lg shadow-lg">
+                <div className="flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 text-white font-bold text-base sm:text-lg shadow-lg">
                   JE
                 </div>
               )}
               <div>
-                <h3 className="font-bold text-xl bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                <h3 className="font-bold text-lg sm:text-xl bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
                   {info?.name || 'JollofExpress'}
                 </h3>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               Authentic Nigerian cuisine delivered fresh to your doorstep. Experience the taste of home with every order.
             </p>
             
             {/* Operating Status */}
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className={`h-4 w-4 ${status?.is_open ? 'text-green-600' : 'text-red-600'}`} />
+            <div className="flex items-center gap-2 text-xs sm:text-sm">
+              <Clock className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${status?.is_open ? 'text-green-600' : 'text-red-600'}`} />
               <span className={`font-medium ${status?.is_open ? 'text-green-600' : 'text-red-600'}`}>
                 {status?.is_open ? 'Open Now' : 'Currently Closed'}
               </span>
@@ -97,14 +97,14 @@ export function Footer() {
           </div>
 
           {/* Quick Links */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-lg">Quick Links</h4>
-            <ul className="space-y-2">
+          <div className="space-y-3 sm:space-y-4">
+            <h4 className="font-semibold text-base sm:text-lg">Quick Links</h4>
+            <ul className="space-y-1.5 sm:space-y-2">
               {quickLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-orange-600 transition-colors duration-200"
+                    className="text-xs sm:text-sm text-muted-foreground hover:text-orange-600 transition-colors duration-200 touch-manipulation"
                   >
                     {link.name}
                   </Link>
@@ -114,22 +114,22 @@ export function Footer() {
           </div>
 
           {/* Contact Info */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-lg">Contact Us</h4>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-orange-600" />
+          <div className="space-y-3 sm:space-y-4">
+            <h4 className="font-semibold text-base sm:text-lg">Contact Us</h4>
+            <ul className="space-y-2 sm:space-y-3">
+              <li className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0 text-orange-600" />
                 <span>Awka, Anambra State, Nigeria</span>
               </li>
-              <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Phone className="h-4 w-4 flex-shrink-0 text-orange-600" />
-                <a href="tel:+2348012345678" className="hover:text-orange-600 transition-colors">
+              <li className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-orange-600" />
+                <a href="tel:+2348012345678" className="hover:text-orange-600 transition-colors touch-manipulation">
                   +234 801 234 5678
                 </a>
               </li>
-              <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4 flex-shrink-0 text-orange-600" />
-                <a href="mailto:hello@jollofexpress.ng" className="hover:text-orange-600 transition-colors">
+              <li className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-orange-600" />
+                <a href="mailto:hello@jollofexpress.ng" className="hover:text-orange-600 transition-colors touch-manipulation">
                   hello@jollofexpress.ng
                 </a>
               </li>
@@ -137,9 +137,9 @@ export function Footer() {
           </div>
 
           {/* Social Media & Newsletter */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-lg">Follow Us</h4>
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-3 sm:space-y-4">
+            <h4 className="font-semibold text-base sm:text-lg">Follow Us</h4>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Stay updated with our latest dishes and special offers!
             </p>
             <div className="flex items-center gap-3">
@@ -151,10 +151,10 @@ export function Footer() {
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`p-2.5 rounded-full bg-white border border-gray-200 shadow-sm transition-all duration-200 hover:shadow-md hover:scale-110 ${social.color}`}
+                    className={`p-2 sm:p-2.5 rounded-full bg-white border border-gray-200 shadow-sm transition-all duration-200 hover:shadow-md hover:scale-110 active:scale-95 touch-manipulation ${social.color}`}
                     aria-label={social.name}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </a>
                 );
               })}
@@ -162,22 +162,22 @@ export function Footer() {
             
             {/* Order Now CTA */}
             <Link href="/menu">
-              <Button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg mt-4">
+              <Button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg mt-3 sm:mt-4 h-10 sm:h-11 text-sm sm:text-base touch-manipulation">
                 Order Now
               </Button>
             </Link>
           </div>
         </div>
 
-        <Separator className="my-8" />
+        <Separator className="my-6 sm:my-8" />
 
         {/* Bottom Bar */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
           <p>
             © {currentYear} {info?.name || 'JollofExpress'}. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
-            <span className="text-xs">Made with ❤️ in Nigeria</span>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <span className="text-[10px] sm:text-xs">Made with ❤️ in Nigeria</span>
           </div>
         </div>
       </div>

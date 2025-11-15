@@ -1,10 +1,8 @@
 'use client';
 
 import { Clock, MapPin, Phone, Star } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { useRestaurantStatus, useRestaurantInfo } from '@/hooks/use-settings';
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
 
 export function EnhancedBanner() {
   const { data: status } = useRestaurantStatus();
@@ -26,126 +24,122 @@ export function EnhancedBanner() {
   };
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-red-500 to-rose-600">
-      {/* Subtle Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px]" />
-      
-      {/* Gradient Overlay for depth */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/10" />
+    <div className="relative overflow-hidden bg-[#FF6B00]">
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#FF6B00] to-[#FF8534] opacity-80" />
 
       {/* Main Content */}
       <motion.div 
         variants={staggerContainer}
         initial="hidden"
         animate="show"
-        className="relative container mx-auto px-4 py-5 md:py-6"
+        className="relative container mx-auto px-5 sm:px-6 lg:px-8 py-5 max-w-[1400px]"
       >
-        <div className="max-w-5xl">
-          {/* Single Compact Row */}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            {/* Description */}
-            <motion.p variants={item} className="text-base md:text-lg text-white font-medium">
-              {info?.description || 'Authentic Nigerian cuisine delivered to your doorstep'}
-            </motion.p>
-            
-            {/* Divider */}
-            <span className="hidden sm:inline text-white/30">|</span>
-
-            {/* Ratings */}
-            <motion.div variants={item} className="flex items-center gap-2 text-white">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <span className="font-semibold text-sm">4.8</span>
-              <span className="text-sm text-white/90">(500+)</span>
-            </motion.div>
-
-            {/* Divider */}
-            <span className="hidden lg:inline text-white/30">|</span>
-
-            {/* Status & Quick Info */}
-            <motion.div variants={item} className="flex flex-wrap items-center gap-2.5 text-white text-sm">
-              {/* Open/Closed Status */}
-              <Badge 
-                variant={status?.is_open ? 'default' : 'destructive'} 
-                className={cn(
-                  "text-xs px-3 py-1 font-semibold",
-                  status?.is_open 
-                    ? "bg-green-500 hover:bg-green-600 text-white" 
-                    : "bg-red-500/90 hover:bg-red-600"
-                )}
-              >
-                <Clock className="h-3 w-3 mr-1" />
-                {status?.is_open ? 'Open' : 'Closed'}
-              </Badge>
-
-              {/* Prep Time */}
-              {status?.is_open && status.estimated_prep_time && (
-                <span className="flex items-center gap-1 font-medium">
-                  <Clock className="h-3.5 w-3.5" />
-                  {status.estimated_prep_time} min
-                </span>
-              )}
-
-              {/* Location */}
-              <span className="flex items-center gap-1 font-medium">
-                <MapPin className="h-3.5 w-3.5" />
-                Awka
-              </span>
-
-              {/* Phone */}
-              {info?.phone && (
-                <a 
-                  href={`tel:${info.phone}`}
-                  className="flex items-center gap-1 font-medium hover:text-yellow-300 transition-colors"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  {info.phone}
-                </a>
-              )}
-            </motion.div>
+        {/* Section 1 - Main Tagline with Rating */}
+        <motion.div 
+          variants={item} 
+          className="flex flex-wrap items-center gap-3 mb-3"
+        >
+          <p className="text-white font-semibold text-lg sm:text-xl">
+            {info?.description || 'Delicious Nigerian cuisine delivered to your doorstep'}
+          </p>
+          
+          {/* Star Rating */}
+          <div className="flex items-center gap-2 text-white">
+            <div className="flex gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+              ))}
+            </div>
+            <span className="font-semibold">4.8</span>
+            <span className="text-white/90">(500+)</span>
           </div>
+        </motion.div>
 
-          {/* Operating Hours & Status Message */}
-          {!status?.is_open && (
-            <motion.div 
-              variants={item}
-              className="mt-3 p-3 bg-black/20 rounded-lg border border-white/10 space-y-2"
-            >
-              <p className="text-white text-sm font-medium">{status?.message}</p>
-              {status?.closed_reason && (
-                <p className="text-white/70 text-xs italic">
-                  Reason: {status.closed_reason}
-                </p>
-              )}
-              {status?.hours?.today && (
-                <p className="text-white/80 text-xs">
-                  <span className="font-semibold">Today's Hours:</span> {status.hours.today}
-                </p>
-              )}
-              {status?.next_status_change?.action === 'open' && (
-                <p className="text-green-300 text-xs font-medium">
-                  Opens at {status.next_status_change.time}
-                </p>
-              )}
-            </motion.div>
+        {/* Section 2 - Store Information */}
+        <motion.div 
+          variants={item} 
+          className="flex flex-wrap items-center gap-4 text-white text-sm"
+        >
+          {/* Status Badge */}
+          {status?.is_open ? (
+            <span className="flex items-center gap-1.5 font-normal">
+              <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+              Open
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 font-normal">
+              <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+              Closed
+            </span>
           )}
           
-          {/* Open - Show closing time */}
-          {status?.is_open && status?.next_status_change?.action === 'close' && (
-            <motion.div 
-              variants={item}
-              className="mt-3 p-2.5 bg-black/15 rounded-lg border border-white/10"
-            >
-              <p className="text-white/90 text-xs">
-                <Clock className="h-3 w-3 inline mr-1" />
-                Last orders at {status.next_status_change.time}
-              </p>
-            </motion.div>
+          <span className="text-white/40">•</span>
+
+          {/* Prep Time */}
+          {status?.is_open && status.estimated_prep_time && (
+            <>
+              <span className="font-normal">{status.estimated_prep_time} min</span>
+              <span className="text-white/40">•</span>
+            </>
           )}
-        </div>
+
+          {/* Location */}
+          <span className="font-normal">Awka</span>
+          
+          <span className="text-white/40">•</span>
+
+          {/* Phone */}
+          {info?.phone && (
+            <>
+              <a 
+                href={`tel:${info.phone}`}
+                className="flex items-center gap-1.5 font-normal hover:text-yellow-300 transition-colors touch-manipulation"
+              >
+                <Phone className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{info.phone}</span>
+                <span className="sm:hidden">Call</span>
+              </a>
+              
+              {status?.is_open && status?.next_status_change?.action === 'close' && (
+                <span className="text-white/40">•</span>
+              )}
+            </>
+          )}
+
+          {/* Last Orders Time */}
+          {status?.is_open && status?.next_status_change?.action === 'close' && (
+            <span className="flex items-center gap-1.5 font-normal">
+              <Clock className="h-3.5 w-3.5" />
+              Last orders at {status.next_status_change.time}
+            </span>
+          )}
+        </motion.div>
+
+        {/* Closed Status Message (only when closed) */}
+        {!status?.is_open && (
+          <motion.div 
+            variants={item}
+            className="mt-4 p-3 sm:p-4 bg-white/10 rounded-lg border border-white/20"
+          >
+            <p className="text-white text-sm font-medium mb-2">{status?.message}</p>
+            {status?.closed_reason && (
+              <p className="text-white/80 text-xs italic mb-2">
+                {status.closed_reason}
+              </p>
+            )}
+            {status?.hours?.today && (
+              <p className="text-white/90 text-xs">
+                <span className="font-semibold">Today's Hours:</span> {status.hours.today}
+              </p>
+            )}
+            {status?.next_status_change?.action === 'open' && (
+              <p className="text-green-300 text-xs font-medium mt-2">
+                Opens at {status.next_status_change.time}
+              </p>
+            )}
+          </motion.div>
+        )}
       </motion.div>
     </div>
   );
