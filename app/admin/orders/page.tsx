@@ -61,6 +61,7 @@ export default function AdminOrdersPage() {
   const getStatusBadge = (status: OrderStatus) => {
     const variants: Record<OrderStatus, { label: string; className: string }> = {
       pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800' },
+      scheduled: { label: 'Scheduled', className: 'bg-cyan-100 text-cyan-800' },
       confirmed: { label: 'Confirmed', className: 'bg-blue-100 text-blue-800' },
       preparing: { label: 'Preparing', className: 'bg-purple-100 text-purple-800' },
       ready: { label: 'Ready', className: 'bg-green-100 text-green-800' },
@@ -126,6 +127,7 @@ export default function AdminOrdersPage() {
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
                 <SelectItem value="confirmed">Confirmed</SelectItem>
                 <SelectItem value="preparing">Preparing</SelectItem>
                 <SelectItem value="ready">Ready</SelectItem>

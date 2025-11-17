@@ -1,6 +1,7 @@
 // Get order details for tracking
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { fetchOrderWithItems } from '@/lib/supabase/queries';
 
 export async function GET(
   request: NextRequest,
@@ -13,23 +14,18 @@ export async function GET(
 
     const supabase = createServiceClient();
 
-    // Build query
-    let query = supabase
-      .from('orders')
-      .select(`
-        *,
-        items:order_items(*)
-      `)
-      .eq('id', id);
-
-    // If phone is provided, verify it matches (security check)
-    if (phone) {
-      query = query.eq('customer_phone', phone);
+    // Fetch order with items using helper function
+    const { data: order, error } = await fetchOrderWithItems(supabase, id);
+    
+    if (error || !order) {
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404 }
+      );
     }
 
-    const { data: order, error } = await query.single();
-
-    if (error || !order) {
+    // If phone is provided, verify it matches (security check)
+    if (phone && order.customer_phone !== phone) {
       return NextResponse.json(
         { error: 'Order not found' },
         { status: 404 }

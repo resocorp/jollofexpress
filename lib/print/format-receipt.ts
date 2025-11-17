@@ -76,14 +76,14 @@ export function formatReceipt(order: OrderWithItems): ReceiptData {
 
   // Extract special instructions from items
   const specialInstructions: string[] = [];
-  order.items?.forEach(item => {
+  order.items?.filter(item => item != null).forEach(item => {
     if (item.special_instructions) {
       specialInstructions.push(`${item.item_name}: ${item.special_instructions}`);
     }
   });
 
   // Format items
-  const items: ReceiptItem[] = order.items?.map(item => ({
+  const items: ReceiptItem[] = order.items?.filter(item => item != null).map(item => ({
     quantity: item.quantity,
     name: item.item_name,
     variation: item.selected_variation?.option,

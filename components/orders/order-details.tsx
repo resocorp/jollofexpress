@@ -79,7 +79,7 @@ export function OrderDetails({ order }: OrderDetailsProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {order.items?.map((item, index) => (
+            {order.items?.filter(item => item != null).map((item, index) => (
               <div key={index} className="flex justify-between gap-4">
                 <div className="flex-1">
                   <p className="font-medium">

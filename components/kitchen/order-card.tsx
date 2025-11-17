@@ -30,6 +30,7 @@ interface OrderCardProps {
 
 const STATUS_FLOW: Record<OrderStatus, OrderStatus | null> = {
   pending: 'confirmed',
+  scheduled: 'confirmed',
   confirmed: 'preparing',
   preparing: 'ready',
   ready: 'out_for_delivery',
@@ -251,7 +252,7 @@ export function OrderCard({ order }: OrderCardProps) {
             <div className="border-t pt-4">
               <h3 className="font-semibold mb-3">Order Items</h3>
               <div className="space-y-3">
-                {order.items?.map((item, index) => (
+                {order.items?.filter(item => item != null).map((item, index) => (
                   <div key={index} className="border-b pb-3 last:border-0">
                     <div className="flex justify-between">
                       <span className="font-medium">{item.quantity}x {item.item_name}</span>
