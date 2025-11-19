@@ -1,0 +1,477 @@
+{
+  "app_name": "Yum",
+  "app_version": "1.0.0",
+  "domain": "eatyum.food",
+  "description": "Food delivery application design specification",
+  
+  "theme": {
+    "colors": {
+      "primary": "#FF4433",
+      "primary_dark": "#E63320",
+      "secondary": "#FFFFFF",
+      "text_primary": "#000000",
+      "text_secondary": "#666666",
+      "background": "#FFFFFF",
+      "background_light": "#F5F5F5",
+      "success": "#00C853",
+      "price": "#FF4433",
+      "cart_badge": "#FF4433"
+    },
+    "typography": {
+      "font_family": "System Default",
+      "heading_large": {
+        "size": "24px",
+        "weight": "bold"
+      },
+      "heading_medium": {
+        "size": "18px",
+        "weight": "600"
+      },
+      "body": {
+        "size": "14px",
+        "weight": "normal"
+      },
+      "price": {
+        "size": "16px",
+        "weight": "bold"
+      }
+    },
+    "border_radius": {
+      "small": "8px",
+      "medium": "12px",
+      "large": "16px",
+      "pill": "50px"
+    },
+    "spacing": {
+      "xs": "4px",
+      "sm": "8px",
+      "md": "16px",
+      "lg": "24px",
+      "xl": "32px"
+    }
+  },
+
+  "navigation": {
+    "header": {
+      "components": [
+        {
+          "type": "menu_icon",
+          "position": "left"
+        },
+        {
+          "type": "logo",
+          "position": "center",
+          "image": "yum_logo.png"
+        },
+        {
+          "type": "cart_button",
+          "position": "right",
+          "badge_enabled": true
+        },
+        {
+          "type": "login_button",
+          "position": "right",
+          "text": "Login",
+          "style": "primary"
+        }
+      ],
+      "location_selector": {
+        "enabled": true,
+        "current_location": "Lekki",
+        "icon": "location_pin"
+      }
+    },
+    "tabs": [
+      {
+        "id": "all_items",
+        "label": "All Items",
+        "active": true,
+        "style": "primary"
+      },
+      {
+        "id": "combo_deals",
+        "label": "Combo Deals",
+        "active": false,
+        "style": "secondary"
+      },
+      {
+        "id": "yum_meals",
+        "label": "Yum Meals",
+        "active": false,
+        "style": "secondary"
+      }
+    ],
+    "bottom_navigation": {
+      "enabled": true,
+      "items": [
+        {
+          "id": "home",
+          "icon": "home",
+          "label": "Home"
+        },
+        {
+          "id": "orders",
+          "icon": "receipt",
+          "label": "Orders"
+        },
+        {
+          "id": "back",
+          "icon": "arrow_back",
+          "label": "Back"
+        }
+      ]
+    }
+  },
+
+  "pages": {
+    "home": {
+      "id": "home",
+      "title": "Yum",
+      "sections": [
+        {
+          "type": "delivery_mode_selector",
+          "options": [
+            {
+              "id": "delivery",
+              "label": "Delivery",
+              "selected": true
+            },
+            {
+              "id": "pickup",
+              "label": "Pickup",
+              "selected": false
+            }
+          ]
+        },
+        {
+          "type": "promotional_banner",
+          "content": {
+            "title": "EMBER CELEBRANTS OFFER!",
+            "description": "Enjoy FREE DELIVERY on Giftboxes anywhere in Lagos!",
+            "cta_text": "ORDER NOW!",
+            "background_color": "#D32F2F",
+            "text_color": "#FFFFFF",
+            "image": "giftbox_celebration.png",
+            "decorations": ["balloons", "confetti"]
+          }
+        },
+        {
+          "type": "category_tabs",
+          "scrollable": true,
+          "items": ["all_items", "combo_deals", "yum_meals"]
+        },
+        {
+          "type": "restaurant_info",
+          "content": {
+            "name": "Yum Lekki",
+            "address": "7 Bisola Durosinmi Etti Dr, Lekki Phase 1, Lekki, Lagos",
+            "status": "Open for delivery",
+            "status_color": "#00C853",
+            "distance": "1.44 km away",
+            "icon": "green_dot"
+          }
+        },
+        {
+          "type": "product_grid",
+          "layout": "2_column",
+          "items_source": "menu_items"
+        }
+      ],
+      "floating_elements": [
+        {
+          "type": "whatsapp_button",
+          "position": "bottom_left",
+          "text": "Chat with us on WhatsApp",
+          "color": "#25D366"
+        },
+        {
+          "type": "cart_summary",
+          "position": "bottom_right",
+          "shows_total": true,
+          "shows_count": true
+        }
+      ]
+    },
+    
+    "product_detail": {
+      "id": "product_detail",
+      "components": [
+        {
+          "type": "header",
+          "title": "dynamic",
+          "close_button": true
+        },
+        {
+          "type": "product_description",
+          "style": "text_block"
+        },
+        {
+          "type": "customization_section",
+          "sections": [
+            {
+              "id": "drinks",
+              "title": "Drinks",
+              "subtitle": "Optional - Select up to 13 item(s)",
+              "type": "add_ons",
+              "items_source": "drink_options"
+            },
+            {
+              "id": "proteins",
+              "title": "PROTEINS",
+              "subtitle": "Optional - Select up to 15 item(s)",
+              "type": "add_ons",
+              "items_source": "protein_options"
+            }
+          ]
+        },
+        {
+          "type": "quantity_selector",
+          "label": "Quantity",
+          "min": 1,
+          "default": 1,
+          "controls": "plus_minus"
+        },
+        {
+          "type": "add_to_cart_button",
+          "text": "Add to Cart",
+          "shows_price": true,
+          "style": "primary_large"
+        },
+        {
+          "type": "cancel_button",
+          "text": "Cancel",
+          "style": "secondary_large"
+        }
+      ]
+    }
+  },
+
+  "menu_items": [
+    {
+      "id": "jollof_rice_refill",
+      "name": "Yum Jollof Rice Refill Pack",
+      "description": "A plate of yum jollof rice with chicken cut",
+      "base_price": 3050.00,
+      "currency": "NGN",
+      "category": "main_meals",
+      "image": "jollof_rice_pack.jpg",
+      "available": true,
+      "customization": {
+        "drinks": {
+          "title": "Drinks",
+          "optional": true,
+          "max_selection": 13,
+          "options": [
+            {
+              "id": "bottle_water",
+              "name": "Bottle Water",
+              "price": 250.00
+            },
+            {
+              "id": "caprisun",
+              "name": "Caprisun",
+              "price": 350.00
+            }
+          ]
+        },
+        "proteins": {
+          "title": "PROTEINS",
+          "optional": true,
+          "max_selection": 15,
+          "options": [
+            {
+              "id": "peppered_chicken",
+              "name": "Peppered Chicken",
+              "price": 2150.00,
+              "badge": "+"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "smallie_pack",
+      "name": "Smallie Pack",
+      "description": "Small portion pack with assorted items",
+      "base_price": 1650.00,
+      "currency": "NGN",
+      "category": "combo_packs",
+      "image": "smallie_pack.jpg",
+      "available": true
+    },
+    {
+      "id": "try_me_pack",
+      "name": "Try Me Pack",
+      "description": "Variety pack to try different items",
+      "base_price": 2500.00,
+      "currency": "NGN",
+      "category": "combo_packs",
+      "image": "try_me_pack.jpg",
+      "available": true
+    },
+    {
+      "id": "classic_pack",
+      "name": "Classic Pack",
+      "description": "Classic combination of favorites",
+      "base_price": null,
+      "currency": "NGN",
+      "category": "combo_packs",
+      "image": "classic_pack.jpg",
+      "available": true
+    },
+    {
+      "id": "cred_pack",
+      "name": "Cred Pack",
+      "description": "Premium pack selection",
+      "base_price": 6200.00,
+      "currency": "NGN",
+      "category": "combo_packs",
+      "image": "cred_pack.jpg",
+      "available": true
+    }
+  ],
+
+  "ui_components": {
+    "product_card": {
+      "layout": "vertical",
+      "components": [
+        {
+          "type": "image",
+          "aspect_ratio": "4:3",
+          "border_radius": "medium"
+        },
+        {
+          "type": "title",
+          "style": "heading_medium",
+          "max_lines": 2
+        },
+        {
+          "type": "price_label",
+          "prefix": "From",
+          "style": "price",
+          "color": "price"
+        }
+      ],
+      "card_style": {
+        "background": "white",
+        "border_radius": "medium",
+        "shadow": "light",
+        "padding": "sm"
+      }
+    },
+
+    "add_on_item": {
+      "layout": "horizontal",
+      "components": [
+        {
+          "type": "name",
+          "flex": 1,
+          "style": "body"
+        },
+        {
+          "type": "price",
+          "style": "price",
+          "prefix": "+₦"
+        },
+        {
+          "type": "quantity_controls",
+          "style": "circular",
+          "buttons": ["minus", "count", "plus"]
+        }
+      ],
+      "separator": true
+    },
+
+    "buttons": {
+      "primary": {
+        "background_color": "#FF4433",
+        "text_color": "#FFFFFF",
+        "border_radius": "pill",
+        "padding": "16px 32px",
+        "font_weight": "bold"
+      },
+      "secondary": {
+        "background_color": "#F5F5F5",
+        "text_color": "#000000",
+        "border_radius": "pill",
+        "padding": "16px 32px",
+        "font_weight": "normal"
+      },
+      "icon": {
+        "background_color": "transparent",
+        "icon_color": "#666666",
+        "size": "40px"
+      }
+    },
+
+    "cart_button": {
+      "style": "floating",
+      "shows_total": true,
+      "shows_count": true,
+      "icon": "shopping_cart",
+      "background_color": "#FF4433",
+      "text_color": "#FFFFFF"
+    }
+  },
+
+  "features": {
+    "delivery_tracking": true,
+    "real_time_updates": true,
+    "multiple_payment_methods": true,
+    "order_customization": true,
+    "promo_codes": true,
+    "loyalty_program": false,
+    "scheduled_delivery": true,
+    "contact_whatsapp": true
+  },
+
+  "integrations": {
+    "whatsapp": {
+      "enabled": true,
+      "floating_button": true,
+      "message_template": "Hello, I need help with my order"
+    },
+    "location_services": {
+      "enabled": true,
+      "default_location": "Lekki, Lagos"
+    }
+  },
+
+  "business_info": {
+    "restaurant_name": "Yum Lekki",
+    "address": "7 Bisola Durosinmi Etti Dr, Lekki Phase 1, Lekki, Lagos",
+    "phone": null,
+    "operating_hours": {
+      "status": "Open for delivery",
+      "display": true
+    },
+    "delivery_radius": "Lekki and surrounding areas",
+    "minimum_order": null,
+    "delivery_fee": "Free for giftboxes (promotional)"
+  },
+
+  "promotional_campaigns": [
+    {
+      "id": "ember_months_promo",
+      "name": "Ember Celebrants Offer",
+      "description": "Free delivery on giftboxes anywhere in Lagos",
+      "active": true,
+      "banner_type": "full_width",
+      "priority": "high"
+    }
+  ],
+
+  "animations": {
+    "page_transitions": "slide",
+    "button_press": "scale",
+    "cart_add": "bounce",
+    "loading": "spinner"
+  },
+
+  "accessibility": {
+    "screen_reader_support": true,
+    "high_contrast_mode": false,
+    "font_scaling": true,
+    "touch_target_size": "44px"
+  }
+}

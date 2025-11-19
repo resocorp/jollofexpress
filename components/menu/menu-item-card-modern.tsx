@@ -135,12 +135,16 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
             {/* Price Row */}
             <div className="flex items-center justify-between mt-auto pt-2">
               <div className="flex flex-col gap-1">
-                <span className="text-xl sm:text-[22px] font-bold text-black">
-                  {formatCurrency(item.base_price)}
-                  {hasCustomizations && <span className="text-xs sm:text-sm text-muted-foreground ml-1">+</span>}
-                </span>
+                <div className="flex items-baseline gap-1">
+                  {hasCustomizations && (
+                    <span className="text-xs sm:text-sm text-[#666] font-medium">From</span>
+                  )}
+                  <span className="text-xl sm:text-[22px] font-bold text-[#FF4433]">
+                    {formatCurrency(item.base_price)}
+                  </span>
+                </div>
                 {hasCustomizations && (
-                  <span className="text-[10px] sm:text-xs text-[#666]">Customizable</span>
+                  <span className="text-[10px] sm:text-xs text-[#666]">Customizable options available</span>
                 )}
               </div>
             </div>

@@ -20,7 +20,6 @@ import { Separator } from '@/components/ui/separator';
 import { useCartStore } from '@/store/cart-store';
 import { formatCurrency, getDietaryTagIcon } from '@/lib/formatters';
 import type { MenuItemWithDetails, ItemAddon, ItemVariationOption } from '@/types/database';
-import { toast } from 'sonner';
 
 interface ItemCustomizationDialogProps {
   item: MenuItemWithDetails;
@@ -93,7 +92,6 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
       selectedAddons
     );
 
-    toast.success(`${item.name} added to cart!`);
     handleOpenChange(false);
   };
 

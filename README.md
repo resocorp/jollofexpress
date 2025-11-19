@@ -191,12 +191,20 @@ This will check:
 - ✅ Dependencies are installed
 - ✅ Configuration files exist
 
-For detailed troubleshooting, see **[LOCALHOST_TROUBLESHOOTING.md](./LOCALHOST_TROUBLESHOOTING.md)**
+For detailed troubleshooting, see **[LOCALHOST_TROUBLESHOOTING.md](./docs/setup/LOCALHOST_TROUBLESHOOTING.md)**
 
 **Common issues:**
 - **CORS errors**: Add localhost to Supabase CORS settings (see step 4)
 - **Missing env vars**: Ensure `.env.local` exists and has all required variables
 - **Cached env vars**: Restart dev server after changing `.env.local`
+
+**Additional diagnostic tools:**
+```bash
+npm run diagnose:reprint ORDER_ID    # Diagnose reprint issues
+npm run diagnose:print-worker        # Check print worker status
+npm run diagnose:printer IP_ADDRESS  # Test printer connectivity
+npm run diagnose:clear-jobs 24       # Clear old print jobs
+```
 
 ## 📱 Application Routes
 
@@ -353,6 +361,17 @@ See full deployment guide in the PRD documentation.
 - AI-powered recommendations
 - Loyalty program
 - Advanced analytics
+
+## 📖 Documentation
+
+Additional documentation is organized in the `/docs` directory:
+
+- **[Setup Guides](./docs/setup/)** - Environment setup, troubleshooting, security configuration
+- **[Deployment](./docs/deployment/)** - Production deployment, cron jobs, monitoring
+- **[Features](./docs/features/)** - Feature-specific documentation and guides
+- **[Diagnostics](./scripts/diagnostics/)** - Diagnostic scripts and troubleshooting tools
+
+For the full documentation index, see **[docs/README.md](./docs/README.md)**
 
 ## 🤝 Contributing
 

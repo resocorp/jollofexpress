@@ -110,8 +110,8 @@ export const metadata: Metadata = {
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
     'apple-mobile-web-app-title': 'JollofExpress',
     'application-name': 'JollofExpress',
-    'msapplication-TileColor': '#EA580C',
-    'theme-color': '#EA580C'
+    'msapplication-TileColor': '#FF4433',
+    'theme-color': '#FF4433'
   }
 };
 

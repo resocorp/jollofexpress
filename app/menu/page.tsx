@@ -10,8 +10,11 @@ import { useMenu } from '@/hooks/use-menu';
 import { useCartCleanup } from '@/hooks/use-cart-cleanup';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+import { BottomNav } from '@/components/layout/bottom-nav';
 import { MenuItemCard } from '@/components/menu/menu-item-card-modern';
-import { EnhancedBanner } from '@/components/menu/enhanced-banner';
+import { ChristmasPromoBanner } from '@/components/menu/christmas-promo-banner';
+import { WhatsAppFloat } from '@/components/shared/whatsapp-float';
+import { FloatingCartBadge } from '@/components/cart/floating-cart-badge';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function MenuPage() {
@@ -45,11 +48,11 @@ export default function MenuPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
       <Header />
       
-      {/* Restaurant Banner */}
-      <EnhancedBanner />
+      {/* Combined Christmas Promo & Restaurant Info Banner */}
+      <ChristmasPromoBanner />
 
       {/* Main Content */}
       <div className="container mx-auto px-5 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-[1400px]">
@@ -157,6 +160,13 @@ export default function MenuPage() {
 
       {/* Footer */}
       <Footer />
+
+      {/* Floating Elements */}
+      <WhatsAppFloat />
+      <FloatingCartBadge />
+      
+      {/* Bottom Navigation (Mobile Only) */}
+      <BottomNav />
     </div>
   );
 }

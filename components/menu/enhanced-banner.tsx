@@ -1,12 +1,17 @@
 'use client';
 
-import { Clock, MapPin, Phone, Star } from 'lucide-react';
+import { Clock, MapPin, Phone, Star, ChevronDown } from 'lucide-react';
 import { useRestaurantStatus, useRestaurantInfo } from '@/hooks/use-settings';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 export function EnhancedBanner() {
   const { data: status } = useRestaurantStatus();
   const { data: info } = useRestaurantInfo();
+  const [selectedLocation, setSelectedLocation] = useState('Awka');
+  const [showLocationMenu, setShowLocationMenu] = useState(false);
+
+  const locations = ['Awka', 'Enugu', 'Onitsha', 'Aba'];
 
   const staggerContainer = {
     hidden: { opacity: 0 },
@@ -24,9 +29,9 @@ export function EnhancedBanner() {
   };
 
   return (
-    <div className="relative overflow-hidden bg-[#FF6B00]">
+    <div className="relative overflow-hidden bg-[#FF4433]">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#FF6B00] to-[#FF8534] opacity-80" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#FF4433] to-[#E63320] opacity-90" />
 
       {/* Main Content */}
       <motion.div 
@@ -35,6 +40,46 @@ export function EnhancedBanner() {
         animate="show"
         className="relative container mx-auto px-5 sm:px-6 lg:px-8 py-5 max-w-[1400px]"
       >
+        {/* Location Selector */}
+        <motion.div 
+          variants={item}
+          className="mb-3"
+        >
+          <div className="relative inline-block">
+            <button
+              onClick={() => setShowLocationMenu(!showLocationMenu)}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 transition-all touch-manipulation"
+            >
+              <MapPin className="h-4 w-4 text-white" />
+              <span className="text-white font-medium text-sm">{selectedLocation}</span>
+              <ChevronDown className={`h-4 w-4 text-white transition-transform ${showLocationMenu ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showLocationMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute top-full mt-2 left-0 bg-white rounded-lg shadow-lg overflow-hidden z-10 min-w-[150px]"
+              >
+                {locations.map((location) => (
+                  <button
+                    key={location}
+                    onClick={() => {
+                      setSelectedLocation(location);
+                      setShowLocationMenu(false);
+                    }}
+                    className={`block w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors ${
+                      selectedLocation === location ? 'bg-gray-50 font-semibold text-[#FF4433]' : 'text-gray-700'
+                    }`}
+                  >
+                    {location}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </div>
+        </motion.div>
+
         {/* Section 1 - Main Tagline with Rating */}
         <motion.div 
           variants={item} 
