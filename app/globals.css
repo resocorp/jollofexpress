@@ -127,6 +127,16 @@
     grid-auto-rows: 1fr;
   }
   
+  /* Hide scrollbar completely */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
   /* Smooth scrolling for category tabs */
   .overflow-x-auto {
     scrollbar-width: thin;

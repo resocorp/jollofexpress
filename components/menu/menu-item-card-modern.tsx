@@ -119,41 +119,41 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
           </div>
 
           {/* Content Section */}
-          <CardContent className="p-4 sm:p-5 flex-grow flex flex-col gap-3">
+          <CardContent className="p-3 sm:p-5 flex-grow flex flex-col gap-2 sm:gap-3">
             {/* Item Name */}
-            <h3 className="font-semibold text-lg sm:text-xl leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+            <h3 className="font-semibold text-base sm:text-xl leading-tight line-clamp-2 group-hover:text-primary transition-colors">
               {item.name}
             </h3>
             
             {/* Description */}
             {item.description && (
-              <p className="text-sm leading-relaxed text-[#666] line-clamp-2 flex-grow">
+              <p className="text-xs sm:text-sm leading-relaxed text-[#666] line-clamp-2 flex-grow">
                 {item.description}
               </p>
             )}
 
             {/* Price Row */}
-            <div className="flex items-center justify-between mt-auto pt-2">
-              <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between mt-auto pt-1 sm:pt-2">
+              <div className="flex flex-col gap-0.5 sm:gap-1">
                 <div className="flex items-baseline gap-1">
                   {hasCustomizations && (
-                    <span className="text-xs sm:text-sm text-[#666] font-medium">From</span>
+                    <span className="text-[10px] sm:text-sm text-[#666] font-medium">From</span>
                   )}
-                  <span className="text-xl sm:text-[22px] font-bold text-[#FF4433]">
+                  <span className="text-lg sm:text-[22px] font-bold text-[#FF4433]">
                     {formatCurrency(item.base_price)}
                   </span>
                 </div>
                 {hasCustomizations && (
-                  <span className="text-[10px] sm:text-xs text-[#666]">Customizable options available</span>
+                  <span className="text-[9px] sm:text-xs text-[#666] hidden sm:block">Customizable options available</span>
                 )}
               </div>
             </div>
           </CardContent>
 
           {/* Footer with Add Button */}
-          <CardFooter className="p-4 sm:p-5 pt-0">
+          <CardFooter className="p-3 sm:p-5 pt-0">
             <Button
-              className="w-full group-hover:bg-primary group-hover:text-white transition-all duration-300 touch-manipulation text-sm sm:text-base min-h-[44px]"
+              className="w-full group-hover:bg-primary group-hover:text-white transition-all duration-300 touch-manipulation text-xs sm:text-base min-h-[40px] sm:min-h-[44px] px-2 sm:px-4"
               variant={item.is_available ? "default" : "secondary"}
               onClick={(e) => {
                 e.stopPropagation();
@@ -161,8 +161,8 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
               }}
               disabled={!item.is_available}
             >
-              <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              {hasCustomizations ? 'Customize & Add' : 'Add to Cart'}
+              <Plus className="h-3.5 w-3.5 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+              <span className="truncate">{hasCustomizations ? 'Customize & Add' : 'Add to Cart'}</span>
             </Button>
           </CardFooter>
         </Card>

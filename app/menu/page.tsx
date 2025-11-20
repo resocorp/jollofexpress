@@ -78,12 +78,12 @@ export default function MenuPage() {
           </div>
 
           {/* Category Tabs */}
-          <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="overflow-x-auto pb-3 -mx-5 px-5 sm:mx-0 sm:px-0 scrollbar-hide">
             <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-              <TabsList className="inline-flex w-auto bg-white shadow-md rounded-xl p-1 border">
+              <TabsList className="inline-flex w-auto bg-white shadow-md rounded-xl p-1.5 border min-h-[48px]">
                 <TabsTrigger 
                   value="all" 
-                  className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg px-4 sm:px-6 py-2 sm:py-2.5 font-semibold transition-all text-sm sm:text-base"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 font-semibold transition-all text-sm sm:text-base"
                 >
                   <Flame className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                   All Items
@@ -92,7 +92,7 @@ export default function MenuPage() {
                   <TabsTrigger 
                     key={category.id} 
                     value={category.id}
-                    className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg px-4 sm:px-6 py-2 sm:py-2.5 font-semibold transition-all text-sm sm:text-base whitespace-nowrap"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 font-semibold transition-all text-sm sm:text-base whitespace-nowrap"
                   >
                     {category.name}
                   </TabsTrigger>
@@ -133,7 +133,7 @@ export default function MenuPage() {
                   </div>
 
                   {/* Menu Grid - Centered with max-width */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 auto-rows-fr">
                     {category.items.map((item, itemIndex) => (
                       <MenuItemCard key={item.id} item={item} index={itemIndex} />
                     ))}
