@@ -1,6 +1,7 @@
 // Admin endpoints for menu category management
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 // Validation schema
@@ -13,7 +14,13 @@ const categorySchema = z.object({
 });
 
 // GET - List all categories
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
 
@@ -43,6 +50,12 @@ export async function GET() {
 
 // POST - Create new category
 export async function POST(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
 

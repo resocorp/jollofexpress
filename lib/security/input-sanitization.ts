@@ -37,7 +37,7 @@ export function sanitizeString(input: string): string {
  */
 export function sanitizePhoneNumber(phone: string): string {
   // Remove all non-digit characters except +
-  let cleaned = phone.replace(/[^\d+]/g, '');
+  const cleaned = phone.replace(/[^\d+]/g, '');
 
   // Nigerian phone validation
   const nigerianRegex = /^(\+?234|0)[789]\d{9}$/;
@@ -70,7 +70,7 @@ export function sanitizeEmail(email: string): string {
 /**
  * Sanitize numeric input
  */
-export function sanitizeNumber(input: any): number {
+export function sanitizeNumber(input: string | number): number {
   const num = Number(input);
 
   if (isNaN(num) || !isFinite(num)) {
@@ -97,7 +97,7 @@ export function validatePrice(price: number, min = 0, max = 1000000): number {
 /**
  * Sanitize object keys and values recursively
  */
-export function sanitizeObject(obj: any): any {
+export function sanitizeObject(obj: unknown): unknown {
   if (typeof obj !== 'object' || obj === null) {
     if (typeof obj === 'string') {
       return sanitizeString(obj);
@@ -109,7 +109,7 @@ export function sanitizeObject(obj: any): any {
     return obj.map(item => sanitizeObject(item));
   }
 
-  const sanitized: any = {};
+  const sanitized: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(obj)) {
     const sanitizedKey = sanitizeString(key);

@@ -6,8 +6,14 @@ import { createClient } from '@supabase/supabase-js';
  * Verify admin authentication and authorization
  * Use this middleware in all /api/admin/* routes
  */
+interface AuthenticatedUser {
+  id: string;
+  email: string | undefined;
+  role: string;
+}
+
 export async function verifyAdminAuth(request: NextRequest): Promise<
-  | { authenticated: true; user: any }
+  | { authenticated: true; user: AuthenticatedUser }
   | { authenticated: false; response: NextResponse }
 > {
   try {
@@ -115,7 +121,7 @@ export async function verifyAdminAuth(request: NextRequest): Promise<
  * Verify admin-only access (excludes kitchen role)
  */
 export async function verifyAdminOnly(request: NextRequest): Promise<
-  | { authenticated: true; user: any }
+  | { authenticated: true; user: AuthenticatedUser }
   | { authenticated: false; response: NextResponse }
 > {
   const authResult = await verifyAdminAuth(request);

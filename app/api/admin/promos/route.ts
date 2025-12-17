@@ -1,6 +1,7 @@
 // Admin endpoints for promo code management
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 // Validation schema
@@ -18,6 +19,12 @@ const promoSchema = z.object({
 
 // GET - List all promo codes
 export async function GET(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const isActive = searchParams.get('is_active');
@@ -56,6 +63,12 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new promo code
 export async function POST(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
 

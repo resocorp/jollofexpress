@@ -74,12 +74,15 @@ export class MemoryRateLimiter implements RateLimiter {
  * Redis Rate Limiter (for production with multiple instances)
  * Requires Redis connection
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RedisClient = any; // Redis client type
+
 export class RedisRateLimiter implements RateLimiter {
-  private redis: any; // Redis client
+  private redis: RedisClient;
   private maxRequests: number;
   private windowMs: number;
 
-  constructor(redis: any, maxRequests: number = 100, windowMs: number = 60000) {
+  constructor(redis: RedisClient, maxRequests: number = 100, windowMs: number = 60000) {
     this.redis = redis;
     this.maxRequests = maxRequests;
     this.windowMs = windowMs;
@@ -139,6 +142,7 @@ export function createRateLimiter(
   if (redisUrl && process.env.NODE_ENV === 'production') {
     try {
       // Dynamically import Redis (optional dependency)
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const Redis = require('ioredis');
       const redis = new Redis(redisUrl);
 
