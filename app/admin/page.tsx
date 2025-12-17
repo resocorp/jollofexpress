@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, ShoppingBag, TrendingUp, Clock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { formatCurrency } from '@/lib/formatters';
+import { adminFetch } from '@/lib/api-client';
 
 interface DashboardStats {
   totalRevenue: { value: number; change: number };
@@ -28,7 +29,7 @@ interface DashboardData {
 }
 
 async function fetchDashboardData(): Promise<DashboardData> {
-  const response = await fetch('/api/admin/dashboard');
+  const response = await adminFetch('/api/admin/dashboard');
   if (!response.ok) {
     throw new Error('Failed to fetch dashboard data');
   }

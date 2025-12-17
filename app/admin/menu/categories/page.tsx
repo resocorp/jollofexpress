@@ -26,6 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
+import { adminFetch } from '@/lib/api-client';
 
 interface Category {
   id: string;
@@ -45,7 +46,7 @@ export default function CategoriesPage() {
   const { data: categories, isLoading } = useQuery<Category[]>({
     queryKey: ['admin-categories'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/menu/categories');
+      const response = await adminFetch('/api/admin/menu/categories');
       if (!response.ok) throw new Error('Failed to fetch categories');
       return response.json();
     },
@@ -54,7 +55,7 @@ export default function CategoriesPage() {
   // Create category mutation
   const createCategory = useMutation({
     mutationFn: async (data: Partial<Category>) => {
-      const response = await fetch('/api/admin/menu/categories', {
+      const response = await adminFetch('/api/admin/menu/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -71,7 +72,7 @@ export default function CategoriesPage() {
   // Update category mutation
   const updateCategory = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Category> }) => {
-      const response = await fetch(`/api/admin/menu/categories/${id}`, {
+      const response = await adminFetch(`/api/admin/menu/categories/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -88,7 +89,7 @@ export default function CategoriesPage() {
   // Delete category mutation
   const deleteCategory = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/menu/categories/${id}`, {
+      const response = await adminFetch(`/api/admin/menu/categories/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete category');

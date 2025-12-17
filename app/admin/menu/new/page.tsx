@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 import Image from 'next/image';
+import { adminFetch } from '@/lib/api-client';
 
 interface Category {
   id: string;
@@ -63,7 +64,7 @@ export default function NewMenuItemPage() {
   const { data: categories } = useQuery<Category[]>({
     queryKey: ['admin-categories'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/menu/categories');
+      const response = await adminFetch('/api/admin/menu/categories');
       if (!response.ok) throw new Error('Failed to fetch categories');
       return response.json();
     },
@@ -162,7 +163,7 @@ export default function NewMenuItemPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/admin/menu/items', {
+      const response = await adminFetch('/api/admin/menu/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

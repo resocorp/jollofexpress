@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 import Image from 'next/image';
+import { adminFetch } from '@/lib/api-client';
 
 interface Category {
   id: string;
@@ -81,7 +82,7 @@ export default function EditMenuItemPage() {
     queryKey: ['menu-item', itemId],
     queryFn: async () => {
       console.log('🔍 Fetching item:', itemId);
-      const response = await fetch(`/api/admin/menu/items/${itemId}`);
+      const response = await adminFetch(`/api/admin/menu/items/${itemId}`);
       if (!response.ok) throw new Error('Failed to fetch item');
       const data = await response.json();
       console.log('📦 Item data:', data);
@@ -93,7 +94,7 @@ export default function EditMenuItemPage() {
   const { data: itemVariations } = useQuery({
     queryKey: ['item-variations', itemId],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/menu/items/${itemId}/variations`);
+      const response = await adminFetch(`/api/admin/menu/items/${itemId}/variations`);
       if (!response.ok) return [];
       return response.json();
     },
@@ -103,7 +104,7 @@ export default function EditMenuItemPage() {
   const { data: itemAddons } = useQuery({
     queryKey: ['item-addons', itemId],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/menu/items/${itemId}/addons`);
+      const response = await adminFetch(`/api/admin/menu/items/${itemId}/addons`);
       if (!response.ok) return [];
       return response.json();
     },
@@ -113,7 +114,7 @@ export default function EditMenuItemPage() {
   const { data: categories } = useQuery<Category[]>({
     queryKey: ['admin-categories'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/menu/categories');
+      const response = await adminFetch('/api/admin/menu/categories');
       if (!response.ok) throw new Error('Failed to fetch categories');
       return response.json();
     },
@@ -257,7 +258,7 @@ export default function EditMenuItemPage() {
     });
 
     try {
-      const response = await fetch(`/api/admin/menu/items/${itemId}`, {
+      const response = await adminFetch(`/api/admin/menu/items/${itemId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

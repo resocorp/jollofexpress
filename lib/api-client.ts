@@ -1,5 +1,5 @@
 // API client utilities
-import type { ApiResponse } from '@/types/database';
+import { createClient } from '@/lib/supabase/client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
@@ -7,6 +7,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public statusCode: number,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public response?: any
   ) {
     super(message);
@@ -15,7 +16,42 @@ export class ApiError extends Error {
 }
 
 /**
+ * Get auth token for admin API requests
+ */
+export async function getAuthToken(): Promise<string | null> {
+  try {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Authenticated fetch for admin API routes
+ * Use this in hooks and components that need auth
+ */
+export async function adminFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getAuthToken();
+  
+  const headers: HeadersInit = {
+    ...options.headers,
+  };
+  
+  if (token) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}
+
+/**
  * Generic API request function
+ * Automatically adds auth token for /api/admin/* routes
  */
 export async function apiRequest<T>(
   endpoint: string,
@@ -26,6 +62,14 @@ export async function apiRequest<T>(
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
   };
+  
+  // Automatically add auth token for admin routes
+  if (endpoint.startsWith('/api/admin')) {
+    const token = await getAuthToken();
+    if (token) {
+      (defaultHeaders as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+  }
   
   const config: RequestInit = {
     ...options,

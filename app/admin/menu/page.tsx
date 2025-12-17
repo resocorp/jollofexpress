@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/table';
 import Link from 'next/link';
 import Image from 'next/image';
+import { adminFetch } from '@/lib/api-client';
 
 interface MenuItem {
   id: string;
@@ -56,7 +57,7 @@ export default function MenuManagementPage() {
   const { data: menuItems, isLoading, refetch } = useQuery<MenuItem[]>({
     queryKey: ['admin-menu-items'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/menu/items');
+      const response = await adminFetch('/api/admin/menu/items');
       if (!response.ok) throw new Error('Failed to fetch menu items');
       return response.json();
     },
@@ -106,7 +107,7 @@ export default function MenuManagementPage() {
     
     try {
       console.log('🗑️ Deleting item:', id);
-      const response = await fetch(`/api/admin/menu/items/${id}`, {
+      const response = await adminFetch(`/api/admin/menu/items/${id}`, {
         method: 'DELETE',
       });
       
@@ -127,7 +128,7 @@ export default function MenuManagementPage() {
       const newStatus = !currentStatus;
       console.log('🔄 Toggling availability:', { id, from: currentStatus, to: newStatus });
       
-      const response = await fetch(`/api/admin/menu/items/${id}`, {
+      const response = await adminFetch(`/api/admin/menu/items/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_available: newStatus }),
