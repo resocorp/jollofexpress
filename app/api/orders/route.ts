@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     const orderData: OrderData = validationResult.data;
     
-    // Debug logging for order pricing
+    // Debug logging for order pricing (without sensitive data)
     console.log('[ORDER CREATE] Pricing breakdown:', {
       subtotal: orderData.subtotal,
       delivery_fee: orderData.delivery_fee,
@@ -160,6 +160,7 @@ export async function POST(request: NextRequest) {
       discount: orderData.discount,
       total: orderData.total,
       order_type: orderData.order_type,
+      items_count: orderData.items.length,
       calculated_total: orderData.subtotal + orderData.delivery_fee + orderData.tax - orderData.discount
     });
     

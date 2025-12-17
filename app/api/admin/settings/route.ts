@@ -1,6 +1,7 @@
 // Admin endpoints for restaurant settings management
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminOnly } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 // Validation schemas for different setting types
@@ -48,7 +49,13 @@ const operatingHoursSchema = z.object({
 });
 
 // GET - Get all settings
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
 
@@ -83,6 +90,12 @@ export async function GET() {
 
 // PATCH - Update settings
 export async function PATCH(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
     const { key, value } = body;

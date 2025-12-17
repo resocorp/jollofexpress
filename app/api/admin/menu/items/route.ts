@@ -1,6 +1,7 @@
 // Admin endpoints for menu item management
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminOnly } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 // Validation schemas
@@ -31,6 +32,12 @@ const addonSchema = z.object({
 
 // GET - List all items (optionally filtered by category)
 export async function GET(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const category_id = searchParams.get('category_id');
@@ -84,6 +91,12 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new item
 export async function POST(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
     const { variations, addons, ...itemData } = body;

@@ -38,8 +38,7 @@ export class UltraMsgClient {
       }
 
       console.log('📤 Sending WhatsApp message:', {
-        url,
-        to: formattedPhone,
+        to: formattedPhone.substring(0, 7) + '****', // Mask phone number
         bodyLength: request.body.length,
       });
 

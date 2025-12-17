@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { validateOrigin } from './lib/security/csrf';
 
 // Rate limiting store (in production, use Redis or similar)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -93,7 +94,14 @@ function validateRSCPayload(request: NextRequest): { valid: boolean; reason?: st
 export function middleware(request: NextRequest) {
   const identifier = getClientIdentifier(request);
   const isRSC = isRSCRequest(request);
-  
+
+  // Validate origin to prevent CSRF attacks
+  if (!validateOrigin(request)) {
+    return new NextResponse('Invalid origin', {
+      status: 403,
+    });
+  }
+
   // Apply stricter rate limiting for RSC requests
   if (isRSC) {
     const { allowed, remaining } = checkRateLimit(`rsc:${identifier}`);
