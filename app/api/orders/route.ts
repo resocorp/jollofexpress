@@ -1,4 +1,4 @@
-// Order creation endpoint with Paystack payment initialization
+// Order management endpoints
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { isRestaurantOpen, checkAndManageCapacity } from '@/lib/kitchen-capacity';
@@ -335,6 +335,53 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Unexpected error in POST /api/orders:', error);
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET: List orders with optional filters
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = createServiceClient();
+    const { searchParams } = new URL(request.url);
+    
+    const status = searchParams.get('status');
+    const type = searchParams.get('type');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    
+    let query = supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    
+    // Filter by status (supports comma-separated values)
+    if (status) {
+      const statuses = status.split(',').map(s => s.trim());
+      query = query.in('status', statuses);
+    }
+    
+    // Filter by order type (delivery/carryout)
+    if (type) {
+      query = query.eq('order_type', type);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching orders:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch orders' },
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json({ orders: data });
+  } catch (error) {
+    console.error('Unexpected error in GET /api/orders:', error);
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
       { status: 500 }

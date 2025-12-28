@@ -1,12 +1,13 @@
 // CSRF Protection Middleware
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 
 /**
- * Generate a CSRF token
+ * Generate a CSRF token using Web Crypto API (Edge-compatible)
  */
 export function generateCSRFToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /**

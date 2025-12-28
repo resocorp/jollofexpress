@@ -11,7 +11,10 @@ import {
   LogOut,
   BarChart3,
   Printer,
-  Bell
+  Bell,
+  Bike,
+  Truck,
+  Car
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,6 +25,9 @@ const navigation = [
   { name: 'Menu Items', href: '/admin/menu', icon: UtensilsCrossed },
   { name: 'Categories', href: '/admin/menu/categories', icon: Tag },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
+  { name: 'Delivery', href: '/admin/delivery', icon: Truck },
+  { name: 'Drivers', href: '/admin/drivers', icon: Bike },
+  { name: 'Vehicles', href: '/admin/vehicles', icon: Car },
   { name: 'Promo Codes', href: '/admin/promos', icon: Tag },
   { name: 'Notifications', href: '/admin/notifications', icon: Bell },
   { name: 'Printer Status', href: '/admin/printer', icon: Printer },
@@ -74,6 +80,12 @@ export function AdminSidebar() {
           <Button variant="outline" className="w-full justify-start">
             <LayoutDashboard className="h-4 w-4 mr-2" />
             Kitchen Display
+          </Button>
+        </Link>
+        <Link href="/driver">
+          <Button variant="outline" className="w-full justify-start">
+            <Bike className="h-4 w-4 mr-2" />
+            Driver App
           </Button>
         </Link>
         <Link href="/menu">

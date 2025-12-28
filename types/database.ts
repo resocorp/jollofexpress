@@ -9,6 +9,12 @@ export type DietaryTag = 'veg' | 'non_veg' | 'vegan' | 'halal' | 'none';
 export type DiscountType = 'percentage' | 'fixed_amount';
 export type AddressType = 'house' | 'office' | 'hotel' | 'church' | 'school' | 'other';
 
+// Delivery tracking types
+export type DriverStatus = 'available' | 'busy' | 'offline';
+export type AssignmentStatus = 'pending' | 'accepted' | 'picked_up' | 'delivered' | 'cancelled';
+export type PaymentMethodType = 'paystack' | 'cod';
+export type CodStatus = 'pending' | 'collected' | 'settled';
+
 export interface User {
   id: string;
   email?: string;
@@ -97,6 +103,80 @@ export interface Order {
   created_at: string;
   updated_at: string;
   completed_at?: string;
+  
+  // Delivery tracking fields
+  payment_method_type?: PaymentMethodType;
+  assigned_driver_id?: string;
+  customer_latitude?: number;
+  customer_longitude?: number;
+  driver_pickup_time?: string;
+  delivery_start_time?: string;
+  delivery_completion_time?: string;
+  cash_collected?: boolean;
+  traccar_order_id?: number;
+  customer_geofence_id?: number;
+}
+
+// ============ DELIVERY TRACKING INTERFACES ============
+
+export interface Driver {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  traccar_device_id?: number;
+  traccar_driver_id?: number;
+  status: DriverStatus;
+  current_latitude?: number;
+  current_longitude?: number;
+  last_location_update?: string;
+  vehicle_type: string;
+  vehicle_plate?: string;
+  cod_balance: number;
+  total_deliveries: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeliveryAssignment {
+  id: string;
+  order_id: string;
+  driver_id: string;
+  status: AssignmentStatus;
+  assigned_at: string;
+  accepted_at?: string;
+  picked_up_at?: string;
+  delivered_at?: string;
+  delivery_photo_url?: string;
+  recipient_name?: string;
+  distance_meters?: number;
+  duration_seconds?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CodCollection {
+  id: string;
+  order_id: string;
+  driver_id: string;
+  amount: number;
+  status: CodStatus;
+  collected_at?: string;
+  settled_at?: string;
+  settled_by?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DriverWithAssignment extends Driver {
+  current_assignment?: DeliveryAssignment;
+}
+
+export interface OrderWithDriver extends Order {
+  driver?: Driver;
+  assignment?: DeliveryAssignment;
 }
 
 export interface SelectedVariation {

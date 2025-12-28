@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Bike, Store, MapPin, Phone, User, Mail, Clock } from 'lucide-react';
+import { Loader2, Bike, Store, MapPin, Phone, User, Mail, Clock, CreditCard, Banknote } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { LocationPicker } from '@/components/tracking/location-picker';
 
 interface CheckoutFormProps {
   orderType: 'delivery' | 'carryout';
@@ -41,6 +42,8 @@ export function CheckoutForm({
   const { data: deliverySettings, isLoading: isLoadingSettings } = useDeliverySettings();
   const { data: restaurantStatus } = useRestaurantStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customerLocation, setCustomerLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'paystack' | 'cod'>('paystack');
 
   const {
     register,
@@ -146,6 +149,9 @@ export function CheckoutForm({
         delivery_address: data.orderType === 'delivery' ? data.fullAddress : undefined,
         delivery_instructions: data.deliveryInstructions,
         customer_phone_alt: data.phoneAlt || undefined,
+        customer_latitude: customerLocation?.latitude,
+        customer_longitude: customerLocation?.longitude,
+        payment_method_type: paymentMethod,
         subtotal,
         delivery_fee: deliveryFee,
         tax,
@@ -175,8 +181,13 @@ export function CheckoutForm({
       // Store pending order ID (cart will be cleared after successful payment)
       setPendingOrder(result.order.id);
 
-      // Redirect to Paystack payment page
-      if (result.payment_url) {
+      // Handle payment based on method
+      if (paymentMethod === 'cod') {
+        // COD order - redirect to order tracking page
+        toast.success('Order placed! Pay with cash when your rider arrives.');
+        router.push(`/orders/${result.order.id}?phone=${encodeURIComponent(data.phone)}`);
+      } else if (result.payment_url) {
+        // Paystack payment - redirect to payment page
         console.log('Redirecting to payment:', result.payment_url);
         window.location.href = result.payment_url;
       } else {
@@ -371,6 +382,18 @@ export function CheckoutForm({
                 {watch('deliveryInstructions')?.length || 0}/200
               </p>
             </div>
+
+            {/* GPS Location Picker */}
+            <Separator className="my-4" />
+            <LocationPicker
+              onLocationSelect={setCustomerLocation}
+              initialLocation={customerLocation || undefined}
+            />
+            {customerLocation && (
+              <p className="text-xs text-green-600 flex items-center gap-1 mt-2">
+                <MapPin className="h-3 w-3" /> GPS location saved for accurate delivery
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
@@ -466,6 +489,71 @@ export function CheckoutForm({
               Required to process payment and send order confirmation
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment Method Selection */}
+      <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
+        <CardHeader>
+          <CardTitle className="text-2xl flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
+              {orderType === 'delivery' ? '4' : '3'}
+            </span>
+            <CreditCard className="h-6 w-6 text-primary" />
+            Payment Method
+          </CardTitle>
+          <CardDescription className="text-base">Choose how you want to pay</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup 
+            value={paymentMethod} 
+            onValueChange={(value: 'paystack' | 'cod') => setPaymentMethod(value)}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Label
+                htmlFor="payment-paystack"
+                className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
+                  paymentMethod === 'paystack' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <RadioGroupItem value="paystack" id="payment-paystack" />
+                <div className="flex items-center gap-3 flex-1">
+                  <CreditCard className="h-6 w-6 text-green-600" />
+                  <div>
+                    <p className="font-medium">Pay Online</p>
+                    <p className="text-sm text-muted-foreground">Card, Bank Transfer, USSD</p>
+                  </div>
+                </div>
+              </Label>
+
+              {orderType === 'delivery' && (
+                <Label
+                  htmlFor="payment-cod"
+                  className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
+                    paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <RadioGroupItem value="cod" id="payment-cod" />
+                  <div className="flex items-center gap-3 flex-1">
+                    <Banknote className="h-6 w-6 text-amber-600" />
+                    <div>
+                      <p className="font-medium">Cash on Delivery</p>
+                      <p className="text-sm text-muted-foreground">Pay when your order arrives</p>
+                    </div>
+                  </div>
+                </Label>
+              )}
+            </div>
+          </RadioGroup>
+          
+          {paymentMethod === 'cod' && (
+            <Alert className="mt-4 border-amber-200 bg-amber-50">
+              <Banknote className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                Please have exact cash ready. Our riders may have limited change.
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 

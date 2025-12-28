@@ -1,16 +1,9 @@
 // Admin endpoints for order management
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
-import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 
 // GET - List all orders with filters
 export async function GET(request: NextRequest) {
-  // Verify authentication
-  const authResult = await verifyAdminAuth(request);
-  if (!authResult.authenticated) {
-    return authResult.response;
-  }
-
   try {
     const searchParams = request.nextUrl.searchParams;
     

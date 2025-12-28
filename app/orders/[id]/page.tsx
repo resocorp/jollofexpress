@@ -8,6 +8,8 @@ import { OrderTracker } from '@/components/orders/order-tracker';
 import { OrderDetails } from '@/components/orders/order-details';
 import { useOrder, useVerifyPayment } from '@/hooks/use-orders';
 import { Loader2, CheckCircle2, XCircle, ShoppingCart } from 'lucide-react';
+import { LiveMap } from '@/components/tracking/live-map';
+import { useDriverLocation } from '@/hooks/use-drivers';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -29,6 +31,14 @@ export default function OrderTrackingPage({ params }: PageProps) {
   const { data: order, isLoading, error } = useOrder(resolvedParams.id, phone || undefined);
   const verifyPayment = useVerifyPayment();
   const { pendingOrderId } = useCartStore();
+  
+  // Fetch driver location when order is out for delivery
+  const isOutForDelivery = order?.status === 'out_for_delivery';
+  const hasLocation = !!(order?.customer_latitude && order?.customer_longitude);
+  const { data: driverLocation } = useDriverLocation(
+    order?.assigned_driver_id,
+    isOutForDelivery && hasLocation
+  );
 
   // Verify payment if coming from Paystack redirect
   useEffect(() => {
@@ -161,8 +171,23 @@ export default function OrderTrackingPage({ params }: PageProps) {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Order Tracker */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <OrderTracker order={order} />
+            
+            {/* Live Tracking Map - Show when out for delivery */}
+            {isOutForDelivery && hasLocation && (
+              <LiveMap
+                customerLocation={{
+                  latitude: order.customer_latitude!,
+                  longitude: order.customer_longitude!,
+                }}
+                driverLocation={driverLocation ? {
+                  latitude: driverLocation.latitude,
+                  longitude: driverLocation.longitude,
+                } : undefined}
+                estimatedMinutes={15}
+              />
+            )}
           </div>
           
           {/* Order Details */}
