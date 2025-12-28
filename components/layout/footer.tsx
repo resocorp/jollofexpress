@@ -73,18 +73,20 @@ export function Footer() {
                   className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-full"
                 />
               ) : (
-                <div className="flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 text-white font-bold text-base sm:text-lg shadow-lg">
-                  JE
-                </div>
+                <img
+                  src="/logo.png"
+                  alt="Ur' Shawarma Express Logo"
+                  className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
+                />
               )}
               <div>
                 <h3 className="font-bold text-lg sm:text-xl bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                  {info?.name || 'JollofExpress'}
+                  {info?.name || "Ur' Shawarma Express"}
                 </h3>
               </div>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Authentic Nigerian cuisine delivered fresh to your doorstep. Experience the taste of home with every order.
+              Awka's best tasting shawarma! Fresh wraps, juicy meats, and bold Nigerian flavors delivered hot in 30 minutes.
             </p>
             
             {/* Operating Status */}
@@ -174,7 +176,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
           <p>
-            © {currentYear} {info?.name || 'JollofExpress'}. All rights reserved.
+            © {currentYear} {info?.name || "Ur' Shawarma Express"}. All rights reserved.
           </p>
           <div className="flex items-center gap-3 sm:gap-4">
             <span className="text-[10px] sm:text-xs">Made with ❤️ in Nigeria</span>

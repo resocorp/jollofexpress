@@ -130,16 +130,16 @@ export function ChristmasPromoBanner() {
                 transition={{ duration: 0.5 }}
               >
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white drop-shadow-md tracking-tight">
-                  🎄 CHRISTMAS SPECIAL OFFER! 🎁
+                  🌯 AWKA'S BEST TASTING SHAWARMA! 🔥
                 </h2>
               </motion.div>
               
               <p className="text-sm sm:text-base md:text-lg font-semibold text-white/95 drop-shadow">
-                Enjoy <span className="text-[#FFD700] font-black text-base sm:text-lg md:text-xl">FREE DELIVERY</span> on orders above ₦5,000!
+                The best tasting wraps in town • <span className="text-[#FFD700] font-black text-base sm:text-lg md:text-xl">FREE DELIVERY</span> on orders above ₦5,000!
               </p>
               
               <p className="text-xs sm:text-sm text-white/90 font-medium">
-                🎅 Valid throughout December • Spread the Joy of Good Food! 🎉
+                🔥 Fresh ingredients • Grilled to perfection • Hot delivery! 🚗
               </p>
             </div>
 
@@ -226,7 +226,7 @@ export function ChristmasPromoBanner() {
             {/* Restaurant Info Row */}
             <div className="flex flex-wrap items-center gap-3 mb-2">
               <p className="text-white font-semibold text-base sm:text-lg">
-                {info?.description || 'Delicious Nigerian cuisine delivered to your doorstep'}
+                {info?.description || "Awka's best tasting shawarma - Nigerian-style wraps done right!"}
               </p>
               
               {/* Star Rating */}

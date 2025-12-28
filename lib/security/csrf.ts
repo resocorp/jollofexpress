@@ -71,6 +71,9 @@ export function validateOrigin(request: NextRequest): boolean {
   const host = request.headers.get('host');
 
   const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL;
+  
+  // Allow localhost/127.0.0.1 for development
+  const isLocalhost = host?.includes('localhost') || host?.includes('127.0.0.1');
 
   // For state-changing requests, verify origin
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
@@ -79,14 +82,28 @@ export function validateOrigin(request: NextRequest): boolean {
       const originUrl = new URL(origin);
       const allowedUrl = allowedOrigin ? new URL(allowedOrigin) : null;
 
-      if (allowedUrl && originUrl.host !== allowedUrl.host && originUrl.host !== host) {
-        console.error('[CSRF] Origin mismatch:', {
-          origin: originUrl.host,
-          expected: allowedUrl?.host || host,
-          path: request.nextUrl.pathname,
-        });
-        return false;
+      // Allow if origin matches host (same-origin request)
+      if (originUrl.host === host) {
+        return true;
       }
+
+      // Allow if origin matches configured NEXT_PUBLIC_APP_URL
+      if (allowedUrl && originUrl.host === allowedUrl.host) {
+        return true;
+      }
+
+      // Allow localhost in development
+      if (isLocalhost && (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1')) {
+        return true;
+      }
+
+      console.error('[CSRF] Origin mismatch:', {
+        origin: originUrl.host,
+        host,
+        expected: allowedUrl?.host,
+        path: request.nextUrl.pathname,
+      });
+      return false;
     }
 
     // Fallback to referer check if no origin
@@ -94,14 +111,28 @@ export function validateOrigin(request: NextRequest): boolean {
       const refererUrl = new URL(referer);
       const allowedUrl = allowedOrigin ? new URL(allowedOrigin) : null;
 
-      if (allowedUrl && refererUrl.host !== allowedUrl.host && refererUrl.host !== host) {
-        console.error('[CSRF] Referer mismatch:', {
-          referer: refererUrl.host,
-          expected: allowedUrl?.host || host,
-          path: request.nextUrl.pathname,
-        });
-        return false;
+      // Allow if referer matches host
+      if (refererUrl.host === host) {
+        return true;
       }
+
+      // Allow if referer matches configured NEXT_PUBLIC_APP_URL
+      if (allowedUrl && refererUrl.host === allowedUrl.host) {
+        return true;
+      }
+
+      // Allow localhost in development
+      if (isLocalhost && (refererUrl.hostname === 'localhost' || refererUrl.hostname === '127.0.0.1')) {
+        return true;
+      }
+
+      console.error('[CSRF] Referer mismatch:', {
+        referer: refererUrl.host,
+        host,
+        expected: allowedUrl?.host,
+        path: request.nextUrl.pathname,
+      });
+      return false;
     }
   }
 

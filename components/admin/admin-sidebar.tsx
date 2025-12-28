@@ -94,7 +94,16 @@ export function AdminSidebar() {
             View Menu
           </Button>
         </Link>
-        <Button variant="ghost" className="w-full justify-start text-destructive hover:text-destructive">
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start text-destructive hover:text-destructive"
+          onClick={async () => {
+            const { createClient } = await import('@/lib/supabase/client');
+            const supabase = createClient();
+            await supabase.auth.signOut();
+            window.location.href = '/admin/login';
+          }}
+        >
           <LogOut className="h-4 w-4 mr-2" />
           Logout
         </Button>

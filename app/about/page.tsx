@@ -74,11 +74,10 @@ export default function AboutPage() {
               Since 2020
             </Badge>
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              About JollofExpress
+              About Ur' SHAWARMA EXPRESS
             </h1>
             <p className="text-xl md:text-2xl text-orange-50 leading-relaxed">
-              Bringing the authentic taste of Nigerian cuisine to your doorstep, 
-              one delicious meal at a time.
+              Serving Awka the best tasting shawarma - Nigerian style, fresh daily, delivered fast!
             </p>
           </motion.div>
         </div>
@@ -123,32 +122,30 @@ export default function AboutPage() {
               
               <div className="prose prose-lg max-w-none space-y-6 text-muted-foreground">
                 <p className="text-lg leading-relaxed">
-                  JollofExpress was born from a simple idea: to make authentic Nigerian cuisine 
-                  accessible to everyone in Awka and beyond. Founded in 2020 by a group of food 
-                  enthusiasts and culinary experts, we set out to solve a common problem – the 
-                  lack of quality, convenient Nigerian food delivery options.
+                  Ur' SHAWARMA EXPRESS started with one mission: to serve the best tasting shawarma 
+                  in Awka. Founded in 2020, we noticed a gap - everyone wanted quality shawarma, 
+                  but options were limited. So we created the solution.
                 </p>
                 
                 <p className="text-lg leading-relaxed">
-                  What started as a small kitchen operation has grown into a beloved local brand, 
-                  serving thousands of customers every month. Our recipes come from family traditions, 
-                  refined over generations, and prepared by skilled chefs who understand that food 
-                  is more than sustenance – it's culture, comfort, and community.
+                  What makes our shawarma different? It's Nigerian-style through and through. 
+                  We've taken the classic wrap and infused it with local flavors, spices, and 
+                  ingredients that Nigerians love. From our signature spicy sauce to our 
+                  perfectly grilled chicken and beef, every bite is crafted for the Nigerian palate.
                 </p>
                 
                 <p className="text-lg leading-relaxed">
-                  Today, we're proud to offer an extensive menu of traditional favorites – from 
-                  perfectly seasoned Jollof rice to rich Egusi soup, crispy Suya to tender Asun. 
-                  Every dish is prepared fresh, using locally-sourced ingredients, and delivered 
-                  hot to your door within 30 minutes.
+                  Today, we're proud to be Awka's go-to shawarma destination. Our menu features 
+                  classic chicken shawarma, beef shawarma, spicy options, loaded fries, fresh 
+                  salads, and more. Every wrap is made fresh to order, grilled right in front 
+                  of you, and delivered hot within 30 minutes.
                 </p>
                 
                 <p className="text-lg leading-relaxed">
-                  But we're more than just a food delivery service. We're committed to supporting 
-                  our local community by partnering with farmers, creating employment opportunities, 
-                  and maintaining the highest standards of food safety and quality. When you order 
-                  from JollofExpress, you're not just getting a meal – you're supporting local 
-                  business and preserving Nigerian culinary heritage.
+                  We're not just about food - we're about community. We source locally, employ 
+                  local talent, and take pride in being Awka's own. When you order from 
+                  Ur' SHAWARMA EXPRESS, you're supporting a homegrown business that's obsessed 
+                  with quality and customer satisfaction.
                 </p>
               </div>
             </motion.div>
@@ -217,9 +214,9 @@ export default function AboutPage() {
                   </div>
                   <h3 className="text-3xl font-bold mb-4">Our Mission</h3>
                   <p className="text-lg text-muted-foreground leading-relaxed">
-                    To deliver authentic, high-quality Nigerian cuisine with exceptional 
-                    service, making delicious home-cooked meals accessible to everyone 
-                    in our community while supporting local producers and creating jobs.
+                    To deliver the best tasting shawarma in Awka with exceptional service, 
+                    making quality Nigerian-style wraps accessible to everyone in our 
+                    community while supporting local producers and creating jobs.
                   </p>
                 </CardContent>
               </Card>
@@ -237,9 +234,9 @@ export default function AboutPage() {
                   </div>
                   <h3 className="text-3xl font-bold mb-4">Our Vision</h3>
                   <p className="text-lg text-muted-foreground leading-relaxed">
-                    To become Nigeria's most trusted food delivery brand, known for 
-                    preserving culinary traditions while embracing innovation, and 
-                    expanding our reach to serve communities across the nation.
+                    To become Nigeria's most trusted shawarma brand, known for quality, 
+                    consistency, and innovation, expanding our reach to serve shawarma 
+                    lovers across the nation.
                   </p>
                 </CardContent>
               </Card>

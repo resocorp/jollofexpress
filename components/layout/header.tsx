@@ -47,11 +47,11 @@ export function Header() {
             />
           ) : (
             <div className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#FF4433] text-white font-bold text-sm sm:text-base">
-              JE
+              US
             </div>
           )}
           <span className="font-bold text-lg sm:text-xl hidden md:inline-block">
-            {info?.name || 'JollofExpress'}
+            {info?.name || "Ur' Shawarma Express"}
           </span>
         </Link>
 

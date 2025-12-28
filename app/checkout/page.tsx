@@ -115,7 +115,7 @@ export default function CheckoutPage() {
             Complete Your Order
           </h1>
           <p className="text-muted-foreground text-lg">
-            Just a few more details and your delicious meal will be on its way!
+            Your fresh shawarma is almost ready! Just a few details and we'll have Awka's best wraps at your door in 30 minutes.
           </p>
         </motion.div>
 

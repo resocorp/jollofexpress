@@ -87,21 +87,8 @@ export async function DELETE(
     const { id } = await params;
     const supabase = createServiceClient();
 
-    // Check if category has items
-    const { data: items } = await supabase
-      .from('menu_items')
-      .select('id')
-      .eq('category_id', id)
-      .limit(1);
-
-    if (items && items.length > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete category with items. Please delete or move items first.' },
-        { status: 400 }
-      );
-    }
-
-    // Delete category
+    // Delete category - items will automatically be uncategorized (category_id set to NULL)
+    // due to ON DELETE SET NULL foreign key constraint
     const { error } = await supabase
       .from('menu_categories')
       .delete()
@@ -115,7 +102,10 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json({ success: true, message: 'Category deleted successfully' });
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Category deleted successfully. Items in this category are now uncategorized.' 
+    });
 
   } catch (error) {
     console.error('Unexpected error:', error);

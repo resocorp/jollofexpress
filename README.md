@@ -1,6 +1,6 @@
-# 🍲 JollofExpress - Food Ordering & Delivery System
+# 🌯 Ur' SHAWARMA EXPRESS - Food Ordering & Delivery System
 
-A comprehensive online food ordering platform for a single restaurant with customer ordering, kitchen display system (KDS), and admin dashboard.
+A comprehensive online shawarma ordering platform with customer ordering, kitchen display system (KDS), and admin dashboard. Serving the best tasting Nigerian-style shawarma in Awka.
 
 ## ✨ Features
 

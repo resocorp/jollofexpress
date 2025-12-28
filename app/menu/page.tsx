@@ -69,7 +69,7 @@ export default function MenuPage() {
               <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search for your favorite dishes..."
+                placeholder="Search shawarma, wraps, sides, drinks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 sm:pl-12 h-12 sm:h-14 text-base sm:text-lg rounded-xl sm:rounded-2xl border-2 focus:border-primary shadow-sm"

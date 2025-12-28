@@ -38,7 +38,7 @@ export function WhatsAppFloat() {
 
         {/* Text - Hidden on mobile */}
         <span className="hidden sm:inline-block font-semibold text-sm pr-1 max-w-0 sm:max-w-[200px] overflow-hidden group-hover:max-w-[200px] transition-all duration-300 whitespace-nowrap">
-          Chat with us
+          Order via WhatsApp
         </span>
 
         {/* Pulse Ring */}
@@ -47,7 +47,7 @@ export function WhatsAppFloat() {
 
       {/* Tooltip for mobile */}
       <div className="sm:hidden absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-        Chat on WhatsApp
+        Order via WhatsApp
         <div className="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45" />
       </div>
     </motion.div>
