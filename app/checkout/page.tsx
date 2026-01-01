@@ -8,6 +8,8 @@ import { CheckoutForm } from '@/components/checkout/checkout-form';
 import { OrderSummaryWithButton } from '@/components/checkout/order-summary';
 import { useCartStore } from '@/store/cart-store';
 import { useDeliverySettings } from '@/hooks/use-settings';
+import { useDeliveryRegions } from '@/hooks/use-delivery-regions';
+import type { DeliveryRegion } from '@/types/database';
 import { ShoppingBag, Shield, Lock, Truck, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,10 +20,33 @@ export default function CheckoutPage() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const getSubtotal = useCartStore((state) => state.getSubtotal);
+  const selectedRegionId = useCartStore((state) => state.selectedRegionId);
+  const setSelectedRegionId = useCartStore((state) => state.setSelectedRegionId);
   const { data: deliverySettings, isLoading: isLoadingSettings } = useDeliverySettings();
   const [orderType, setOrderType] = useState<'delivery' | 'carryout'>('delivery');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState<DeliveryRegion | null>(null);
   const submitFormRef = useRef<(() => void) | null>(null);
+  
+  // Fetch delivery regions
+  const { data: regionsData } = useDeliveryRegions();
+
+  // Initialize selected region from persisted cart store
+  useEffect(() => {
+    if (selectedRegionId && regionsData?.all_regions && !selectedRegion) {
+      const region = regionsData.all_regions.find(r => r.id === selectedRegionId);
+      if (region) {
+        setSelectedRegion(region);
+        console.log('🗺️ Restored region from cart store:', region.name);
+      }
+    }
+  }, [selectedRegionId, regionsData, selectedRegion]);
+
+  // Sync region changes back to cart store
+  const handleRegionChange = (region: DeliveryRegion | null) => {
+    setSelectedRegion(region);
+    setSelectedRegionId(region?.id || null);
+  };
 
   // Debug logging for parent state
   useEffect(() => {
@@ -160,6 +185,9 @@ export default function CheckoutPage() {
               }}
               onSubmitExposed={handleSubmitExposed}
               onSubmittingChange={setIsSubmitting}
+              selectedRegion={selectedRegion}
+              onRegionChange={handleRegionChange}
+              regionsData={regionsData}
             />
           </motion.div>
           
@@ -177,6 +205,7 @@ export default function CheckoutPage() {
                 isSubmitting={isSubmitting}
                 isBelowMinimum={isBelowMinimum}
                 isLoadingSettings={isLoadingSettings}
+                selectedRegion={selectedRegion}
               />
             </div>
           </motion.div>

@@ -115,6 +115,10 @@ export interface Order {
   cash_collected?: boolean;
   traccar_order_id?: number;
   customer_geofence_id?: number;
+  
+  // Delivery region fields
+  delivery_region_id?: string;
+  delivery_region_name?: string;
 }
 
 // ============ DELIVERY TRACKING INTERFACES ============
@@ -254,7 +258,41 @@ export interface DeliverySettings {
   enabled: boolean;
   cities: string[];
   min_order: number;
+  delivery_fee: number; // Deprecated: Use delivery regions instead
+}
+
+// ============ DELIVERY REGIONS ============
+
+export interface DeliveryRegionGroup {
+  id: string;
+  name: string;
+  description?: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeliveryRegion {
+  id: string;
+  group_id?: string;
+  name: string;
+  description?: string;
   delivery_fee: number;
+  free_delivery_threshold?: number; // NULL means no free delivery
+  display_order: number;
+  is_active: boolean;
+  geofence_coordinates?: { lat: number; lng: number }[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeliveryRegionWithGroup extends DeliveryRegion {
+  group?: DeliveryRegionGroup;
+}
+
+export interface DeliveryRegionGroupWithRegions extends DeliveryRegionGroup {
+  regions: DeliveryRegion[];
 }
 
 export interface PaymentSettings {

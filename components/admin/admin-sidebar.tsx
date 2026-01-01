@@ -19,12 +19,15 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
+import { MapPin } from 'lucide-react';
+
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Menu Items', href: '/admin/menu', icon: UtensilsCrossed },
   { name: 'Categories', href: '/admin/menu/categories', icon: Tag },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
+  { name: 'Delivery Regions', href: '/admin/delivery-regions', icon: MapPin },
   { name: 'Delivery', href: '/admin/delivery', icon: Truck },
   { name: 'Drivers', href: '/admin/drivers', icon: Bike },
   { name: 'Vehicles', href: '/admin/vehicles', icon: Car },

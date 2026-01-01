@@ -1,13 +1,14 @@
 // Cart state management with Zustand
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CartItem, MenuItem, ItemAddon, ItemVariationOption } from '@/types/database';
+import type { CartItem, MenuItem, ItemAddon, ItemVariationOption, DeliveryRegion } from '@/types/database';
 
 interface CartStore {
   items: CartItem[];
   promoCode: string | null;
   discount: number;
   pendingOrderId: string | null; // Track order ID for cart recovery
+  selectedRegionId: string | null; // Selected delivery region ID
   
   // Actions
   addItem: (
@@ -21,6 +22,7 @@ interface CartStore {
   clearCart: () => void;
   setPromoCode: (code: string | null, discount: number) => void;
   setPendingOrder: (orderId: string | null) => void;
+  setSelectedRegionId: (regionId: string | null) => void;
   
   // Computed values
   getSubtotal: () => number;
@@ -34,6 +36,7 @@ export const useCartStore = create<CartStore>()(
       promoCode: null,
       discount: 0,
       pendingOrderId: null,
+      selectedRegionId: null,
 
       addItem: (item, quantity, selectedVariation, selectedAddons = []) => {
         // Calculate item subtotal
@@ -102,7 +105,7 @@ export const useCartStore = create<CartStore>()(
       },
 
       clearCart: () => {
-        set({ items: [], promoCode: null, discount: 0, pendingOrderId: null });
+        set({ items: [], promoCode: null, discount: 0, pendingOrderId: null, selectedRegionId: null });
       },
 
       setPromoCode: (code, discount) => {
@@ -111,6 +114,10 @@ export const useCartStore = create<CartStore>()(
 
       setPendingOrder: (orderId) => {
         set({ pendingOrderId: orderId });
+      },
+
+      setSelectedRegionId: (regionId) => {
+        set({ selectedRegionId: regionId });
       },
 
       getSubtotal: () => {

@@ -17,24 +17,38 @@ import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
 import { useCartStore } from '@/store/cart-store';
 import { useCreateOrder } from '@/hooks/use-orders';
 import { useDeliverySettings, useRestaurantStatus } from '@/hooks/use-settings';
+import { useDeliveryRegions } from '@/hooks/use-delivery-regions';
+import type { DeliveryRegion } from '@/types/database';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LocationPicker } from '@/components/tracking/location-picker';
 
+interface DeliveryRegionsResponse {
+  groups: any[];
+  ungrouped: DeliveryRegion[];
+  all_regions: DeliveryRegion[];
+}
+
 interface CheckoutFormProps {
   orderType: 'delivery' | 'carryout';
   onOrderTypeChange: (type: 'delivery' | 'carryout') => void;
   onSubmitExposed?: (submitFn: () => void) => void;
   onSubmittingChange?: (isSubmitting: boolean) => void;
+  selectedRegion?: DeliveryRegion | null;
+  onRegionChange?: (region: DeliveryRegion | null) => void;
+  regionsData?: DeliveryRegionsResponse;
 }
 
 export function CheckoutForm({ 
   orderType: externalOrderType, 
   onOrderTypeChange,
   onSubmitExposed,
-  onSubmittingChange
+  onSubmittingChange,
+  selectedRegion: externalSelectedRegion,
+  onRegionChange,
+  regionsData: externalRegionsData
 }: CheckoutFormProps) {
   const router = useRouter();
   const { items, discount, promoCode, getSubtotal, setPendingOrder } = useCartStore();
@@ -44,6 +58,15 @@ export function CheckoutForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerLocation, setCustomerLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'paystack' | 'cod'>('paystack');
+  
+  // Use external region state if provided, otherwise use internal state
+  const [internalSelectedRegion, setInternalSelectedRegion] = useState<DeliveryRegion | null>(null);
+  const selectedRegion = externalSelectedRegion !== undefined ? externalSelectedRegion : internalSelectedRegion;
+  const setSelectedRegion = onRegionChange || setInternalSelectedRegion;
+  
+  // Fetch delivery regions if not provided externally
+  const { data: fetchedRegionsData, isLoading: isLoadingRegions } = useDeliveryRegions();
+  const regionsData = externalRegionsData || fetchedRegionsData;
 
   const {
     register,
@@ -66,11 +89,14 @@ export function CheckoutForm({
     console.log('🔍 CheckoutForm State:', {
       orderType_from_watch: orderType,
       externalOrderType: externalOrderType,
+      selectedRegion: selectedRegion?.name || 'null',
+      externalSelectedRegion: externalSelectedRegion?.name || 'null',
       timestamp: new Date().toISOString()
     });
-  }, [orderType, externalOrderType]);
+  }, [orderType, externalOrderType, selectedRegion, externalSelectedRegion]);
 
-  // Expose submit function to parent (only once on mount)
+  // Expose submit function to parent - must update when selectedRegion changes
+  // to avoid stale closure issues
   useEffect(() => {
     if (onSubmitExposed) {
       onSubmitExposed(() => {
@@ -78,7 +104,7 @@ export function CheckoutForm({
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onSubmitExposed]);
+  }, [onSubmitExposed, selectedRegion, orderType]);
 
   // Expose isSubmitting state to parent
   useEffect(() => {
@@ -89,12 +115,26 @@ export function CheckoutForm({
 
   const subtotal = getSubtotal();
   const taxRate = 7.5;
-  const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
+  
+  // Calculate delivery fee based on selected region
+  const getDeliveryFee = () => {
+    if (orderType !== 'delivery' || !selectedRegion) return 0;
+    // Check if cart qualifies for free delivery
+    if (selectedRegion.free_delivery_threshold && subtotal >= selectedRegion.free_delivery_threshold) {
+      return 0;
+    }
+    return selectedRegion.delivery_fee;
+  };
+  
+  const deliveryFee = getDeliveryFee();
+  const isFreeDelivery = orderType === 'delivery' && selectedRegion?.free_delivery_threshold && subtotal >= selectedRegion.free_delivery_threshold;
+  
   // VAT should be applied to subtotal + delivery fee
   const tax = Math.round(((subtotal + deliveryFee) * taxRate) / 100);
   const total = subtotal + tax + deliveryFee - discount;
   const minOrder = deliverySettings?.min_order || 0;
   const isBelowMinimum = orderType === 'delivery' && subtotal < minOrder;
+  const isRegionRequired = orderType === 'delivery' && !selectedRegion;
 
   const onSubmit = async (data: CheckoutFormData) => {
     // Log delivery fee calculation at submission time
@@ -139,6 +179,17 @@ export function CheckoutForm({
         subtotal: cartItem.subtotal,
       }));
 
+      // Validate region selection for delivery
+      console.log('🗺️ Region validation:', { 
+        orderType: data.orderType, 
+        selectedRegion: selectedRegion?.name || 'null',
+        externalSelectedRegion: externalSelectedRegion?.name || 'null'
+      });
+      if (data.orderType === 'delivery' && !selectedRegion) {
+        toast.error('Please select your delivery region');
+        return;
+      }
+
       // Create order
       const orderData = {
         customer_name: data.name,
@@ -151,6 +202,8 @@ export function CheckoutForm({
         customer_phone_alt: data.phoneAlt || undefined,
         customer_latitude: customerLocation?.latitude,
         customer_longitude: customerLocation?.longitude,
+        delivery_region_id: data.orderType === 'delivery' ? selectedRegion?.id : undefined,
+        delivery_region_name: data.orderType === 'delivery' ? selectedRegion?.name : undefined,
         payment_method_type: paymentMethod,
         subtotal,
         delivery_fee: deliveryFee,
@@ -348,7 +401,46 @@ export function CheckoutForm({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Full Address */}
+            {/* Selected Delivery Region Display (read-only) */}
+            {selectedRegion ? (
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <span className="font-medium">{selectedRegion.name}</span>
+                  </div>
+                  {isFreeDelivery ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm line-through text-muted-foreground">
+                        {formatCurrency(selectedRegion.delivery_fee)}
+                      </span>
+                      <span className="text-sm font-bold text-green-600">FREE</span>
+                    </div>
+                  ) : (
+                    <span className="font-bold">{formatCurrency(selectedRegion.delivery_fee)}</span>
+                  )}
+                </div>
+                {isFreeDelivery && (
+                  <p className="text-xs text-green-600 mt-2">
+                    🎉 You qualify for free delivery!
+                  </p>
+                )}
+                {selectedRegion.free_delivery_threshold && !isFreeDelivery && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    💡 Add {formatCurrency(selectedRegion.free_delivery_threshold - subtotal)} more for free delivery!
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-700 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Please select your delivery area in the cart first.
+                </p>
+              </div>
+            )}
+
+            {/* Full Address with Landmark */}
             <div className="space-y-2">
               <Label htmlFor="fullAddress">
                 Delivery Address <span className="text-destructive">*</span>
@@ -356,35 +448,19 @@ export function CheckoutForm({
               <Textarea
                 id="fullAddress"
                 {...register('fullAddress')}
-                placeholder="10 Ecwa Road, Coker Village, Awka"
-                rows={4}
+                placeholder="10 Ecwa Road, Coker Village, Awka (near Total Filling Station)"
+                rows={3}
                 className={errors.fullAddress ? 'border-destructive' : ''}
               />
               {errors.fullAddress && (
                 <p className="text-sm text-destructive">{errors.fullAddress.message}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                Enter your delivery address (minimum 4 characters). Our rider will call you for directions.
-              </p>
-            </div>
-
-            {/* Nearest Landmark */}
-            <div className="space-y-2">
-              <Label htmlFor="deliveryInstructions">Nearest Landmark</Label>
-              <Textarea
-                id="deliveryInstructions"
-                {...register('deliveryInstructions')}
-                placeholder="E.g., Near Total Filling Station, Opposite Shoprite, Behind First Bank, etc."
-                rows={2}
-                maxLength={200}
-              />
-              <p className="text-xs text-muted-foreground text-right">
-                {watch('deliveryInstructions')?.length || 0}/200
+                📍 Include a nearby landmark (e.g., "near Shoprite", "opposite First Bank") to help our rider find you faster.
               </p>
             </div>
 
             {/* GPS Location Picker */}
-            <Separator className="my-4" />
             <LocationPicker
               onLocationSelect={setCustomerLocation}
               initialLocation={customerLocation || undefined}
