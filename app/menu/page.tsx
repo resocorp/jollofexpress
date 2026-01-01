@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Loader2, TrendingUp, Flame, Award } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Loader2, TrendingUp, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -19,20 +18,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function MenuPage() {
   const { data: menu, isLoading } = useMenu();
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Clean up stale cart if pending order was already paid
   useCartCleanup();
 
-  // Filter items based on search and category
+  // Filter items based on category
   const filteredCategories = menu?.categories.map((category) => ({
     ...category,
     items: category.items.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'all' || category.id === selectedCategory;
-      return matchesSearch && matchesCategory;
+      return matchesCategory;
     }),
   })).filter((category) => category.items.length > 0);
 
@@ -56,27 +52,13 @@ export default function MenuPage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-5 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-[1400px]">
-        {/* Search & Filter Section */}
+        {/* Category Filter Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="mb-8"
         >
-          {/* Search Bar */}
-          <div className="mb-6">
-            <div className="relative max-w-2xl mx-auto">
-              <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search shawarma, wraps, sides, drinks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 sm:pl-12 h-12 sm:h-14 text-base sm:text-lg rounded-xl sm:rounded-2xl border-2 focus:border-primary shadow-sm"
-              />
-            </div>
-          </div>
-
           {/* Category Tabs */}
           <div className="overflow-x-auto pb-3 -mx-5 px-5 sm:mx-0 sm:px-0 scrollbar-hide">
             <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
@@ -145,15 +127,6 @@ export default function MenuPage() {
         ) : (
           <div className="text-center py-12 sm:py-16">
             <p className="text-base sm:text-lg text-muted-foreground">No items found</p>
-            {searchQuery && (
-              <Button
-                variant="link"
-                onClick={() => setSearchQuery('')}
-                className="mt-2 text-sm sm:text-base"
-              >
-                Clear search
-              </Button>
-            )}
           </div>
         )}
       </div>

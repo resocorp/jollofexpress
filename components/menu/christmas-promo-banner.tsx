@@ -1,18 +1,28 @@
 'use client';
 
-import { Gift, Sparkles, MapPin, Clock, Phone, Star, ChevronDown } from 'lucide-react';
+import { Gift, Sparkles, Clock, Phone, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
 import { useRestaurantStatus, useRestaurantInfo } from '@/hooks/use-settings';
+import { useMenu } from '@/hooks/use-menu';
+import { useCartStore } from '@/store/cart-store';
+import { toast } from 'sonner';
 
 export function ChristmasPromoBanner() {
   const { data: status } = useRestaurantStatus();
   const { data: info } = useRestaurantInfo();
-  const [selectedLocation, setSelectedLocation] = useState('Awka');
-  const [showLocationMenu, setShowLocationMenu] = useState(false);
+  const { data: menu } = useMenu();
+  const addItem = useCartStore((state) => state.addItem);
 
-  const locations = ['Awka', 'Enugu', 'Onitsha', 'Aba'];
+  // Get first menu item for Order Now button
+  const firstMenuItem = menu?.categories?.[0]?.items?.[0];
+
+  const handleOrderNow = () => {
+    if (firstMenuItem) {
+      addItem(firstMenuItem, 1, undefined, []);
+      toast.success(`${firstMenuItem.name} added to cart!`);
+    }
+  };
 
   return (
     <motion.div
@@ -130,12 +140,12 @@ export function ChristmasPromoBanner() {
                 transition={{ duration: 0.5 }}
               >
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white drop-shadow-md tracking-tight">
-                  🌯 AWKA'S BEST TASTING SHAWARMA! 🔥
+                  🌯 THE BEST TASTING SHAWARMA IN TOWN! 🔥
                 </h2>
               </motion.div>
               
               <p className="text-sm sm:text-base md:text-lg font-semibold text-white/95 drop-shadow">
-                The best tasting wraps in town • <span className="text-[#FFD700] font-black text-base sm:text-lg md:text-xl">FREE DELIVERY</span> on orders above ₦5,000!
+                <span className="text-[#FFD700] font-black text-base sm:text-lg md:text-xl">*FREE DELIVERY</span> on orders above ₦5,000!
               </p>
               
               <p className="text-xs sm:text-sm text-white/90 font-medium">
@@ -147,6 +157,7 @@ export function ChristmasPromoBanner() {
             <div className="flex items-center gap-2 sm:gap-3">
               <Button
                 size="lg"
+                onClick={handleOrderNow}
                 className="hidden sm:flex bg-white hover:bg-yellow-50 text-[#D32F2F] font-bold shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-[#FFD700] min-h-[44px] touch-manipulation"
               >
                 <Gift className="h-5 w-5 mr-2" />
@@ -156,6 +167,7 @@ export function ChristmasPromoBanner() {
               {/* Mobile CTA */}
               <Button
                 size="sm"
+                onClick={handleOrderNow}
                 className="sm:hidden bg-white hover:bg-yellow-50 text-[#D32F2F] font-bold shadow-lg text-xs min-h-[40px] touch-manipulation"
               >
                 Order
@@ -172,6 +184,7 @@ export function ChristmasPromoBanner() {
           >
             <Button
               size="lg"
+              onClick={handleOrderNow}
               className="w-full bg-white hover:bg-yellow-50 text-[#D32F2F] font-bold shadow-lg border-2 border-[#FFD700] min-h-[44px] touch-manipulation"
             >
               <Gift className="h-4 w-4 mr-2" />
@@ -179,58 +192,22 @@ export function ChristmasPromoBanner() {
             </Button>
           </motion.div>
 
-          {/* Restaurant Info Section */}
+          {/* Restaurant Info Section - Single Line */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
             className="mt-4 pt-4 border-t border-white/20"
           >
-            {/* Location Selector */}
-            <div className="mb-3">
-              <div className="relative inline-block">
-                <button
-                  onClick={() => setShowLocationMenu(!showLocationMenu)}
-                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 transition-all touch-manipulation"
-                >
-                  <MapPin className="h-4 w-4 text-white" />
-                  <span className="text-white font-medium text-sm">{selectedLocation}</span>
-                  <ChevronDown className={`h-4 w-4 text-white transition-transform ${showLocationMenu ? 'rotate-180' : ''}`} />
-                </button>
-
-                {showLocationMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="absolute top-full mt-2 left-0 bg-white rounded-lg shadow-lg overflow-hidden z-10 min-w-[150px]"
-                  >
-                    {locations.map((location) => (
-                      <button
-                        key={location}
-                        onClick={() => {
-                          setSelectedLocation(location);
-                          setShowLocationMenu(false);
-                        }}
-                        className={`block w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors ${
-                          selectedLocation === location ? 'bg-gray-50 font-semibold text-[#FF4433]' : 'text-gray-700'
-                        }`}
-                      >
-                        {location}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </div>
-            </div>
-
-            {/* Restaurant Info Row */}
-            <div className="flex flex-wrap items-center gap-3 mb-2">
-              <p className="text-white font-semibold text-base sm:text-lg">
-                {info?.description || "Awka's best tasting shawarma - Nigerian-style wraps done right!"}
+            {/* Single line with all info */}
+            <div className="flex flex-wrap items-center gap-3 text-white text-sm">
+              {/* Description */}
+              <p className="font-semibold text-base sm:text-lg">
+                {info?.description || "Delicious Nigerian cuisine delivered to your doorstep"}
               </p>
               
               {/* Star Rating */}
-              <div className="flex items-center gap-2 text-white">
+              <div className="flex items-center gap-2">
                 <div className="flex gap-0.5">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -239,41 +216,32 @@ export function ChristmasPromoBanner() {
                 <span className="font-semibold">4.8</span>
                 <span className="text-white/90">(500+)</span>
               </div>
-            </div>
 
-            {/* Status & Details */}
-            <div className="flex flex-wrap items-center gap-4 text-white text-sm">
+              <span className="text-white/40">•</span>
+
               {/* Status Badge */}
               {status?.is_open ? (
-                <span className="flex items-center gap-1.5 font-normal">
-                  <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                   Open
+                  {status.estimated_prep_time && (
+                    <span className="text-white/80">({status.estimated_prep_time} min)</span>
+                  )}
                 </span>
               ) : (
-                <span className="flex items-center gap-1.5 font-normal">
+                <span className="flex items-center gap-1.5 font-medium">
                   <span className="w-2 h-2 bg-red-400 rounded-full"></span>
                   Closed
+                  {status?.hours?.today && (
+                    <span className="text-white/80">• Hours: {status.hours.today}</span>
+                  )}
                 </span>
               )}
-              
-              <span className="text-white/40">•</span>
-
-              {/* Prep Time */}
-              {status?.is_open && status.estimated_prep_time && (
-                <>
-                  <span className="font-normal">{status.estimated_prep_time} min</span>
-                  <span className="text-white/40">•</span>
-                </>
-              )}
-
-              {/* Location */}
-              <span className="font-normal">{selectedLocation}</span>
-              
-              <span className="text-white/40">•</span>
 
               {/* Phone */}
               {info?.phone && (
                 <>
+                  <span className="text-white/40">•</span>
                   <a 
                     href={`tel:${info.phone}`}
                     className="flex items-center gap-1.5 font-normal hover:text-yellow-300 transition-colors touch-manipulation"
@@ -282,43 +250,20 @@ export function ChristmasPromoBanner() {
                     <span className="hidden sm:inline">{info.phone}</span>
                     <span className="sm:hidden">Call</span>
                   </a>
-                  
-                  {status?.is_open && status?.next_status_change?.action === 'close' && (
-                    <span className="text-white/40">•</span>
-                  )}
                 </>
               )}
 
               {/* Last Orders Time */}
               {status?.is_open && status?.next_status_change?.action === 'close' && (
-                <span className="flex items-center gap-1.5 font-normal">
-                  <Clock className="h-3.5 w-3.5" />
-                  Last orders at {status.next_status_change.time}
-                </span>
+                <>
+                  <span className="text-white/40">•</span>
+                  <span className="flex items-center gap-1.5 font-normal">
+                    <Clock className="h-3.5 w-3.5" />
+                    Last orders at {status.next_status_change.time}
+                  </span>
+                </>
               )}
             </div>
-
-            {/* Closed Status Message */}
-            {!status?.is_open && (
-              <div className="mt-3 p-3 bg-white/10 rounded-lg border border-white/20">
-                <p className="text-white text-sm font-medium mb-2">{status?.message}</p>
-                {status?.closed_reason && (
-                  <p className="text-white/80 text-xs italic mb-2">
-                    {status.closed_reason}
-                  </p>
-                )}
-                {status?.hours?.today && (
-                  <p className="text-white/90 text-xs">
-                    <span className="font-semibold">Today's Hours:</span> {status.hours.today}
-                  </p>
-                )}
-                {status?.next_status_change?.action === 'open' && (
-                  <p className="text-green-300 text-xs font-medium mt-2">
-                    Opens at {status.next_status_change.time}
-                  </p>
-                )}
-              </div>
-            )}
           </motion.div>
         </div>
       </motion.div>
