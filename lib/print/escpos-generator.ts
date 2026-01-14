@@ -71,39 +71,35 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   commands.push(line('-', 48) + LF);
   commands.push(LF);
   
-  // Customer details
+  // Customer details - LARGER text for important info
   commands.push(BOLD_ON);
-  commands.push('CUSTOMER DETAILS' + LF);
+  commands.push(DOUBLE_HEIGHT);
+  commands.push(`${receipt.customerName}` + LF);
+  commands.push(`${receipt.customerPhone}` + LF);
+  commands.push(NORMAL);
   commands.push(BOLD_OFF);
-  commands.push(`Name: ${receipt.customerName}` + LF);
-  commands.push(`Phone: ${receipt.customerPhone}` + LF);
   if (receipt.customerPhoneAlt) {
     commands.push(`Alt: ${receipt.customerPhoneAlt}` + LF);
   }
-  commands.push(`Type: ${receipt.orderType.toUpperCase()}` + LF);
-  commands.push(LF);
+  commands.push(`${receipt.orderType.toUpperCase()}` + LF);
   
-  // Delivery address
+  // Delivery address - LARGER text
   if (receipt.orderType === 'delivery' && receipt.deliveryAddress) {
+    commands.push(line('-', 48) + LF);
     commands.push(BOLD_ON);
-    commands.push('DELIVERY ADDRESS' + LF);
-    commands.push(BOLD_OFF);
+    commands.push(DOUBLE_HEIGHT);
     if (receipt.deliveryCity) {
       commands.push(receipt.deliveryCity + LF);
     }
     commands.push(receipt.deliveryAddress + LF);
-    if (receipt.addressType) {
-      commands.push(`Type: ${receipt.addressType}` + LF);
-    }
+    commands.push(NORMAL);
+    commands.push(BOLD_OFF);
     if (receipt.unitNumber) {
       commands.push(`Unit: ${receipt.unitNumber}` + LF);
     }
     if (receipt.deliveryInstructions) {
-      commands.push(LF);
-      commands.push(BOLD_ON + 'Nearest Landmark:' + BOLD_OFF + LF);
-      commands.push(receipt.deliveryInstructions + LF);
+      commands.push(BOLD_ON + 'Landmark: ' + BOLD_OFF + receipt.deliveryInstructions + LF);
     }
-    commands.push(LF);
   }
   
   // Items section
@@ -175,37 +171,16 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   commands.push(line('=', 48) + LF);
   commands.push(LF);
   
-  // Payment status
-  commands.push(`Payment: ${receipt.paymentStatus} (${receipt.paymentMethod})` + LF);
+  // Concise footer
   commands.push(LF);
-  
-  // Kitchen prep time (subtle for customer)
-  commands.push(line('-', 48) + LF);
   commands.push(ALIGN_CENTER);
-  if (receipt.estimatedPrepTime) {
-    commands.push(`Prep Time: ~${receipt.estimatedPrepTime} min` + LF);
-  }
-  commands.push(line('-', 48) + LF);
-  commands.push(LF);
-  
-  // Marketing copy and thank you message
   commands.push(BOLD_ON);
   commands.push(DOUBLE_HEIGHT);
   commands.push('Thank You!' + LF);
-  commands.push(BOLD_OFF);
   commands.push(NORMAL);
-  commands.push(LF);
-  commands.push('We appreciate your order!' + LF);
-  commands.push('Enjoy the best Nigerian shawarma' + LF);
-  commands.push('made with love.' + LF);
-  commands.push(LF);
-  commands.push(line('-', 48) + LF);
-  commands.push('Order again: www.urshawarma.ng' + LF);
-  commands.push('Follow us @urshawarma' + LF);
-  commands.push(LF);
-  commands.push(BOLD_ON);
-  commands.push('REFER A FRIEND & GET 10% OFF!' + LF);
   commands.push(BOLD_OFF);
+  commands.push('Order again: myshawarma.express' + LF);
+  commands.push('+2348106828147' + LF);
   commands.push(line('=', 48) + LF);
   
   // Feed and cut
