@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
 import { useCartStore } from '@/store/cart-store';
 import { useCreateOrder } from '@/hooks/use-orders';
-import { useDeliverySettings, useRestaurantStatus } from '@/hooks/use-settings';
+import { useDeliverySettings, usePaymentSettings, useRestaurantStatus } from '@/hooks/use-settings';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
 import { AlertCircle } from 'lucide-react';
@@ -32,6 +32,7 @@ export function CheckoutForm({
   const { items, discount, promoCode, getSubtotal, setPendingOrder } = useCartStore();
   const createOrder = useCreateOrder();
   const { data: deliverySettings, isLoading: isLoadingSettings } = useDeliverySettings();
+  const { data: paymentSettings } = usePaymentSettings();
   const { data: restaurantStatus } = useRestaurantStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerLocation, setCustomerLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null);
@@ -90,13 +91,13 @@ export function CheckoutForm({
   }, [isSubmitting, onSubmittingChange]);
 
   const subtotal = getSubtotal();
-  const taxRate = 7.5;
+  const taxRate = paymentSettings?.tax_rate ?? 0;
   
   // Use standard delivery fee from admin settings
   const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
   
-  // VAT should be applied to subtotal + delivery fee
-  const tax = Math.round(((subtotal + deliveryFee) * taxRate) / 100);
+  // VAT should be applied to subtotal + delivery fee (only if tax rate > 0)
+  const tax = taxRate > 0 ? Math.round(((subtotal + deliveryFee) * taxRate) / 100) : 0;
   const total = subtotal + tax + deliveryFee - discount;
   const minOrder = deliverySettings?.min_order || 0;
   const isBelowMinimum = orderType === 'delivery' && subtotal < minOrder;

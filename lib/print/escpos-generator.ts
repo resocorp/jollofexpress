@@ -151,7 +151,7 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   }
   
   if (receipt.tax > 0) {
-    commands.push(padRight('Tax (7.5%):', formatCurrency(receipt.tax), 48) + LF);
+    commands.push(padRight('VAT:', formatCurrency(receipt.tax), 48) + LF);
   }
   
   if (receipt.discount > 0) {

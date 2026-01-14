@@ -55,6 +55,17 @@ export function useDeliverySettings() {
 }
 
 /**
+ * Fetch payment settings (public)
+ */
+export function usePaymentSettings() {
+  return useQuery({
+    queryKey: ['payment-settings'],
+    queryFn: () => get<PaymentSettings>('/api/payment/settings'),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+/**
  * Fetch all settings (admin)
  */
 export function useAllSettings() {
@@ -85,6 +96,7 @@ export function useUpdateSettings() {
       queryClient.invalidateQueries({ queryKey: ['restaurant-info'] });
       queryClient.invalidateQueries({ queryKey: ['restaurant-status'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-cities'] });
+      queryClient.invalidateQueries({ queryKey: ['payment-settings'] });
     },
   });
 }

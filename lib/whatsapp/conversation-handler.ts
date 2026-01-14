@@ -51,7 +51,29 @@ import type {
   OrderSummary,
 } from './types';
 
-const TAX_RATE = 7.5;
+/**
+ * Fetch tax rate from payment settings
+ */
+async function getTaxRate(): Promise<number> {
+  try {
+    const supabase = createServiceClient();
+    const { data, error } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'payment_settings')
+      .single();
+    
+    if (error || !data) {
+      console.error('Error fetching tax rate:', error);
+      return 0;
+    }
+    
+    return (data.value as any)?.tax_rate ?? 0;
+  } catch (error) {
+    console.error('Error fetching tax rate:', error);
+    return 0;
+  }
+}
 
 /**
  * Main entry point - handle incoming message
@@ -1065,7 +1087,8 @@ async function showOrderConfirmation(session: WhatsAppSession): Promise<string[]
   const deliveryFee = region.free_delivery_threshold && subtotal >= region.free_delivery_threshold
     ? 0
     : region.delivery_fee;
-  const tax = Math.round(((subtotal + deliveryFee) * TAX_RATE) / 100);
+  const taxRate = await getTaxRate();
+  const tax = taxRate > 0 ? Math.round(((subtotal + deliveryFee) * taxRate) / 100) : 0;
   const total = subtotal + deliveryFee + tax;
   
   const summary: OrderSummary = {

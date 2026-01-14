@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCartStore } from '@/store/cart-store';
-import { useDeliverySettings } from '@/hooks/use-settings';
+import { useDeliverySettings, usePaymentSettings } from '@/hooks/use-settings';
 import { useValidatePromo } from '@/hooks/use-promo';
 import { formatCurrency } from '@/lib/formatters';
 import { ShoppingCart, Tag, Bike, Receipt, Loader2, CheckCircle2, XCircle } from 'lucide-react';
@@ -21,12 +21,13 @@ interface OrderSummaryProps {
 export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
   const { items, discount, promoCode, getSubtotal, setPromoCode } = useCartStore();
   const { data: deliverySettings } = useDeliverySettings();
+  const { data: paymentSettings } = usePaymentSettings();
   const validatePromo = useValidatePromo();
   const [promoInput, setPromoInput] = useState(promoCode || '');
   const [isValidating, setIsValidating] = useState(false);
   
   const subtotal = getSubtotal();
-  const taxRate = 7.5; // VAT rate - TODO: fetch from PaymentSettings
+  const taxRate = paymentSettings?.tax_rate ?? 0;
   const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
   
   // Correct calculation:
@@ -190,13 +191,15 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
               <span className="font-medium">{formatCurrency(deliveryFee)}</span>
             </div>
           )}
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground flex items-center gap-2">
-              <Tag className="h-4 w-4" />
-              Tax (7.5%)
-            </span>
-            <span className="font-medium">{formatCurrency(tax)}</span>
-          </div>
+          {taxRate > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                Tax ({taxRate}%)
+              </span>
+              <span className="font-medium">{formatCurrency(tax)}</span>
+            </div>
+          )}
           {discount > 0 && (
             <div className="flex justify-between items-center p-3 rounded-lg bg-green-50 border border-green-200">
               <span className="text-green-700 font-medium">Discount Applied</span>
@@ -242,12 +245,13 @@ export function OrderSummaryWithButton({
 }: OrderSummaryWithButtonProps) {
   const { items, discount, promoCode, getSubtotal, setPromoCode } = useCartStore();
   const { data: deliverySettings } = useDeliverySettings();
+  const { data: paymentSettings } = usePaymentSettings();
   const validatePromo = useValidatePromo();
   const [promoInput, setPromoInput] = useState(promoCode || '');
   const [isValidating, setIsValidating] = useState(false);
   
   const subtotal = getSubtotal();
-  const taxRate = 7.5; // VAT rate - TODO: fetch from PaymentSettings
+  const taxRate = paymentSettings?.tax_rate ?? 0;
   
   // Use standard delivery fee from admin settings
   const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
@@ -413,13 +417,15 @@ export function OrderSummaryWithButton({
               <span className="font-medium">{formatCurrency(deliveryFee)}</span>
             </div>
           )}
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground flex items-center gap-2">
-              <Tag className="h-4 w-4" />
-              Tax (7.5%)
-            </span>
-            <span className="font-medium">{formatCurrency(tax)}</span>
-          </div>
+          {taxRate > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                Tax ({taxRate}%)
+              </span>
+              <span className="font-medium">{formatCurrency(tax)}</span>
+            </div>
+          )}
           {discount > 0 && (
             <div className="flex justify-between items-center p-3 rounded-lg bg-green-50 border border-green-200">
               <span className="text-green-700 font-medium">Discount Applied</span>

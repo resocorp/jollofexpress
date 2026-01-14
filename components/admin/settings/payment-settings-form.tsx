@@ -44,7 +44,7 @@ export function PaymentSettingsForm({ data }: PaymentSettingsFormProps) {
   } = useForm<FormData>({
     resolver: zodResolver(paymentSettingsSchema),
     defaultValues: {
-      tax_rate: data?.tax_rate || 7.5,
+      tax_rate: data?.tax_rate ?? 0,
       accept_cash: data?.accept_cash ?? true,
       accept_card: data?.accept_card ?? true,
       accept_transfer: data?.accept_transfer ?? false,

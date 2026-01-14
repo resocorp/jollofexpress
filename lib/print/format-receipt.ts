@@ -255,7 +255,7 @@ export function formatReceiptText(receipt: ReceiptData): string {
   }
   
   if (receipt.tax > 0) {
-    lines.push(leftRight('Tax (7.5%):', formatCurrency(receipt.tax)));
+    lines.push(leftRight('VAT:', formatCurrency(receipt.tax)));
   }
   
   if (receipt.discount > 0) {

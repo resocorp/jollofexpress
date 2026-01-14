@@ -502,7 +502,9 @@ export function formatOrderSummaryMessage(
   message += `\n─────────────────`;
   message += `\nSubtotal: ${formatCurrency(summary.subtotal)}`;
   message += `\nDelivery (${summary.region_name}): ${formatCurrency(summary.delivery_fee)}`;
-  message += `\nVAT (7.5%): ${formatCurrency(summary.tax)}`;
+  if (summary.tax > 0) {
+    message += `\nVAT: ${formatCurrency(summary.tax)}`;
+  }
   message += `\n─────────────────`;
   message += `\n*TOTAL: ${formatCurrency(summary.total)}*`;
   message += `\n─────────────────`;
