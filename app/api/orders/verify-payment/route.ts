@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { formatReceipt } from '@/lib/print/format-receipt';
+import { triggerImmediatePrint } from '@/lib/print/print-processor';
 
 export async function POST(request: NextRequest) {
   try {
@@ -146,6 +147,18 @@ export async function POST(request: NextRequest) {
           status: 'pending',
         });
         console.log(`Added order ${order_id} to print queue`);
+
+        // Trigger immediate printing (non-blocking, fire-and-forget)
+        // If this fails, the job stays in queue for the print-worker to retry
+        triggerImmediatePrint(order_id).then((result) => {
+          if (result.success) {
+            console.log(`[VERIFY-PAYMENT] Immediate print succeeded for order ${order_id}`);
+          } else {
+            console.log(`[VERIFY-PAYMENT] Immediate print deferred for order ${order_id}: ${result.message}`);
+          }
+        }).catch((err) => {
+          console.error(`[VERIFY-PAYMENT] Immediate print error for order ${order_id}:`, err);
+        });
       } else {
         console.log(`Print job already exists for order ${order_id}, skipping`);
       }

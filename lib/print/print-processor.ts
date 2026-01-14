@@ -183,6 +183,90 @@ export async function processPrintQueue(
 }
 
 /**
+ * Trigger immediate printing for a newly added job
+ * This is called right after inserting into the queue for faster response
+ * If it fails, the job stays in queue for the print-worker to retry
+ */
+export async function triggerImmediatePrint(orderId: string): Promise<{ success: boolean; message: string }> {
+  const printerHost = process.env.PRINTER_IP_ADDRESS;
+  const printerPort = parseInt(process.env.PRINTER_PORT || '9100');
+
+  if (!printerHost) {
+    console.log('[IMMEDIATE PRINT] Printer not configured, job will be processed by worker');
+    return { success: false, message: 'Printer not configured' };
+  }
+
+  const supabase = createServiceClient();
+
+  try {
+    // Fetch the print job for this order
+    const { data: job, error: fetchError } = await supabase
+      .from('print_queue')
+      .select('*')
+      .eq('order_id', orderId)
+      .eq('status', 'pending')
+      .single();
+
+    if (fetchError || !job) {
+      console.log('[IMMEDIATE PRINT] No pending job found for order:', orderId);
+      return { success: false, message: 'No pending job found' };
+    }
+
+    console.log(`[IMMEDIATE PRINT] Processing order ${orderId} immediately`);
+
+    // Generate ESC/POS commands
+    const escposData = generateESCPOS(job.print_data);
+    console.log(`[IMMEDIATE PRINT] Generated ${escposData.length} bytes`);
+
+    // Send to printer
+    const printResult = await printToNetwork(escposData, {
+      host: printerHost,
+      port: printerPort,
+      timeout: 5000,
+    });
+
+    if (printResult.success) {
+      // Mark as printed
+      await supabase
+        .from('print_queue')
+        .update({
+          status: 'printed',
+          processed_at: new Date().toISOString(),
+          attempts: 1,
+        })
+        .eq('id', job.id);
+
+      // Update order print status
+      await supabase
+        .from('orders')
+        .update({ print_status: 'printed' })
+        .eq('id', orderId);
+
+      console.log(`[IMMEDIATE PRINT] ✓ Order ${orderId} printed successfully`);
+      return { success: true, message: 'Printed successfully' };
+    } else {
+      // Increment attempt count but keep as pending for retry
+      await supabase
+        .from('print_queue')
+        .update({
+          attempts: 1,
+          error_message: printResult.message,
+        })
+        .eq('id', job.id);
+
+      console.log(`[IMMEDIATE PRINT] ✗ Order ${orderId} print failed: ${printResult.message}`);
+      return { success: false, message: printResult.message };
+    }
+  } catch (error) {
+    console.error('[IMMEDIATE PRINT] Error:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Unknown error' 
+    };
+  }
+}
+
+/**
  * Process a single print job by ID
  */
 export async function processPrintJob(

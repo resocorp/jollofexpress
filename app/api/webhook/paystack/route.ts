@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { formatReceipt } from '@/lib/print/format-receipt';
+import { triggerImmediatePrint } from '@/lib/print/print-processor';
 import crypto from 'crypto';
 
 // Verify webhook signature
@@ -296,6 +297,18 @@ export async function POST(request: NextRequest) {
               status: 'pending',
             });
             console.log(`Added order ${orderId} to print queue`);
+
+            // Trigger immediate printing (non-blocking, fire-and-forget)
+            // If this fails, the job stays in queue for the print-worker to retry
+            triggerImmediatePrint(orderId).then((result) => {
+              if (result.success) {
+                console.log(`[WEBHOOK] Immediate print succeeded for order ${orderId}`);
+              } else {
+                console.log(`[WEBHOOK] Immediate print deferred for order ${orderId}: ${result.message}`);
+              }
+            }).catch((err) => {
+              console.error(`[WEBHOOK] Immediate print error for order ${orderId}:`, err);
+            });
           } else {
             console.log(`Print job already exists for order ${orderId}, skipping`);
           }
