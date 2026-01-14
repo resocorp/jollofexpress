@@ -1,6 +1,7 @@
 // Admin endpoint for reordering delivery regions
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminOnly } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 const reorderSchema = z.object({
@@ -13,6 +14,12 @@ const reorderSchema = z.object({
 
 // POST - Reorder regions or groups
 export async function POST(request: NextRequest) {
+  // Verify admin-only authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
     const body = await request.json();

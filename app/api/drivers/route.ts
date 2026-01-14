@@ -1,6 +1,7 @@
 // Driver management API
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminAuth, verifyAdminOnly } from '@/lib/auth/admin-auth';
 import * as traccar from '@/lib/traccar/client';
 import { z } from 'zod';
 
@@ -13,8 +14,14 @@ const createDriverSchema = z.object({
   traccar_device_id: z.number().optional(),
 });
 
-// GET /api/drivers - List all drivers
+// GET /api/drivers - List all drivers (requires admin/kitchen auth)
 export async function GET(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
     const { searchParams } = new URL(request.url);
@@ -49,8 +56,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/drivers - Create new driver
+// POST /api/drivers - Create new driver (requires admin-only auth)
 export async function POST(request: NextRequest) {
+  // Verify admin-only authentication (creating drivers is admin action)
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
     const validatedData = createDriverSchema.parse(body);

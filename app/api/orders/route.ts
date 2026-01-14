@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { isRestaurantOpen, checkAndManageCapacity } from '@/lib/kitchen-capacity';
 import { shouldBeOpenNow } from '@/lib/operating-hours';
+import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 // Validation schema for order creation
@@ -353,8 +354,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET: List orders with optional filters
+// GET: List orders with optional filters (requires admin/kitchen auth)
 export async function GET(request: NextRequest) {
+  // Verify authentication - only admin/kitchen staff can list orders
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
     const { searchParams } = new URL(request.url);

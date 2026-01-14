@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 const autoAssignSchema = z.object({
@@ -62,6 +63,12 @@ function scoreDriver(driver: {
 }
 
 export async function POST(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
     const { order_id } = autoAssignSchema.parse(body);

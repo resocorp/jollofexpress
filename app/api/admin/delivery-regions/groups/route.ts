@@ -1,6 +1,7 @@
 // Admin endpoint for managing delivery region groups
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminOnly } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 const groupSchema = z.object({
@@ -11,7 +12,13 @@ const groupSchema = z.object({
 });
 
 // GET - Fetch all region groups
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Verify admin-only authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
 
@@ -41,6 +48,12 @@ export async function GET() {
 
 // POST - Create a new region group
 export async function POST(request: NextRequest) {
+  // Verify admin-only authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
     const body = await request.json();

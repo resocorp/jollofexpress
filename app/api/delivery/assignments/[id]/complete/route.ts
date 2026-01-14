@@ -1,6 +1,7 @@
 // Complete delivery assignment
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 interface RouteParams {
@@ -14,6 +15,12 @@ const completeSchema = z.object({
 
 // POST /api/delivery/assignments/[id]/complete - Mark delivery as completed
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const { id } = await params;
     const body = await request.json();

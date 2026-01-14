@@ -1,6 +1,7 @@
 // Admin endpoint for managing individual delivery regions
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminOnly } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 // GeoJSON Polygon schema for geofence coordinates
@@ -25,6 +26,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin-only authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const { id } = await params;
     const supabase = createServiceClient();
@@ -59,6 +66,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin-only authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const { id } = await params;
     const supabase = createServiceClient();
@@ -121,6 +134,12 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin-only authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const { id } = await params;
     const supabase = createServiceClient();

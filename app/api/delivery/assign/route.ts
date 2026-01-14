@@ -1,6 +1,7 @@
 // Delivery assignment API
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 import * as traccar from '@/lib/traccar/client';
 import { z } from 'zod';
 
@@ -11,6 +12,12 @@ const assignSchema = z.object({
 
 // POST /api/delivery/assign - Assign driver to order
 export async function POST(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
     const { order_id, driver_id } = assignSchema.parse(body);

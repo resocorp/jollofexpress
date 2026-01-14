@@ -1,6 +1,7 @@
 // Cash on Delivery (COD) collection API
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminAuth, verifyAdminOnly } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 const collectSchema = z.object({
@@ -17,6 +18,12 @@ const settleSchema = z.object({
 
 // GET /api/delivery/cod - Get COD collections (filter by driver/status)
 export async function GET(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
     const { searchParams } = new URL(request.url);
@@ -54,6 +61,12 @@ export async function GET(request: NextRequest) {
 
 // POST /api/delivery/cod - Record COD collection (driver collects cash)
 export async function POST(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
     const { order_id, driver_id, amount } = collectSchema.parse(body);
@@ -126,6 +139,12 @@ export async function POST(request: NextRequest) {
 
 // PATCH /api/delivery/cod - Settle COD collections (admin settles with driver)
 export async function PATCH(request: NextRequest) {
+  // Verify admin-only authentication (settlement is admin action)
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
     const { collection_ids, settled_by, notes } = settleSchema.parse(body);

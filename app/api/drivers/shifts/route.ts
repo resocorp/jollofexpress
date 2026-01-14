@@ -1,6 +1,7 @@
 // Driver Shifts API - Check-in/Check-out with vehicles
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 const startShiftSchema = z.object({
@@ -14,6 +15,12 @@ const endShiftSchema = z.object({
 
 // GET /api/drivers/shifts - Get active shifts
 export async function GET(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
     const { searchParams } = new URL(request.url);
@@ -49,6 +56,12 @@ export async function GET(request: NextRequest) {
 
 // POST /api/drivers/shifts - Start a new shift (check-in)
 export async function POST(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
     const { driver_id, vehicle_id } = startShiftSchema.parse(body);
@@ -126,6 +139,12 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/drivers/shifts - End shift (check-out)
 export async function DELETE(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
     const { driver_id } = endShiftSchema.parse(body);

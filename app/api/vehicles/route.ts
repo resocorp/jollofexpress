@@ -1,10 +1,17 @@
 // Vehicles API - Company bikes management
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminAuth, verifyAdminOnly } from '@/lib/auth/admin-auth';
 import * as traccar from '@/lib/traccar/client';
 
 // GET /api/vehicles - List all vehicles
 export async function GET(request: NextRequest) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
     const { searchParams } = new URL(request.url);
@@ -92,6 +99,12 @@ export async function GET(request: NextRequest) {
 
 // POST /api/vehicles/sync - Sync vehicles from Traccar
 export async function POST(request: NextRequest) {
+  // Verify admin-only authentication (sync is admin action)
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const devices = await traccar.getDevices();
     const supabase = createServiceClient();

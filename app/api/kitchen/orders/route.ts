@@ -1,8 +1,15 @@
 // Get active orders for Kitchen Display System
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 
 export async function GET(request: NextRequest) {
+  // Verify authentication - only admin/kitchen staff can access kitchen orders
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
 

@@ -1,10 +1,11 @@
 // Notification Logs API - Fetch notification history with filtering
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminOnly } from '@/lib/auth/admin-auth';
 
 /**
  * GET /api/notifications/logs
- * Fetch notification logs with optional filters
+ * Fetch notification logs with optional filters (requires admin-only auth)
  * 
  * Query Parameters:
  * - date_from: Start date (ISO 8601)
@@ -17,6 +18,12 @@ import { createServiceClient } from '@/lib/supabase/service';
  * - limit: Items per page (default: 50, max: 100)
  */
 export async function GET(request: NextRequest) {
+  // Verify admin-only authentication - notification logs contain sensitive PII
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const { searchParams } = new URL(request.url);
 

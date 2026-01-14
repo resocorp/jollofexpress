@@ -1,6 +1,7 @@
 // Notification Settings API - Get and update notification configuration
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminOnly } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
 // Validation schema for notification settings
@@ -30,9 +31,15 @@ const settingsSchema = z.object({
 
 /**
  * GET /api/notifications/settings
- * Fetch all notification settings
+ * Fetch all notification settings (admin only)
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Verify admin-only authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const supabase = createServiceClient();
 
@@ -76,9 +83,15 @@ export async function GET() {
 
 /**
  * PATCH /api/notifications/settings
- * Update notification settings
+ * Update notification settings (admin only)
  */
 export async function PATCH(request: NextRequest) {
+  // Verify admin-only authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
 

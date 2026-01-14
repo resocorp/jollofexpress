@@ -1,6 +1,7 @@
 // Single driver management API
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminAuth, verifyAdminOnly } from '@/lib/auth/admin-auth';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -8,6 +9,12 @@ interface RouteParams {
 
 // GET /api/drivers/[id] - Get driver details
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  // Verify authentication
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const { id } = await params;
     const supabase = createServiceClient();
@@ -34,6 +41,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 // PATCH /api/drivers/[id] - Update driver
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  // Verify admin-only authentication
+  const authResult = await verifyAdminOnly(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
     const { id } = await params;
     const body = await request.json();
