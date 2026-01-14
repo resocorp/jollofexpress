@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useInfluencerDashboard } from '@/hooks/use-influencer';
 import { formatCurrency } from '@/lib/formatters';
@@ -46,7 +46,26 @@ const PERIOD_OPTIONS = [
   { value: '90', label: '90 days' },
 ];
 
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
+        <p className="mt-4 text-muted-foreground">Loading your dashboard...</p>
+      </div>
+    </div>
+  );
+}
+
 export default function InfluencerDashboardPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <InfluencerDashboardContent />
+    </Suspense>
+  );
+}
+
+function InfluencerDashboardContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const [period, setPeriod] = useState('30');

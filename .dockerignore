@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Next.js build output
+.next
+out
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+
+# Git
+.git
+.gitignore
+
+# Documentation
+docs
+*.md
+!README.md
+
+# Development files
+*.log
+.DS_Store
+Thumbs.db
+
+# Test files
+__tests__
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+coverage
+
+# Print server (handled separately)
+print-server

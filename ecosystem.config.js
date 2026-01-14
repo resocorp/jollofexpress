@@ -61,8 +61,8 @@ module.exports = {
     production: {
       user: 'deploy',
       host: 'YOUR_SERVER_IP',
-      ref: 'origin/main',
-      repo: 'YOUR_GIT_REPO_URL',
+      ref: 'origin/master',
+      repo: 'https://github.com/resocorp/jollofexpress.git',
       path: '/home/deploy/jollofexpress',
       'post-deploy': 
         'npm install && ' +
