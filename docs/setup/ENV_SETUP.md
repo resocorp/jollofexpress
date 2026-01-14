@@ -20,15 +20,15 @@ PAYSTACK_SECRET_KEY=your_paystack_secret_key
 
 # Application URLs
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_SITE_NAME=JollofExpress
+NEXT_PUBLIC_SITE_NAME=Ur' Shawarma Express
 
 # SMS Service (Termii or Africa's Talking)
 SMS_API_KEY=your_sms_api_key
-SMS_SENDER_ID=JollofExpress
+SMS_SENDER_ID=UrShawarma
 
 # Email Service (Resend or SendGrid)
 EMAIL_API_KEY=your_email_api_key
-EMAIL_FROM=noreply@jollofexpress.com
+EMAIL_FROM=noreply@urshawarma.com
 
 # Print Server Configuration
 PRINT_SERVER_URL=http://192.168.1.100:8080

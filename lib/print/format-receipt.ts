@@ -168,7 +168,7 @@ export function formatReceiptText(receipt: ReceiptData): string {
 
   // Header
   lines.push(line());
-  lines.push(center('JOLLOF EXPRESS'));
+  lines.push(center("UR' SHAWARMA EXPRESS"));
   lines.push(line());
   lines.push('');
   
@@ -287,12 +287,12 @@ export function formatReceiptText(receipt: ReceiptData): string {
   lines.push(center('Thank You!'));
   lines.push('');
   lines.push(center('We appreciate your order!'));
-  lines.push(center('Enjoy authentic Nigerian flavors'));
+  lines.push(center('Enjoy the best Nigerian shawarma'));
   lines.push(center('made with love.'));
   lines.push('');
   lines.push(line('-'));
-  lines.push(center('Order again: www.jollofexpress.ng'));
-  lines.push(center('Follow us @jollofexpress'));
+  lines.push(center('Order again: www.urshawarma.ng'));
+  lines.push(center('Follow us @urshawarma'));
   lines.push('');
   lines.push(center('REFER A FRIEND & GET 10% OFF!'));
   lines.push(line('='));

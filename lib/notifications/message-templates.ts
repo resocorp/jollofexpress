@@ -28,7 +28,7 @@ function formatOrderItems(items: OrderWithItems['items']): string {
  */
 function formatDeliveryInfo(order: OrderWithItems): string {
   if (order.order_type === 'carryout') {
-    return '📍 Type: Carryout\nPick up at: JollofExpress, Awka';
+    return "📍 Type: Carryout\nPick up at: Ur' Shawarma Express, Awka";
   }
 
   return `📍 Delivery Address:\n${order.delivery_address}\n${order.delivery_city}`;
@@ -38,7 +38,7 @@ function formatDeliveryInfo(order: OrderWithItems): string {
  * Get app URL from environment
  */
 function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || 'https://jollofexpress.com';
+  return process.env.NEXT_PUBLIC_APP_URL || 'https://urshawarma.com';
 }
 
 // ============================================
@@ -67,7 +67,7 @@ ${formatDeliveryInfo(order)}
 
 Track your order: ${trackingUrl}
 
-_- JollofExpress 🍲_`;
+_- Ur' Shawarma Express 🌯_`;
 }
 
 /**
@@ -81,7 +81,7 @@ Status: Preparing
 
 Your delicious meal is being prepared with care by our chefs.
 
-_- JollofExpress 🍲_`;
+_- Ur' Shawarma Express 🌯_`;
 }
 
 /**
@@ -98,7 +98,7 @@ export function orderReadyMessage(order: OrderWithItems): string {
 
 ${deliveryMessage}
 
-_- JollofExpress 🍲_`;
+_- Ur' Shawarma Express 🌯_`;
 }
 
 /**
@@ -117,7 +117,7 @@ export function orderOutForDeliveryMessage(order: OrderWithItems): string {
 
 Get ready to enjoy your meal! 😋
 
-_- JollofExpress 🍲_`;
+_- Ur' Shawarma Express 🌯_`;
 }
 
 /**
@@ -129,7 +129,7 @@ export function orderCompletedMessage(order: OrderWithItems): string {
 
   return `🎊 *Order Delivered!*
 
-Thank you for choosing JollofExpress!
+Thank you for choosing Ur' Shawarma Express!
 
 📋 Order #${order.order_number}
 
@@ -137,7 +137,7 @@ We hope you enjoyed your meal! 🍽️
 
 Order again: ${menuUrl}
 
-_- JollofExpress 🍲_`;
+_- Ur' Shawarma Express 🌯_`;
 }
 
 /**
@@ -156,7 +156,7 @@ Your payment could not be processed. Please try again or contact support.
 
 Retry payment: ${orderUrl}
 
-_- JollofExpress 🍲_`;
+_- Ur' Shawarma Express 🌯_`;
 }
 
 // ============================================
@@ -181,7 +181,7 @@ export function kitchenClosedMessage(data: KitchenCapacityData): string {
 
 Orders will resume automatically when capacity is available.
 
-_- JollofExpress System_`;
+_- Ur' Shawarma Express System_`;
 }
 
 /**
@@ -200,7 +200,7 @@ export function kitchenReopenedMessage(data: KitchenCapacityData): string {
 📊 Active Orders: ${data.active_orders}/${data.max_orders}
 ⏰ Time: ${timestamp}
 
-_- JollofExpress System_`;
+_- Ur' Shawarma Express System_`;
 }
 
 /**
@@ -216,7 +216,7 @@ export function paymentFailureAlertMessage(order: OrderWithItems): string {
 
 Payment verification failed. Customer may need assistance.
 
-_- JollofExpress System_`;
+_- Ur' Shawarma Express System_`;
 }
 
 /**
@@ -247,7 +247,7 @@ ${topItemsList || 'No orders today'}
 
 View dashboard: ${dashboardUrl}
 
-_- JollofExpress Analytics_`;
+_- Ur' Shawarma Express Analytics_`;
 }
 
 /**
@@ -267,7 +267,7 @@ ${message}
 
 ⏰ ${timestamp}
 
-_- JollofExpress System_`;
+_- Ur' Shawarma Express System_`;
 }
 
 /**
@@ -298,5 +298,5 @@ ${order.order_type === 'delivery' ? `📍 *Deliver to:*\n${order.delivery_addres
 
 ⏰ ${timestamp}
 
-_- JollofExpress System_`;
+_- Ur' Shawarma Express System_`;
 }

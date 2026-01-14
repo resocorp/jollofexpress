@@ -53,7 +53,7 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   // Header
   commands.push(ALIGN_CENTER);
   commands.push(LARGE);
-  commands.push('JOLLOF EXPRESS' + LF);
+  commands.push("UR' SHAWARMA EXPRESS" + LF);
   commands.push(NORMAL);
   commands.push(line('=', 48) + LF);
   commands.push(LF);
@@ -196,12 +196,12 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   commands.push(NORMAL);
   commands.push(LF);
   commands.push('We appreciate your order!' + LF);
-  commands.push('Enjoy authentic Nigerian flavors' + LF);
+  commands.push('Enjoy the best Nigerian shawarma' + LF);
   commands.push('made with love.' + LF);
   commands.push(LF);
   commands.push(line('-', 48) + LF);
-  commands.push('Order again: www.jollofexpress.app' + LF);
-  commands.push('Follow us @jollofexpress' + LF);
+  commands.push('Order again: www.urshawarma.ng' + LF);
+  commands.push('Follow us @urshawarma' + LF);
   commands.push(LF);
   commands.push(BOLD_ON);
   commands.push('REFER A FRIEND & GET 10% OFF!' + LF);

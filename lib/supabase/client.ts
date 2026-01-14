@@ -38,7 +38,7 @@ export function createClient() {
       },
       global: {
         headers: {
-          'X-Client-Info': 'jollofexpress-web',
+          'X-Client-Info': 'urshawarma-web',
         },
       },
     }

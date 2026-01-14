@@ -1,4 +1,4 @@
-# 🌯 Ur' SHAWARMA EXPRESS - Food Ordering & Delivery System
+# 🌯 Ur' Shawarma Express - Food Ordering & Delivery System
 
 A comprehensive online shawarma ordering platform with customer ordering, kitchen display system (KDS), and admin dashboard. Serving the best tasting Nigerian-style shawarma in Awka.
 
@@ -60,7 +60,7 @@ A comprehensive online shawarma ordering platform with customer ordering, kitche
 ## 📁 Project Structure
 
 ```
-jollofexpress/
+urshawarma-express/
 ├── app/                      # Next.js App Router
 │   ├── admin/               # Admin dashboard pages
 │   ├── checkout/            # Checkout flow
@@ -107,7 +107,7 @@ jollofexpress/
 
 ```bash
 git clone <repository-url>
-cd jollofexpress
+cd urshawarma-express
 npm install
 ```
 
@@ -127,15 +127,15 @@ PAYSTACK_SECRET_KEY=your_paystack_secret_key
 
 # App URLs
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_SITE_NAME=JollofExpress
+NEXT_PUBLIC_SITE_NAME=Ur' Shawarma Express
 
 # SMS Service
 SMS_API_KEY=your_sms_api_key
-SMS_SENDER_ID=JollofExpress
+SMS_SENDER_ID=UrShawarma
 
 # Email Service
 EMAIL_API_KEY=your_email_api_key
-EMAIL_FROM=noreply@jollofexpress.com
+EMAIL_FROM=noreply@urshawarma.com
 
 # Print Server (for production)
 PRINT_SERVER_URL=http://192.168.1.100:8080
@@ -384,7 +384,7 @@ Proprietary - All rights reserved.
 ## 📞 Support
 
 For technical support or questions:
-- Email: support@jollofexpress.com
+- Email: support@urshawarma.com
 - Phone: +234 XXX XXX XXXX
 
 ## 🙏 Acknowledgments

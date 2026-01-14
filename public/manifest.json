@@ -1,7 +1,7 @@
 {
-  "name": "JollofExpress - Nigerian Food Delivery",
-  "short_name": "JollofExpress",
-  "description": "Order authentic Nigerian cuisine delivered fresh to your doorstep in Awka",
+  "name": "Ur' Shawarma Express - Shawarma Delivery",
+  "short_name": "Ur' Shawarma",
+  "description": "Order the best Nigerian-style shawarma delivered fresh to your doorstep in Awka",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
