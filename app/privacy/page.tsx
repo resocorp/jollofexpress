@@ -356,7 +356,7 @@ Anambra State, Nigeria
 
 **Email:** privacy@jollofexpress.ng
 **General Inquiries:** hello@jollofexpress.ng
-**Phone:** +234 801 234 5678
+**Phone:** +234 810 682 8147
 
 **Response Time:**
 We aim to respond to privacy requests within 30 days. Complex requests may require additional time, and we will keep you informed of any delays.

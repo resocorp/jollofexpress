@@ -2,53 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Bike, Store, MapPin, Phone, User, Mail, Clock, CreditCard, Banknote } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Clock } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Separator } from '@/components/ui/separator';
 import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
 import { useCartStore } from '@/store/cart-store';
 import { useCreateOrder } from '@/hooks/use-orders';
 import { useDeliverySettings, useRestaurantStatus } from '@/hooks/use-settings';
-import { useDeliveryRegions } from '@/hooks/use-delivery-regions';
-import type { DeliveryRegion } from '@/types/database';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LocationPicker } from '@/components/tracking/location-picker';
-
-interface DeliveryRegionsResponse {
-  groups: any[];
-  ungrouped: DeliveryRegion[];
-  all_regions: DeliveryRegion[];
-}
 
 interface CheckoutFormProps {
-  orderType: 'delivery' | 'carryout';
-  onOrderTypeChange: (type: 'delivery' | 'carryout') => void;
   onSubmitExposed?: (submitFn: () => void) => void;
   onSubmittingChange?: (isSubmitting: boolean) => void;
-  selectedRegion?: DeliveryRegion | null;
-  onRegionChange?: (region: DeliveryRegion | null) => void;
-  regionsData?: DeliveryRegionsResponse;
 }
 
 export function CheckoutForm({ 
-  orderType: externalOrderType, 
-  onOrderTypeChange,
   onSubmitExposed,
   onSubmittingChange,
-  selectedRegion: externalSelectedRegion,
-  onRegionChange,
-  regionsData: externalRegionsData
 }: CheckoutFormProps) {
   const router = useRouter();
   const { items, discount, promoCode, getSubtotal, setPendingOrder } = useCartStore();
@@ -57,46 +35,44 @@ export function CheckoutForm({
   const { data: restaurantStatus } = useRestaurantStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerLocation, setCustomerLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'paystack' | 'cod'>('paystack');
-  
-  // Use external region state if provided, otherwise use internal state
-  const [internalSelectedRegion, setInternalSelectedRegion] = useState<DeliveryRegion | null>(null);
-  const selectedRegion = externalSelectedRegion !== undefined ? externalSelectedRegion : internalSelectedRegion;
-  const setSelectedRegion = onRegionChange || setInternalSelectedRegion;
-  
-  // Fetch delivery regions if not provided externally
-  const { data: fetchedRegionsData, isLoading: isLoadingRegions } = useDeliveryRegions();
-  const regionsData = externalRegionsData || fetchedRegionsData;
+  // Payment method is always 'paystack' (online only)
+  const paymentMethod = 'paystack' as const;
+
+  // Load saved customer info from localStorage
+  const getSavedCustomerInfo = () => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const saved = localStorage.getItem('jollof_customer_info');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  };
+
+  const savedInfo = getSavedCustomerInfo();
 
   const {
     register,
     handleSubmit,
-    watch,
-    setValue,
-    control,
     formState: { errors },
+    setValue,
+    watch,
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      orderType: externalOrderType,
+      orderType: 'delivery',
+      name: savedInfo?.name || '',
+      phone: savedInfo?.phone || '',
+      email: savedInfo?.email || '',
+      fullAddress: savedInfo?.fullAddress || '',
     },
   });
 
-  const orderType = watch('orderType');
+  // Check if returning customer (has saved info)
+  const isReturningCustomer = !!savedInfo?.name && !!savedInfo?.phone && !!savedInfo?.fullAddress;
 
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log('🔍 CheckoutForm State:', {
-      orderType_from_watch: orderType,
-      externalOrderType: externalOrderType,
-      selectedRegion: selectedRegion?.name || 'null',
-      externalSelectedRegion: externalSelectedRegion?.name || 'null',
-      timestamp: new Date().toISOString()
-    });
-  }, [orderType, externalOrderType, selectedRegion, externalSelectedRegion]);
+  // Order type is always delivery
+  const orderType = 'delivery' as const;
 
-  // Expose submit function to parent - must update when selectedRegion changes
-  // to avoid stale closure issues
+  // Expose submit function to parent
   useEffect(() => {
     if (onSubmitExposed) {
       onSubmitExposed(() => {
@@ -104,7 +80,7 @@ export function CheckoutForm({
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onSubmitExposed, selectedRegion, orderType]);
+  }, [onSubmitExposed, orderType]);
 
   // Expose isSubmitting state to parent
   useEffect(() => {
@@ -116,25 +92,14 @@ export function CheckoutForm({
   const subtotal = getSubtotal();
   const taxRate = 7.5;
   
-  // Calculate delivery fee based on selected region
-  const getDeliveryFee = () => {
-    if (orderType !== 'delivery' || !selectedRegion) return 0;
-    // Check if cart qualifies for free delivery
-    if (selectedRegion.free_delivery_threshold && subtotal >= selectedRegion.free_delivery_threshold) {
-      return 0;
-    }
-    return selectedRegion.delivery_fee;
-  };
-  
-  const deliveryFee = getDeliveryFee();
-  const isFreeDelivery = orderType === 'delivery' && selectedRegion?.free_delivery_threshold && subtotal >= selectedRegion.free_delivery_threshold;
+  // Use standard delivery fee from admin settings
+  const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
   
   // VAT should be applied to subtotal + delivery fee
   const tax = Math.round(((subtotal + deliveryFee) * taxRate) / 100);
   const total = subtotal + tax + deliveryFee - discount;
   const minOrder = deliverySettings?.min_order || 0;
   const isBelowMinimum = orderType === 'delivery' && subtotal < minOrder;
-  const isRegionRequired = orderType === 'delivery' && !selectedRegion;
 
   const onSubmit = async (data: CheckoutFormData) => {
     // Log delivery fee calculation at submission time
@@ -179,22 +144,24 @@ export function CheckoutForm({
         subtotal: cartItem.subtotal,
       }));
 
-      // Validate region selection for delivery
-      console.log('🗺️ Region validation:', { 
-        orderType: data.orderType, 
-        selectedRegion: selectedRegion?.name || 'null',
-        externalSelectedRegion: externalSelectedRegion?.name || 'null'
-      });
-      if (data.orderType === 'delivery' && !selectedRegion) {
-        toast.error('Please select your delivery region');
-        return;
-      }
+      // Save customer info to localStorage for future orders
+      try {
+        localStorage.setItem('jollof_customer_info', JSON.stringify({
+          name: data.name,
+          phone: data.phone,
+          email: data.email || '',
+          fullAddress: data.fullAddress || '',
+        }));
+      } catch { /* ignore storage errors */ }
+
+      // Use fallback email for Paystack if customer didn't provide one
+      const customerEmail = data.email?.trim() || 'maintegraventures@gmail.com';
 
       // Create order
       const orderData = {
         customer_name: data.name,
         customer_phone: data.phone,
-        customer_email: data.email, // Required for payment processing
+        customer_email: customerEmail,
         order_type: data.orderType,
         delivery_city: data.orderType === 'delivery' ? 'Awka' : undefined,
         delivery_address: data.orderType === 'delivery' ? data.fullAddress : undefined,
@@ -202,8 +169,6 @@ export function CheckoutForm({
         customer_phone_alt: data.phoneAlt || undefined,
         customer_latitude: customerLocation?.latitude,
         customer_longitude: customerLocation?.longitude,
-        delivery_region_id: data.orderType === 'delivery' ? selectedRegion?.id : undefined,
-        delivery_region_name: data.orderType === 'delivery' ? selectedRegion?.name : undefined,
         payment_method_type: paymentMethod,
         subtotal,
         delivery_fee: deliveryFee,
@@ -234,13 +199,8 @@ export function CheckoutForm({
       // Store pending order ID (cart will be cleared after successful payment)
       setPendingOrder(result.order.id);
 
-      // Handle payment based on method
-      if (paymentMethod === 'cod') {
-        // COD order - redirect to order tracking page
-        toast.success('Order placed! Pay with cash when your rider arrives.');
-        router.push(`/orders/${result.order.id}?phone=${encodeURIComponent(data.phone)}`);
-      } else if (result.payment_url) {
-        // Paystack payment - redirect to payment page
+      // Redirect to payment
+      if (result.payment_url) {
         console.log('Redirecting to payment:', result.payment_url);
         window.location.href = result.payment_url;
       } else {
@@ -314,322 +274,86 @@ export function CheckoutForm({
         </Alert>
       )}
 
-      {/* Order Type Selection */}
-      <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
-              1
-            </span>
-            Order Type
-          </CardTitle>
-          <CardDescription className="text-base">Choose how you want to receive your order</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Controller
-            name="orderType"
-            control={control}
-            render={({ field }) => {
-              console.log('🎨 Controller Render:', {
-                field_value: field.value,
-                field_name: field.name,
-                orderType_from_watch: orderType
-              });
-              
-              return (
-                <RadioGroup 
-                  value={field.value} 
-                  onValueChange={(value: 'delivery' | 'carryout') => {
-                    console.log('📻 RadioGroup onValueChange called:', value);
-                    field.onChange(value);
-                    onOrderTypeChange(value);
-                  }}
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Label
-                      htmlFor="delivery"
-                      className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
-                        field.value === 'delivery' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <RadioGroupItem value="delivery" id="delivery" />
-                      <div className="flex items-center gap-3 flex-1">
-                        <Bike className="h-6 w-6" />
-                        <div>
-                          <p className="font-medium">Delivery</p>
-                          <p className="text-sm text-muted-foreground">Delivered to your address</p>
-                        </div>
-                      </div>
-                    </Label>
+      {/* Hidden field to keep orderType as delivery */}
+      <input type="hidden" {...register('orderType')} value="delivery" />
 
-                    <Label
-                      htmlFor="carryout"
-                      className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
-                        field.value === 'carryout' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <RadioGroupItem value="carryout" id="carryout" />
-                      <div className="flex items-center gap-3 flex-1">
-                        <Store className="h-6 w-6" />
-                        <div>
-                          <p className="font-medium">Carryout</p>
-                          <p className="text-sm text-muted-foreground">Pick up at restaurant</p>
-                        </div>
-                      </div>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              );
-            }}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Delivery Address (only for delivery) */}
-      {orderType === 'delivery' && (
-        <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
-                2
-              </span>
-              <MapPin className="h-6 w-6 text-primary" />
-              Delivery Address
-            </CardTitle>
-            <CardDescription className="text-base">
-              Provide detailed directions to help our rider find you easily
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Selected Delivery Region Display (read-only) */}
-            {selectedRegion ? (
-              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{selectedRegion.name}</span>
-                  </div>
-                  {isFreeDelivery ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm line-through text-muted-foreground">
-                        {formatCurrency(selectedRegion.delivery_fee)}
-                      </span>
-                      <span className="text-sm font-bold text-green-600">FREE</span>
-                    </div>
-                  ) : (
-                    <span className="font-bold">{formatCurrency(selectedRegion.delivery_fee)}</span>
-                  )}
-                </div>
-                {isFreeDelivery && (
-                  <p className="text-xs text-green-600 mt-2">
-                    🎉 You qualify for free delivery!
-                  </p>
-                )}
-                {selectedRegion.free_delivery_threshold && !isFreeDelivery && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    💡 Add {formatCurrency(selectedRegion.free_delivery_threshold - subtotal)} more for free delivery!
-                  </p>
-                )}
+      {/* Quick Order Again for returning customers */}
+      {isReturningCustomer && (
+        <Card className="border-2 border-green-500 bg-green-50">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-green-800">Welcome back, {savedInfo.name}!</p>
+                <p className="text-sm text-green-700 truncate">{savedInfo.fullAddress}</p>
               </div>
-            ) : (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-sm text-amber-700 flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Please select your delivery area in the cart first.
-                </p>
-              </div>
-            )}
-
-            {/* Full Address with Landmark */}
-            <div className="space-y-2">
-              <Label htmlFor="fullAddress">
-                Delivery Address <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="fullAddress"
-                {...register('fullAddress')}
-                placeholder="10 Ecwa Road, Coker Village, Awka (near Total Filling Station)"
-                rows={3}
-                className={errors.fullAddress ? 'border-destructive' : ''}
-              />
-              {errors.fullAddress && (
-                <p className="text-sm text-destructive">{errors.fullAddress.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                📍 Include a nearby landmark (e.g., "near Shoprite", "opposite First Bank") to help our rider find you faster.
-              </p>
+              <Button
+                type="submit"
+                disabled={isSubmitting || isBelowMinimum}
+                className="bg-green-600 hover:bg-green-700 whitespace-nowrap"
+              >
+                {isSubmitting ? 'Processing...' : 'Order Again →'}
+              </Button>
             </div>
-
-            {/* GPS Location Picker */}
-            <LocationPicker
-              onLocationSelect={setCustomerLocation}
-              initialLocation={customerLocation || undefined}
-            />
-            {customerLocation && (
-              <p className="text-xs text-green-600 flex items-center gap-1 mt-2">
-                <MapPin className="h-3 w-3" /> GPS location saved for accurate delivery
-              </p>
-            )}
           </CardContent>
         </Card>
       )}
 
-      {/* Contact Information */}
-      <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
-              {orderType === 'delivery' ? '3' : '2'}
-            </span>
-            <User className="h-6 w-6 text-primary" />
-            Contact Information
-          </CardTitle>
-          <CardDescription className="text-base">We'll use this to contact you about your order</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* Contact & Delivery Info - Single streamlined card */}
+      <Card className="border shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">{isReturningCustomer ? 'Edit Details' : 'Your Details'}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
           {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="name">
-              Full Name <span className="text-destructive">*</span>
-            </Label>
+          <div className="space-y-1">
+            <Label htmlFor="name">Name / Alias <span className="text-destructive">*</span></Label>
             <Input
               id="name"
               {...register('name')}
-              placeholder="John Doe"
+              placeholder="Your name"
               className={errors.name ? 'border-destructive' : ''}
             />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
-            )}
+            {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
 
-          {/* Phone Numbers */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">
-                Phone Number <span className="text-destructive">*</span>
-              </Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="phone"
-                  {...register('phone')}
-                  placeholder="08012345678"
-                  className={`pl-10 ${errors.phone ? 'border-destructive' : ''}`}
-                />
-              </div>
-              {errors.phone && (
-                <p className="text-sm text-destructive">{errors.phone.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                We'll call if we can't find your location
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phoneAlt">Alternative Phone</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="phoneAlt"
-                  {...register('phoneAlt')}
-                  placeholder="08012345678 (optional)"
-                  className={`pl-10 ${errors.phoneAlt ? 'border-destructive' : ''}`}
-                />
-              </div>
-              {errors.phoneAlt && (
-                <p className="text-sm text-destructive">{errors.phoneAlt.message}</p>
-              )}
-            </div>
+          {/* Phone */}
+          <div className="space-y-1">
+            <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
+            <Input
+              id="phone"
+              {...register('phone')}
+              placeholder="08012345678"
+              className={errors.phone ? 'border-destructive' : ''}
+            />
+            {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
           </div>
 
-          {/* Email */}
-          <div className="space-y-2">
-            <Label htmlFor="email">
-              Email Address <span className="text-destructive">*</span>
-            </Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="email"
-                type="email"
-                {...register('email')}
-                placeholder="john@example.com"
-                className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
-              />
-            </div>
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Required to process payment and send order confirmation
-            </p>
+          {/* Email - optional */}
+          <div className="space-y-1">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              {...register('email')}
+              placeholder="you@example.com (optional)"
+              className={errors.email ? 'border-destructive' : ''}
+            />
+            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Payment Method Selection */}
-      <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
-              {orderType === 'delivery' ? '4' : '3'}
-            </span>
-            <CreditCard className="h-6 w-6 text-primary" />
-            Payment Method
-          </CardTitle>
-          <CardDescription className="text-base">Choose how you want to pay</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RadioGroup 
-            value={paymentMethod} 
-            onValueChange={(value: 'paystack' | 'cod') => setPaymentMethod(value)}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Label
-                htmlFor="payment-paystack"
-                className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
-                  paymentMethod === 'paystack' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <RadioGroupItem value="paystack" id="payment-paystack" />
-                <div className="flex items-center gap-3 flex-1">
-                  <CreditCard className="h-6 w-6 text-green-600" />
-                  <div>
-                    <p className="font-medium">Pay Online</p>
-                    <p className="text-sm text-muted-foreground">Card, Bank Transfer, USSD</p>
-                  </div>
-                </div>
-              </Label>
+          {/* Address */}
+          <div className="space-y-1">
+            <Label htmlFor="fullAddress">Delivery Address <span className="text-destructive">*</span></Label>
+            <Textarea
+              id="fullAddress"
+              {...register('fullAddress')}
+              placeholder="Full address with landmark"
+              rows={2}
+              className={errors.fullAddress ? 'border-destructive' : ''}
+            />
+            {errors.fullAddress && <p className="text-sm text-destructive">{errors.fullAddress.message}</p>}
+          </div>
 
-              {orderType === 'delivery' && (
-                <Label
-                  htmlFor="payment-cod"
-                  className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition ${
-                    paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <RadioGroupItem value="cod" id="payment-cod" />
-                  <div className="flex items-center gap-3 flex-1">
-                    <Banknote className="h-6 w-6 text-amber-600" />
-                    <div>
-                      <p className="font-medium">Cash on Delivery</p>
-                      <p className="text-sm text-muted-foreground">Pay when your order arrives</p>
-                    </div>
-                  </div>
-                </Label>
-              )}
-            </div>
-          </RadioGroup>
-          
-          {paymentMethod === 'cod' && (
-            <Alert className="mt-4 border-amber-200 bg-amber-50">
-              <Banknote className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800">
-                Please have exact cash ready. Our riders may have limited change.
-              </AlertDescription>
-            </Alert>
-          )}
         </CardContent>
       </Card>
 

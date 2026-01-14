@@ -49,9 +49,17 @@ export default function OrderTrackingPage({ params }: PageProps) {
           orderId: resolvedParams.id,
           reference,
         })
-        .then(() => {
-          toast.success('Payment verified successfully!');
+        .then((response) => {
+          // Only show success toast if this is a new verification
+          if (!response.already_verified) {
+            toast.success('Payment verified successfully!');
+          }
           // Note: Cart is NOT automatically cleared - users can manually clear it or add more items
+          
+          // Remove reference from URL to prevent re-verification on back navigation
+          const url = new URL(window.location.href);
+          url.searchParams.delete('reference');
+          window.history.replaceState({}, '', url.toString());
         })
         .catch((error: any) => {
           toast.error(error.message || 'Payment verification failed');

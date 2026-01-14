@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -8,17 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCartStore } from '@/store/cart-store';
 import { useDeliverySettings } from '@/hooks/use-settings';
-import { useDeliveryRegions } from '@/hooks/use-delivery-regions';
 import { useValidatePromo } from '@/hooks/use-promo';
 import { formatCurrency } from '@/lib/formatters';
-import { ShoppingCart, Tag, Bike, Receipt, Loader2, CheckCircle2, XCircle, Gift } from 'lucide-react';
+import { ShoppingCart, Tag, Bike, Receipt, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import type { DeliveryRegion } from '@/types/database';
 
 interface OrderSummaryProps {
   orderType?: 'delivery' | 'carryout';
-  selectedRegion?: DeliveryRegion | null;
 }
 
 export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
@@ -29,11 +26,17 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
   const [isValidating, setIsValidating] = useState(false);
   
   const subtotal = getSubtotal();
-  const taxRate = 7.5; // This should come from settings
+  const taxRate = 7.5; // VAT rate - TODO: fetch from PaymentSettings
   const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
-  // VAT should be applied to subtotal + delivery fee
-  const tax = Math.round(((subtotal + deliveryFee) * taxRate) / 100);
-  const total = subtotal + tax + deliveryFee - discount;
+  
+  // Correct calculation:
+  // 1. Discount is applied to subtotal (cart items only)
+  // 2. Taxable amount = (subtotal - discount) + deliveryFee
+  // 3. VAT = taxRate% of taxable amount
+  const discountedSubtotal = subtotal - discount;
+  const taxableAmount = discountedSubtotal + deliveryFee;
+  const tax = Math.round((taxableAmount * taxRate) / 100);
+  const total = discountedSubtotal + deliveryFee + tax;
 
   const handleApplyPromo = async () => {
     if (!promoInput.trim()) {
@@ -228,7 +231,6 @@ interface OrderSummaryWithButtonProps extends OrderSummaryProps {
   isSubmitting?: boolean;
   isBelowMinimum?: boolean;
   isLoadingSettings?: boolean;
-  selectedRegion?: DeliveryRegion | null;
 }
 
 export function OrderSummaryWithButton({ 
@@ -237,49 +239,27 @@ export function OrderSummaryWithButton({
   isSubmitting = false,
   isBelowMinimum = false,
   isLoadingSettings = false,
-  selectedRegion: propSelectedRegion
 }: OrderSummaryWithButtonProps) {
-  const { items, discount, promoCode, getSubtotal, setPromoCode, selectedRegionId } = useCartStore();
+  const { items, discount, promoCode, getSubtotal, setPromoCode } = useCartStore();
   const { data: deliverySettings } = useDeliverySettings();
-  const { data: regionsData } = useDeliveryRegions();
   const validatePromo = useValidatePromo();
   const [promoInput, setPromoInput] = useState(promoCode || '');
   const [isValidating, setIsValidating] = useState(false);
-  const [resolvedRegion, setResolvedRegion] = useState<DeliveryRegion | null>(null);
-  
-  // Resolve region from prop or from persisted cart store
-  useEffect(() => {
-    if (propSelectedRegion) {
-      setResolvedRegion(propSelectedRegion);
-    } else if (selectedRegionId && regionsData?.all_regions) {
-      const region = regionsData.all_regions.find(r => r.id === selectedRegionId);
-      if (region) {
-        setResolvedRegion(region);
-      }
-    }
-  }, [propSelectedRegion, selectedRegionId, regionsData]);
-  
-  const selectedRegion = propSelectedRegion || resolvedRegion;
   
   const subtotal = getSubtotal();
-  const taxRate = 7.5;
+  const taxRate = 7.5; // VAT rate - TODO: fetch from PaymentSettings
   
-  // Calculate delivery fee based on selected region
-  const getDeliveryFee = () => {
-    if (orderType !== 'delivery' || !selectedRegion) return 0;
-    // Check if cart qualifies for free delivery
-    if (selectedRegion.free_delivery_threshold && subtotal >= selectedRegion.free_delivery_threshold) {
-      return 0;
-    }
-    return selectedRegion.delivery_fee;
-  };
+  // Use standard delivery fee from admin settings
+  const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
   
-  const deliveryFee = getDeliveryFee();
-  const isFreeDelivery = orderType === 'delivery' && selectedRegion?.free_delivery_threshold && subtotal >= selectedRegion.free_delivery_threshold;
-  
-  // VAT should be applied to subtotal + delivery fee
-  const tax = Math.round(((subtotal + deliveryFee) * taxRate) / 100);
-  const total = subtotal + tax + deliveryFee - discount;
+  // Correct calculation:
+  // 1. Discount is applied to subtotal (cart items only)
+  // 2. Taxable amount = (subtotal - discount) + deliveryFee
+  // 3. VAT = taxRate% of taxable amount
+  const discountedSubtotal = subtotal - discount;
+  const taxableAmount = discountedSubtotal + deliveryFee;
+  const tax = Math.round((taxableAmount * taxRate) / 100);
+  const total = discountedSubtotal + deliveryFee + tax;
 
   const handleApplyPromo = async () => {
     if (!promoInput.trim()) {
@@ -429,31 +409,9 @@ export function OrderSummaryWithButton({
               <span className="text-muted-foreground flex items-center gap-2">
                 <Bike className="h-4 w-4" />
                 Delivery Fee
-                {selectedRegion && (
-                  <span className="text-xs">({selectedRegion.name})</span>
-                )}
               </span>
-              {isFreeDelivery ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm line-through text-muted-foreground">
-                    {formatCurrency(selectedRegion?.delivery_fee || 0)}
-                  </span>
-                  <span className="font-bold text-green-600 flex items-center gap-1">
-                    <Gift className="h-3 w-3" />
-                    FREE
-                  </span>
-                </div>
-              ) : (
-                <span className="font-medium">
-                  {selectedRegion ? formatCurrency(deliveryFee) : '—'}
-                </span>
-              )}
+              <span className="font-medium">{formatCurrency(deliveryFee)}</span>
             </div>
-          )}
-          {orderType === 'delivery' && !selectedRegion && (
-            <p className="text-xs text-amber-600 pl-6">
-              Please select a delivery area in your cart
-            </p>
           )}
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground flex items-center gap-2">

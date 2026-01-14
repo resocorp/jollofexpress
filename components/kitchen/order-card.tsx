@@ -31,9 +31,9 @@ interface OrderCardProps {
 const STATUS_FLOW: Record<OrderStatus, OrderStatus | null> = {
   pending: 'confirmed',
   scheduled: 'confirmed',
-  confirmed: 'preparing',
-  preparing: 'ready',
-  ready: 'out_for_delivery',
+  confirmed: 'out_for_delivery',
+  preparing: 'out_for_delivery', // Legacy: skip to out_for_delivery
+  ready: 'out_for_delivery', // Legacy: skip to out_for_delivery
   out_for_delivery: 'completed',
   completed: null,
   cancelled: null,
@@ -163,8 +163,6 @@ export function OrderCard({ order }: OrderCardProps) {
                 size="sm"
               >
                 {isAdvancing ? 'Moving...' : 
-                  nextStatus === 'preparing' ? 'Start Preparing' :
-                  nextStatus === 'ready' ? 'Mark Ready' :
                   nextStatus === 'out_for_delivery' ? 'Out for Delivery' :
                   nextStatus === 'completed' ? 'Mark as Delivered' :
                   'Next Stage'

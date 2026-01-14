@@ -8,6 +8,8 @@ export type PrintStatus = 'pending' | 'printed' | 'failed';
 export type DietaryTag = 'veg' | 'non_veg' | 'vegan' | 'halal' | 'none';
 export type DiscountType = 'percentage' | 'fixed_amount';
 export type AddressType = 'house' | 'office' | 'hotel' | 'church' | 'school' | 'other';
+export type CommissionType = 'percentage' | 'fixed_amount';
+export type PayoutStatus = 'pending' | 'processing' | 'paid' | 'failed';
 
 // Delivery tracking types
 export type DriverStatus = 'available' | 'busy' | 'offline';
@@ -119,6 +121,10 @@ export interface Order {
   // Delivery region fields
   delivery_region_id?: string;
   delivery_region_name?: string;
+  
+  // Order source tracking
+  order_source?: 'web' | 'whatsapp';
+  whatsapp_session_id?: string;
 }
 
 // ============ DELIVERY TRACKING INTERFACES ============
@@ -213,6 +219,7 @@ export interface OrderItem {
 export interface PromoCode {
   id: string;
   code: string;
+  description?: string;
   discount_type: DiscountType;
   discount_value: number;
   min_order_value?: number;
@@ -221,8 +228,141 @@ export interface PromoCode {
   used_count: number;
   expiry_date?: string;
   is_active: boolean;
+  influencer_id?: string;
   created_at: string;
   updated_at: string;
+}
+
+// ============ INFLUENCER TRACKING INTERFACES ============
+
+export interface Influencer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  access_token?: string;
+  token_expires_at?: string;
+  commission_type: CommissionType;
+  commission_value: number;
+  social_handle?: string;
+  platform?: string;
+  profile_image_url?: string;
+  is_active: boolean;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomerAttribution {
+  id: string;
+  customer_phone: string;
+  customer_name?: string;
+  customer_email?: string;
+  influencer_id: string;
+  promo_code_id?: string;
+  first_promo_code: string;
+  first_order_id?: string;
+  first_order_date: string;
+  first_order_total: number;
+  total_orders: number;
+  total_spent: number;
+  last_order_date?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InfluencerPayout {
+  id: string;
+  influencer_id: string;
+  payout_month: string;
+  total_orders: number;
+  total_revenue_generated: number;
+  commission_earned: number;
+  status: PayoutStatus;
+  paid_amount?: number;
+  paid_at?: string;
+  payment_reference?: string;
+  payment_notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PromoCodeUsage {
+  id: string;
+  promo_code_id: string;
+  order_id: string;
+  influencer_id?: string;
+  customer_phone: string;
+  customer_name?: string;
+  order_total: number;
+  discount_applied: number;
+  commission_amount: number;
+  is_first_order: boolean;
+  is_new_customer: boolean;
+  created_at: string;
+}
+
+// Extended influencer types
+export interface PromoCodeWithInfluencer extends PromoCode {
+  influencer?: Influencer;
+}
+
+export interface InfluencerWithPromoCode extends Influencer {
+  promo_code?: PromoCode;
+}
+
+export interface InfluencerPerformance {
+  influencer_id: string;
+  influencer_name: string;
+  email: string;
+  social_handle?: string;
+  platform?: string;
+  commission_type: CommissionType;
+  commission_value: number;
+  is_active: boolean;
+  promo_code_id?: string;
+  promo_code?: string;
+  used_count: number;
+  total_customers: number;
+  total_customer_ltv: number;
+  total_orders: number;
+  total_revenue_generated: number;
+  total_commission_earned: number;
+  avg_order_value: number;
+}
+
+export interface CustomerLTV {
+  customer_phone: string;
+  customer_name?: string;
+  customer_email?: string;
+  total_orders: number;
+  lifetime_value: number;
+  avg_order_value: number;
+  first_order_date: string;
+  last_order_date: string;
+  attributed_influencer_id?: string;
+  attributed_influencer_name?: string;
+  attribution_promo_code?: string;
+}
+
+export interface PromoAnalytics {
+  promo_code_id: string;
+  code: string;
+  total_uses: number;
+  total_revenue: number;
+  total_discount_given: number;
+  unique_customers: number;
+  new_customers: number;
+  avg_order_value: number;
+  conversion_rate?: number;
+}
+
+export interface PromoAnalyticsTrend {
+  date: string;
+  uses: number;
+  revenue: number;
+  discount: number;
+  new_customers: number;
 }
 
 export interface PrintQueue {

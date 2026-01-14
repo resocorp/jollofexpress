@@ -143,7 +143,7 @@ export function OrderDetails({ order }: OrderDetailsProps) {
             Need help with your order?
           </p>
           <p className="text-sm font-medium text-center mt-1">
-            Call us: +234 XXX XXX XXXX
+            Call us: +234 810 682 8147
           </p>
         </CardContent>
       </Card>

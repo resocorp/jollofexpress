@@ -269,3 +269,34 @@ ${message}
 
 _- JollofExpress System_`;
 }
+
+/**
+ * New Order Alert (Admin)
+ */
+export function newOrderAlertMessage(order: OrderWithItems): string {
+  const timestamp = new Date().toLocaleString('en-NG', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  });
+
+  const orderType = order.order_type === 'delivery' ? '🚚 Delivery' : '🏪 Carryout';
+  const orderSource = order.order_source === 'whatsapp' ? '📱 WhatsApp' : '🌐 Web';
+
+  return `🔔 *NEW ORDER!*
+
+📋 Order #${order.order_number}
+${orderSource} | ${orderType}
+
+👤 *Customer:* ${order.customer_name}
+📞 *Phone:* ${order.customer_phone}
+💰 *Total:* ${formatCurrency(order.total)}
+
+🍲 *Items:*
+${formatOrderItems(order.items)}
+
+${order.order_type === 'delivery' ? `📍 *Deliver to:*\n${order.delivery_address}` : ''}
+
+⏰ ${timestamp}
+
+_- JollofExpress System_`;
+}

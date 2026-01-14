@@ -27,7 +27,7 @@ export type DeliveryAddressFormData = z.infer<typeof deliveryAddressSchema>;
 export const customerInfoSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
   phone: phoneSchema,
-  email: z.string().min(1, 'Email is required to process payment').email('Please enter a valid email address'),
+  email: z.string().email('Please enter a valid email address').optional().or(z.literal('')),
 });
 
 export type CustomerInfoFormData = z.infer<typeof customerInfoSchema>;

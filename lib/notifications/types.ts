@@ -15,7 +15,8 @@ export type AdminEventType =
   | 'kitchen_reopened'
   | 'payment_failure'
   | 'daily_summary'
-  | 'system_alert';
+  | 'system_alert'
+  | 'new_order';
 
 export type EventType = CustomerEventType | AdminEventType;
 
@@ -42,6 +43,7 @@ export interface CustomerNotificationSettings {
 export interface AdminNotificationSettings {
   enabled: boolean;
   phone_numbers: string[];
+  new_order_alerts: boolean;
   kitchen_capacity_alerts: boolean;
   payment_failures: boolean;
   daily_summary: boolean;

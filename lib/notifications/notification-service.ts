@@ -222,18 +222,12 @@ export async function sendOrderStatusUpdate(order: OrderWithItems): Promise<bool
   let eventType: EventType = 'order_preparing';
 
   // Determine which message template to use based on status
+  // Note: 'preparing' and 'ready' statuses are skipped - no notifications sent for these
   switch (order.status) {
     case 'preparing':
-      if (!settings.customer_notifications.order_preparing) return false;
-      message = templates.orderPreparingMessage(order);
-      eventType = 'order_preparing';
-      break;
-
     case 'ready':
-      if (!settings.customer_notifications.order_ready) return false;
-      message = templates.orderReadyMessage(order);
-      eventType = 'order_ready';
-      break;
+      // Skip notifications for these intermediate statuses (workflow simplified)
+      return false;
 
     case 'out_for_delivery':
       if (!settings.customer_notifications.order_out_for_delivery) return false;
@@ -364,6 +358,21 @@ export async function sendPaymentFailureAlert(order: OrderWithItems): Promise<bo
   const message = templates.paymentFailureAlertMessage(order);
 
   return sendAdminNotification(message, 'payment_failure');
+}
+
+/**
+ * Send new order alert to admins
+ */
+export async function sendNewOrderAlert(order: OrderWithItems): Promise<boolean> {
+  const settings = await getNotificationSettings();
+
+  if (!settings?.admin_notifications.new_order_alerts) {
+    return false;
+  }
+
+  const message = templates.newOrderAlertMessage(order);
+
+  return sendAdminNotification(message, 'new_order');
 }
 
 /**

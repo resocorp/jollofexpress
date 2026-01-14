@@ -8,7 +8,7 @@ export function WhatsAppFloat() {
   const { data: info } = useRestaurantInfo();
 
   const handleWhatsAppClick = () => {
-    const phone = info?.phone || '2348012345678'; // Default fallback
+    const phone = info?.phone || '2348106828147'; // Default fallback
     const message = encodeURIComponent('Hello! I need help with my order.');
     const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, '')}?text=${message}`;
     window.open(whatsappUrl, '_blank');

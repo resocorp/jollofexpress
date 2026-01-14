@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
         *,
         items:order_items(*)
       `)
-      .in('status', ['confirmed', 'preparing', 'ready', 'out_for_delivery'])
+      .in('status', ['confirmed', 'out_for_delivery'])
       .gte('created_at', today.toISOString())
       .order('created_at', { ascending: true });
 

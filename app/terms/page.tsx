@@ -184,7 +184,7 @@ Aroma Junction, Awka
 Anambra State, Nigeria
 
 **Email:** legal@jollofexpress.ng
-**Phone:** +234 801 234 5678
+**Phone:** +234 810 682 8147
 **Website:** www.jollofexpress.ng
 
 **Business Hours:**

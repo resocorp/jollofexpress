@@ -60,13 +60,13 @@ export default function ContactPage() {
       icon: Phone,
       title: 'Call Us',
       details: [
-        '+234 801 234 5678',
-        '+234 802 345 6789',
+        '+234 810 682 8147',
+        '+234 810 682 8147',
         'Mon-Sun: 8am - 10pm'
       ],
       color: 'text-green-600',
       bgColor: 'bg-green-50',
-      action: 'tel:+2348012345678'
+      action: 'tel:+2348106828147'
     },
     {
       icon: Mail,
@@ -85,12 +85,12 @@ export default function ContactPage() {
       title: 'WhatsApp',
       details: [
         'Chat with us instantly',
-        '+234 801 234 5678',
+        '+234 810 682 8147',
         'Available 8am - 10pm'
       ],
       color: 'text-green-600',
       bgColor: 'bg-green-50',
-      action: 'https://wa.me/2348012345678'
+      action: 'https://wa.me/2348106828147'
     }
   ];
 
@@ -256,13 +256,13 @@ export default function ContactPage() {
                   For urgent matters, call or WhatsApp us directly. Our team is ready to assist you.
                 </p>
                 <div className="space-y-2">
-                  <a href="tel:+2348012345678">
+                  <a href="tel:+2348106828147">
                     <Button variant="outline" className="w-full">
                       <Phone className="h-4 w-4 mr-2" />
                       Call Now
                     </Button>
                   </a>
-                  <a href="https://wa.me/2348012345678" target="_blank" rel="noopener noreferrer">
+                  <a href="https://wa.me/2348106828147" target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" className="w-full">
                       <MessageCircle className="h-4 w-4 mr-2" />
                       WhatsApp Us
@@ -345,7 +345,7 @@ export default function ContactPage() {
                   <Instagram className="h-6 w-6 text-pink-600" />
                 </a>
                 <a 
-                  href="https://wa.me/2348012345678" 
+                  href="https://wa.me/2348106828147" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="p-3 rounded-full bg-white border-2 border-green-200 hover:border-green-600 hover:scale-110 transition-all duration-200"

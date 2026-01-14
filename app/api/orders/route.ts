@@ -166,6 +166,7 @@ export async function POST(request: NextRequest) {
       total: orderData.total,
       order_type: orderData.order_type,
       items_count: orderData.items.length,
+      promo_code: orderData.promo_code, // Added promo code logging
       calculated_total: orderData.subtotal + orderData.delivery_fee + orderData.tax - orderData.discount
     });
     

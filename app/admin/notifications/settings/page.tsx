@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ export default function NotificationSettingsPage() {
     admin_notifications: {
       enabled: true,
       phone_numbers: [] as string[],
+      new_order_alerts: true,
       kitchen_capacity_alerts: true,
       payment_failures: true,
       daily_summary: true,
@@ -50,15 +51,34 @@ export default function NotificationSettingsPage() {
   const [testPhone, setTestPhone] = useState('');
 
   // Update form data when settings load
-  useState(() => {
+  useEffect(() => {
     if (settings) {
       setFormData({
-        ultramsg: settings.ultramsg || formData.ultramsg,
-        customer_notifications: settings.customer_notifications || formData.customer_notifications,
-        admin_notifications: settings.admin_notifications || formData.admin_notifications,
+        ultramsg: {
+          instance_id: settings.ultramsg?.instance_id || '',
+          token: settings.ultramsg?.token || '',
+          enabled: settings.ultramsg?.enabled ?? false,
+        },
+        customer_notifications: {
+          order_confirmed: settings.customer_notifications?.order_confirmed ?? true,
+          order_preparing: settings.customer_notifications?.order_preparing ?? true,
+          order_ready: settings.customer_notifications?.order_ready ?? true,
+          order_out_for_delivery: settings.customer_notifications?.order_out_for_delivery ?? true,
+          order_completed: settings.customer_notifications?.order_completed ?? true,
+          payment_failed: settings.customer_notifications?.payment_failed ?? false,
+        },
+        admin_notifications: {
+          enabled: settings.admin_notifications?.enabled ?? true,
+          phone_numbers: settings.admin_notifications?.phone_numbers || [],
+          new_order_alerts: settings.admin_notifications?.new_order_alerts ?? true,
+          kitchen_capacity_alerts: settings.admin_notifications?.kitchen_capacity_alerts ?? true,
+          payment_failures: settings.admin_notifications?.payment_failures ?? true,
+          daily_summary: settings.admin_notifications?.daily_summary ?? true,
+          summary_time: settings.admin_notifications?.summary_time || '20:00',
+        },
       });
     }
-  });
+  }, [settings]);
 
   const handleSave = async () => {
     try {
@@ -267,6 +287,18 @@ export default function NotificationSettingsPage() {
           <div className="space-y-4">
             <Label>Alert Types</Label>
             
+            <div className="flex items-center justify-between">
+              <Label htmlFor="new_order_alerts">New Order Alerts</Label>
+              <Switch
+                id="new_order_alerts"
+                checked={formData.admin_notifications.new_order_alerts}
+                onCheckedChange={(checked) => setFormData({
+                  ...formData,
+                  admin_notifications: { ...formData.admin_notifications, new_order_alerts: checked }
+                })}
+              />
+            </div>
+
             <div className="flex items-center justify-between">
               <Label htmlFor="kitchen_alerts">Kitchen Capacity Alerts</Label>
               <Switch

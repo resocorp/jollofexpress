@@ -12,8 +12,6 @@ interface OrderTrackerProps {
 
 const ORDER_STAGES = [
   { key: 'confirmed', label: 'Payment Confirmed', icon: CheckCircle2 },
-  { key: 'preparing', label: 'Preparing', icon: Clock },
-  { key: 'ready', label: 'Ready for Pickup', icon: CheckCircle2 },
   { key: 'out_for_delivery', label: 'Out for Delivery', icon: CheckCircle2 },
   { key: 'completed', label: 'Delivered', icon: CheckCircle2 },
 ];
@@ -83,7 +81,7 @@ export function OrderTracker({ order }: OrderTrackerProps) {
                     >
                       {stage.label}
                     </p>
-                    {isCurrent && order.estimated_prep_time && stage.key === 'preparing' && (
+                    {isCurrent && order.estimated_prep_time && stage.key === 'confirmed' && (
                       <p className="text-sm text-muted-foreground mt-1">
                         Estimated time: {order.estimated_prep_time} minutes
                       </p>

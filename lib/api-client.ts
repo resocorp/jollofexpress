@@ -1,7 +1,8 @@
 // API client utilities
 import { createClient } from '@/lib/supabase/client';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+// Use empty string for relative URLs (same origin) - works for both dev and production
+const API_BASE_URL = '';
 
 export class ApiError extends Error {
   constructor(

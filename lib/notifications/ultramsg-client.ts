@@ -19,27 +19,27 @@ export class UltraMsgClient {
    * Send a WhatsApp message via UltraMsg API
    */
   async sendMessage(request: UltraMsgSendRequest): Promise<UltraMsgSendResponse> {
-    const url = `${this.baseUrl}/${this.instanceId}/messages/chat`;
+    // Format phone number
+    const formattedPhone = this.formatPhoneNumber(request.to);
+    
+    // Debug: Log exact token being used
+    console.log('🔑 Token debug:', {
+      tokenLength: this.token.length,
+      tokenFirst4: this.token.substring(0, 4),
+      tokenLast4: this.token.substring(this.token.length - 4),
+      hasSpaces: this.token.includes(' '),
+      hasNewlines: this.token.includes('\n') || this.token.includes('\r'),
+    });
+    
+    // Build URL manually without URLSearchParams to avoid encoding issues
+    const encodedBody = encodeURIComponent(request.body);
+    const url = `${this.baseUrl}/${this.instanceId}/messages/chat?token=${this.token}&to=${encodeURIComponent(formattedPhone)}&body=${encodedBody}&priority=${request.priority || 10}`;
 
     try {
-      // Format phone number
-      const formattedPhone = this.formatPhoneNumber(request.to);
-      
-      // UltraMsg expects application/x-www-form-urlencoded
-      const formData = new URLSearchParams();
-      formData.append('token', this.token);
-      formData.append('to', formattedPhone);
-      formData.append('body', request.body);
-      if (request.priority) {
-        formData.append('priority', request.priority.toString());
-      }
-      if (request.referenceId) {
-        formData.append('referenceId', request.referenceId);
-      }
-
       console.log('📤 Sending WhatsApp message:', {
         to: formattedPhone.substring(0, 7) + '****', // Mask phone number
         bodyLength: request.body.length,
+        url: url.replace(this.token, '****').replace(formattedPhone, formattedPhone.substring(0, 7) + '****'),
       });
 
       const response = await fetch(url, {
@@ -47,7 +47,6 @@ export class UltraMsgClient {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: formData.toString(),
       });
 
       const data = await response.json();
@@ -87,13 +86,16 @@ export class UltraMsgClient {
 
   /**
    * Format phone number to UltraMsg format
-   * UltraMsg expects: 234XXXXXXXXXX (no + sign)
+   * UltraMsg expects: +234XXXXXXXXXX (with + sign)
    * Accepts: +234XXXXXXXXXX, 234XXXXXXXXXX, 0XXXXXXXXXX
-   * Returns: 234XXXXXXXXXX
+   * Returns: +234XXXXXXXXXX
    */
   private formatPhoneNumber(phone: string): string {
-    // Remove all non-digit characters
-    let cleaned = phone.replace(/\D/g, '');
+    // Remove all non-digit characters except +
+    let cleaned = phone.replace(/[^\d+]/g, '');
+    
+    // Remove + for processing
+    cleaned = cleaned.replace(/\+/g, '');
 
     // If starts with 0, replace with 234
     if (cleaned.startsWith('0')) {
@@ -105,7 +107,8 @@ export class UltraMsgClient {
       cleaned = '234' + cleaned;
     }
 
-    return cleaned;
+    // Add + prefix as required by UltraMsg
+    return '+' + cleaned;
   }
 
   /**
@@ -122,13 +125,11 @@ export class UltraMsgClient {
    */
   async testConnection(): Promise<{ success: boolean; message: string }> {
     try {
-      const url = `${this.baseUrl}/${this.instanceId}/instance/status`;
+      // Token must be in URL as GET parameter
+      const url = `${this.baseUrl}/${this.instanceId}/instance/status?token=${this.token}`;
       
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       const data = await response.json();

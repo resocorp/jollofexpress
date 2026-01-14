@@ -12,8 +12,6 @@ interface KanbanBoardProps {
 
 const COLUMNS: { id: OrderStatus; title: string; color: string }[] = [
   { id: 'confirmed', title: 'New Orders', color: 'bg-blue-600' },
-  { id: 'preparing', title: 'Preparing', color: 'bg-yellow-600' },
-  { id: 'ready', title: 'Ready for Pickup', color: 'bg-green-600' },
   { id: 'out_for_delivery', title: 'Out for Delivery', color: 'bg-purple-600' },
 ];
 
@@ -68,7 +66,7 @@ export function KanbanBoard({ orders, isLoading }: KanbanBoardProps) {
       )}
 
       {/* Kanban Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {COLUMNS.map((column) => (
           <KanbanColumn
             key={column.id}

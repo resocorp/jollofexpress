@@ -47,7 +47,7 @@ export function useVerifyPayment() {
   
   return useMutation({
     mutationFn: ({ orderId, reference }: { orderId: string; reference: string }) =>
-      post<OrderWithItems>('/api/orders/verify-payment', {
+      post<OrderWithItems & { already_verified?: boolean }>('/api/orders/verify-payment', {
         order_id: orderId,
         reference: reference,
       }),

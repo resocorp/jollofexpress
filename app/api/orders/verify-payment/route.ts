@@ -71,6 +71,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if order has already been verified to prevent duplicate processing
+    const { data: existingOrder } = await supabase
+      .from('orders')
+      .select('payment_status, payment_reference, status')
+      .eq('id', order_id)
+      .single();
+
+    if (existingOrder?.payment_status === 'success' && existingOrder?.payment_reference === reference) {
+      // Payment already verified - fetch and return complete order without updating
+      const { data: completeOrder } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          items:order_items(*)
+        `)
+        .eq('id', order_id)
+        .single();
+
+      return NextResponse.json({
+        success: true,
+        order: completeOrder,
+        message: 'Payment already verified',
+        already_verified: true,
+      });
+    }
+
     // Payment successful - update order
     const { data: order, error: updateError } = await supabase
       .from('orders')
