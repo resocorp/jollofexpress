@@ -26,7 +26,7 @@ export default function KitchenPage() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        router.push('/admin/login');
+        router.push('/kitchen/login');
         return;
       }
 
@@ -38,7 +38,7 @@ export default function KitchenPage() {
         .single();
 
       if (!userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'kitchen')) {
-        router.push('/admin/login');
+        router.push('/kitchen/login');
         return;
       }
 
