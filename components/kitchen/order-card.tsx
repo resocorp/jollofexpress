@@ -11,7 +11,8 @@ import {
   Printer, 
   ChevronRight,
   User,
-  Home
+  Home,
+  Loader2
 } from 'lucide-react';
 import { formatCurrency, formatKitchenTime, getOrderAgeMinutes, getOrderAgeColor, formatPhoneNumber } from '@/lib/formatters';
 import { useUpdateOrderStatus, useReprintOrder } from '@/hooks/use-orders';
@@ -42,6 +43,7 @@ const STATUS_FLOW: Record<OrderStatus, OrderStatus | null> = {
 export function OrderCard({ order }: OrderCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
+  const [isReprinting, setIsReprinting] = useState(false);
   const updateStatus = useUpdateOrderStatus();
   const reprintOrder = useReprintOrder();
 
@@ -67,14 +69,17 @@ export function OrderCard({ order }: OrderCardProps) {
   };
 
   const handleReprint = async () => {
+    setIsReprinting(true);
     try {
       console.log('[REPRINT] Initiating reprint for order:', order.order_number, order.id);
       const result = await reprintOrder.mutateAsync(order.id);
       console.log('[REPRINT] Success:', result);
-      toast.success('Reprint queued');
+      toast.success('Reprint queued - check print handler');
     } catch (error: any) {
       console.error('[REPRINT] Error:', error);
       toast.error(error.message || 'Failed to reprint');
+    } finally {
+      setIsReprinting(false);
     }
   };
 
@@ -148,9 +153,14 @@ export function OrderCard({ order }: OrderCardProps) {
                 e.stopPropagation();
                 handleReprint();
               }}
+              disabled={isReprinting}
               className="flex-shrink-0"
             >
-              <Printer className="h-4 w-4" />
+              {isReprinting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Printer className="h-4 w-4" />
+              )}
             </Button>
             {nextStatus && (
               <Button
@@ -281,9 +291,13 @@ export function OrderCard({ order }: OrderCardProps) {
 
             {/* Actions */}
             <div className="flex gap-2 pt-4">
-              <Button variant="outline" onClick={handleReprint} className="flex-1">
-                <Printer className="h-4 w-4 mr-2" />
-                Reprint
+              <Button variant="outline" onClick={handleReprint} disabled={isReprinting} className="flex-1">
+                {isReprinting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Printer className="h-4 w-4 mr-2" />
+                )}
+                {isReprinting ? 'Printing...' : 'Reprint'}
               </Button>
               {nextStatus && (
                 <Button onClick={handleAdvanceStatus} disabled={isAdvancing} className="flex-1">
