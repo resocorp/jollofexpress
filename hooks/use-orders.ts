@@ -1,6 +1,8 @@
 // React Query hooks for order operations
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { get, post, patch } from '@/lib/api-client';
+import { createClient } from '@/lib/supabase/client';
 import type { Order, OrderWithItems, OrderStatus } from '@/types/database';
 
 /**
@@ -59,12 +61,50 @@ export function useVerifyPayment() {
 
 /**
  * Fetch active kitchen orders (for KDS)
+ * Uses Supabase Realtime for instant updates with fallback polling
  */
 export function useKitchenOrders() {
+  const queryClient = useQueryClient();
+  const supabaseRef = useRef(createClient());
+  const channelRef = useRef<ReturnType<typeof supabaseRef.current.channel> | null>(null);
+
+  // Set up Supabase Realtime subscription for instant updates
+  useEffect(() => {
+    const supabase = supabaseRef.current;
+
+    // Subscribe to order changes
+    const channel = supabase
+      .channel('kitchen-orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          console.log('🍳 Kitchen: Order change detected', payload.eventType);
+          // Invalidate and refetch kitchen orders on any change
+          queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('🍳 Kitchen realtime subscription status:', status);
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      console.log('🍳 Kitchen: Unsubscribing from realtime');
+      channel.unsubscribe();
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['kitchen-orders'],
     queryFn: () => get<OrderWithItems[]>('/api/kitchen/orders'),
-    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchInterval: 30000, // Fallback polling every 30 seconds (reduced from 5s)
+    staleTime: 5000, // Consider data fresh for 5 seconds
   });
 }
 

@@ -64,8 +64,8 @@ export async function apiRequest<T>(
     'Content-Type': 'application/json',
   };
   
-  // Automatically add auth token for admin routes
-  if (endpoint.startsWith('/api/admin')) {
+  // Automatically add auth token for admin and kitchen routes
+  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/kitchen')) {
     const token = await getAuthToken();
     if (token) {
       (defaultHeaders as Record<string, string>)['Authorization'] = `Bearer ${token}`;
