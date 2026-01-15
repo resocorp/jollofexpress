@@ -63,13 +63,15 @@ export function useVerifyPayment() {
  * Fetch active kitchen orders (for KDS)
  * Uses Supabase Realtime for instant updates with fallback polling
  */
-export function useKitchenOrders() {
+export function useKitchenOrders(enabled: boolean = true) {
   const queryClient = useQueryClient();
   const supabaseRef = useRef(createClient());
   const channelRef = useRef<ReturnType<typeof supabaseRef.current.channel> | null>(null);
 
   // Set up Supabase Realtime subscription for instant updates
   useEffect(() => {
+    if (!enabled) return;
+    
     const supabase = supabaseRef.current;
 
     // Subscribe to order changes
@@ -98,12 +100,13 @@ export function useKitchenOrders() {
       console.log('🍳 Kitchen: Unsubscribing from realtime');
       channel.unsubscribe();
     };
-  }, [queryClient]);
+  }, [queryClient, enabled]);
 
   return useQuery({
     queryKey: ['kitchen-orders'],
     queryFn: () => get<OrderWithItems[]>('/api/kitchen/orders'),
-    refetchInterval: 30000, // Fallback polling every 30 seconds (reduced from 5s)
+    enabled, // Only fetch when enabled
+    refetchInterval: enabled ? 30000 : false, // Fallback polling every 30 seconds
     staleTime: 5000, // Consider data fresh for 5 seconds
   });
 }

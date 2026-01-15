@@ -1,22 +1,65 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Clock, Settings, Power, PowerOff } from 'lucide-react';
+import { Clock, Settings, Power, PowerOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { KanbanBoard } from '@/components/kitchen/kanban-board';
 import { KitchenControls } from '@/components/kitchen/kitchen-controls';
 import { AutoPrintHandler } from '@/components/print/auto-print-handler';
 import { useKitchenOrders } from '@/hooks/use-orders';
 import { useRestaurantStatus } from '@/hooks/use-settings';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { createClient } from '@/lib/supabase/client';
 
 export default function KitchenPage() {
-  const { data: orders, isLoading } = useKitchenOrders();
-  const { data: status } = useRestaurantStatus();
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [showControls, setShowControls] = useState(false);
+
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        router.push('/admin/login');
+        return;
+      }
+
+      // Verify user has kitchen or admin role
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'kitchen')) {
+        router.push('/admin/login');
+        return;
+      }
+
+      setIsAuthenticated(true);
+    };
+
+    checkAuth();
+  }, [router]);
+
+  // Only fetch data after authentication is confirmed
+  const { data: orders, isLoading } = useKitchenOrders(isAuthenticated === true);
+  const { data: status } = useRestaurantStatus();
+
+  // Show loading while checking auth
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-white" />
+      </div>
+    );
+  }
 
   return (
     <DndProvider backend={HTML5Backend}>
