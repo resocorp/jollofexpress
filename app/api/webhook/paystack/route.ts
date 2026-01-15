@@ -18,8 +18,10 @@ function verifySignature(payload: string, signature: string): boolean {
   return hash === signature;
 }
 
-// Process promo code usage and customer attribution
-async function processPromoCodeUsage(
+// Process customer attribution and commission for ALL orders from attributed customers
+// This ensures influencers get commission on ALL orders from customers they referred,
+// not just the first order where the promo code was used
+async function processCustomerAttribution(
   supabase: ReturnType<typeof createServiceClient>,
   order: {
     id: string;
@@ -31,34 +33,15 @@ async function processPromoCodeUsage(
     discount: number;
   }
 ) {
-  console.log('[PROMO TRACKING] Starting processPromoCodeUsage with order:', {
+  console.log('[ATTRIBUTION] Processing customer attribution for order:', {
     order_id: order.id,
+    customer_phone: order.customer_phone,
     promo_code: order.promo_code,
-    discount: order.discount,
     total: order.total,
   });
 
-  if (!order.promo_code) {
-    console.log('[PROMO TRACKING] No promo_code on order, skipping tracking');
-    return;
-  }
-
   try {
-    // Find the promo code and its associated influencer
-    const { data: promoCode, error: promoLookupError } = await supabase
-      .from('promo_codes')
-      .select('id, influencer_id, used_count')
-      .eq('code', order.promo_code.toUpperCase())
-      .single();
-
-    console.log('[PROMO TRACKING] Promo code lookup result:', { promoCode, error: promoLookupError });
-
-    if (!promoCode) {
-      console.log(`[PROMO TRACKING] Promo code ${order.promo_code} not found in database`);
-      return;
-    }
-
-    // Check if we already tracked this order's promo usage (idempotency)
+    // Check if we already tracked this order (idempotency)
     const { data: existingUsage } = await supabase
       .from('promo_code_usage')
       .select('id')
@@ -66,28 +49,11 @@ async function processPromoCodeUsage(
       .maybeSingle();
 
     if (existingUsage) {
-      console.log(`[PROMO TRACKING] Promo usage already tracked for order ${order.id}, skipping`);
+      console.log(`[ATTRIBUTION] Order ${order.id} already tracked, skipping`);
       return;
     }
 
-    // Increment used_count
-    const { error: updateError } = await supabase
-      .from('promo_codes')
-      .update({ used_count: (promoCode.used_count || 0) + 1 })
-      .eq('id', promoCode.id);
-
-    if (updateError) {
-      console.error('[PROMO TRACKING] Error incrementing used_count:', updateError);
-    } else {
-      console.log(`[PROMO TRACKING] Incremented used_count for promo code ${order.promo_code} to ${(promoCode.used_count || 0) + 1}`);
-    }
-
-    // Check if customer already has attribution (for influencer-linked promos)
-    let isNewCustomer = false;
-    let isFirstOrder = false;
-    let commissionAmount = 0;
-
-    // Check if this is their first order ever (regardless of promo)
+    // Check if this is their first order ever
     const { count: previousOrderCount } = await supabase
       .from('orders')
       .select('*', { count: 'exact', head: true })
@@ -95,72 +61,107 @@ async function processPromoCodeUsage(
       .eq('payment_status', 'success')
       .neq('id', order.id);
 
-    isFirstOrder = (previousOrderCount || 0) === 0;
+    const isFirstOrder = (previousOrderCount || 0) === 0;
 
-    // If this promo belongs to an influencer, track attribution
-    if (promoCode.influencer_id) {
-      // Check if customer already has attribution
-      const { data: existingAttribution } = await supabase
-        .from('customer_attributions')
-        .select('id, total_orders, total_spent')
-        .eq('customer_phone', order.customer_phone)
-        .maybeSingle();
+    // Check if customer has an existing attribution to an influencer
+    const { data: existingAttribution } = await supabase
+      .from('customer_attributions')
+      .select('id, influencer_id, total_orders, total_spent')
+      .eq('customer_phone', order.customer_phone)
+      .maybeSingle();
 
-      if (!existingAttribution) {
-        // First time customer - create attribution (permanent first-touch)
-        isNewCustomer = true;
+    let influencerId: string | null = null;
+    let promoCodeId: string | null = null;
+    let isNewCustomer = false;
+    let commissionAmount = 0;
 
-        await supabase.from('customer_attributions').insert({
-          customer_phone: order.customer_phone,
-          customer_name: order.customer_name,
-          customer_email: order.customer_email,
-          influencer_id: promoCode.influencer_id,
-          promo_code_id: promoCode.id,
-          first_promo_code: order.promo_code,
-          first_order_id: order.id,
-          first_order_date: new Date().toISOString(),
-          first_order_total: order.total,
-          total_orders: 1,
-          total_spent: order.total,
-          last_order_date: new Date().toISOString(),
-        });
-
-        console.log(`Created customer attribution for ${order.customer_phone} to influencer ${promoCode.influencer_id}`);
-      } else {
-        // Existing customer - update their stats
-        await supabase
-          .from('customer_attributions')
-          .update({
-            total_orders: existingAttribution.total_orders + 1,
-            total_spent: existingAttribution.total_spent + order.total,
-            last_order_date: new Date().toISOString(),
-          })
-          .eq('id', existingAttribution.id);
-
-        console.log(`Updated customer attribution stats for ${order.customer_phone}`);
-      }
-
-      // Calculate commission for influencer
-      const { data: influencer } = await supabase
-        .from('influencers')
-        .select('commission_type, commission_value')
-        .eq('id', promoCode.influencer_id)
+    // If order has a promo code, process it
+    if (order.promo_code) {
+      const { data: promoCode, error: promoLookupError } = await supabase
+        .from('promo_codes')
+        .select('id, influencer_id, used_count')
+        .eq('code', order.promo_code.toUpperCase())
         .single();
 
-      if (influencer) {
+      if (promoCode) {
+        promoCodeId = promoCode.id;
+        
+        // Increment promo code used_count
+        await supabase
+          .from('promo_codes')
+          .update({ used_count: (promoCode.used_count || 0) + 1 })
+          .eq('id', promoCode.id);
+        
+        console.log(`[ATTRIBUTION] Incremented used_count for promo ${order.promo_code}`);
+
+        // If this promo belongs to an influencer and customer has no attribution yet,
+        // create the permanent binding
+        if (promoCode.influencer_id && !existingAttribution) {
+          isNewCustomer = true;
+          influencerId = promoCode.influencer_id;
+
+          await supabase.from('customer_attributions').insert({
+            customer_phone: order.customer_phone,
+            customer_name: order.customer_name,
+            customer_email: order.customer_email,
+            influencer_id: promoCode.influencer_id,
+            promo_code_id: promoCode.id,
+            first_promo_code: order.promo_code,
+            first_order_id: order.id,
+            first_order_date: new Date().toISOString(),
+            first_order_total: order.total,
+            total_orders: 1,
+            total_spent: order.total,
+            last_order_date: new Date().toISOString(),
+          });
+
+          console.log(`[ATTRIBUTION] Created new attribution: customer ${order.customer_phone} -> influencer ${promoCode.influencer_id}`);
+        }
+      } else {
+        console.log(`[ATTRIBUTION] Promo code ${order.promo_code} not found in database`);
+      }
+    }
+
+    // If customer already has an attribution (from a previous order), use that influencer
+    if (existingAttribution) {
+      influencerId = existingAttribution.influencer_id;
+      
+      // Update the attribution stats for this returning customer
+      await supabase
+        .from('customer_attributions')
+        .update({
+          total_orders: existingAttribution.total_orders + 1,
+          total_spent: existingAttribution.total_spent + order.total,
+          last_order_date: new Date().toISOString(),
+        })
+        .eq('id', existingAttribution.id);
+
+      console.log(`[ATTRIBUTION] Updated attribution stats for returning customer ${order.customer_phone}`);
+    }
+
+    // Calculate commission if customer is attributed to an influencer
+    if (influencerId) {
+      const { data: influencer } = await supabase
+        .from('influencers')
+        .select('commission_type, commission_value, is_active')
+        .eq('id', influencerId)
+        .single();
+
+      if (influencer && influencer.is_active) {
         if (influencer.commission_type === 'percentage') {
           commissionAmount = Math.round((order.total * influencer.commission_value) / 100 * 100) / 100;
         } else {
           commissionAmount = influencer.commission_value;
         }
+        console.log(`[ATTRIBUTION] Calculated commission: ${commissionAmount} for influencer ${influencerId}`);
       }
     }
 
-    // Log promo code usage for analytics - track ALL promo usage (with or without influencer)
+    // Log the usage record (tracks both promo usage and attributed commission)
     const { error: usageInsertError } = await supabase.from('promo_code_usage').insert({
-      promo_code_id: promoCode.id,
+      promo_code_id: promoCodeId, // Will be null if no promo was used
       order_id: order.id,
-      influencer_id: promoCode.influencer_id, // Will be null for standalone promos
+      influencer_id: influencerId, // From promo OR from existing attribution
       customer_phone: order.customer_phone,
       customer_name: order.customer_name,
       order_total: order.total,
@@ -171,12 +172,12 @@ async function processPromoCodeUsage(
     });
 
     if (usageInsertError) {
-      console.error('[PROMO TRACKING] Error inserting promo_code_usage:', usageInsertError);
+      console.error('[ATTRIBUTION] Error inserting usage record:', usageInsertError);
     } else {
-      console.log(`[PROMO TRACKING] Successfully logged promo usage: order=${order.id}, promo=${order.promo_code}, influencer=${promoCode.influencer_id || 'none'}, commission=${commissionAmount}`);
+      console.log(`[ATTRIBUTION] Successfully logged: order=${order.id}, influencer=${influencerId || 'none'}, commission=${commissionAmount}, promo=${order.promo_code || 'none'}`);
     }
   } catch (error) {
-    console.error('[PROMO TRACKING] Unexpected error processing promo code usage:', error);
+    console.error('[ATTRIBUTION] Unexpected error:', error);
     // Don't fail the webhook for tracking errors
   }
 }
@@ -259,9 +260,12 @@ export async function POST(request: NextRequest) {
           alreadyPaid,
         });
 
-        // ALWAYS process promo code usage (has its own idempotency check)
-        // This ensures promo tracking happens even if webhook was retried
-        await processPromoCodeUsage(supabase, {
+        // ALWAYS process customer attribution (has its own idempotency check)
+        // This ensures:
+        // 1. Promo code usage is tracked
+        // 2. Customer attribution is created/updated
+        // 3. Commission is calculated for ALL orders from attributed customers
+        await processCustomerAttribution(supabase, {
           id: existingOrder.id,
           promo_code: existingOrder.promo_code,
           customer_phone: existingOrder.customer_phone,

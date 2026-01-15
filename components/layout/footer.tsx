@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Facebook, Instagram, MessageCircle, Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { Facebook, Instagram, MessageCircle, MapPin, Clock } from 'lucide-react';
 import { useRestaurantInfo, useRestaurantStatus } from '@/hooks/use-settings';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -28,19 +28,19 @@ export function Footer() {
     {
       name: 'Facebook',
       icon: Facebook,
-      href: 'https://facebook.com/jollofexpress',
+      href: 'https://facebook.com/urshawarmaexpress',
       color: 'hover:text-blue-600',
     },
     {
       name: 'Instagram',
       icon: Instagram,
-      href: 'https://instagram.com/jollofexpress',
+      href: 'https://instagram.com/urshawarmaexpress',
       color: 'hover:text-pink-600',
     },
     {
       name: 'TikTok',
       icon: TikTokIcon,
-      href: 'https://tiktok.com/@jollofexpress',
+      href: 'https://tiktok.com/@urshawarmaexpress',
       color: 'hover:text-black dark:hover:text-white',
     },
     {
@@ -121,21 +121,23 @@ export function Footer() {
             <ul className="space-y-2 sm:space-y-3">
               <li className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground">
                 <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0 text-orange-600" />
-                <span>Awka, Anambra State, Nigeria</span>
+                <span>Aroma Junction, Awka, Anambra State, Nigeria</span>
               </li>
               <li className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-                <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-orange-600" />
-                <a href="tel:+2348106828147" className="hover:text-orange-600 transition-colors touch-manipulation">
-                  +234 810 682 8147
-                </a>
-              </li>
-              <li className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-                <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-orange-600" />
-                <a href="mailto:hello@jollofexpress.ng" className="hover:text-orange-600 transition-colors touch-manipulation">
-                  hello@jollofexpress.ng
+                <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-green-600" />
+                <a href="https://wa.me/2348106828147" target="_blank" rel="noopener noreferrer" className="hover:text-green-600 transition-colors touch-manipulation">
+                  WhatsApp: +234 810 682 8147
                 </a>
               </li>
             </ul>
+            <a 
+              href="https://myshawarma.express/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs sm:text-sm text-orange-600 hover:text-orange-700 font-medium"
+            >
+              myshawarma.express →
+            </a>
           </div>
 
           {/* Social Media & Newsletter */}

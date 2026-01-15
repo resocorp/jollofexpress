@@ -39,8 +39,8 @@ export const useCartStore = create<CartStore>()(
       selectedRegionId: null,
 
       addItem: (item, quantity, selectedVariation, selectedAddons = []) => {
-        // Calculate item subtotal
-        let itemPrice = item.base_price;
+        // Calculate item subtotal - use promo_price if available, otherwise base_price
+        let itemPrice = item.promo_price ?? item.base_price;
         
         // Add variation price adjustment (multiplied by variation quantity)
         if (selectedVariation) {
@@ -83,8 +83,8 @@ export const useCartStore = create<CartStore>()(
           const newItems = [...state.items];
           const item = newItems[index];
           
-          // Recalculate subtotal
-          let itemPrice = item.item.base_price;
+          // Recalculate subtotal - use promo_price if available, otherwise base_price
+          let itemPrice = item.item.promo_price ?? item.item.base_price;
           
           if (item.selected_variation) {
             const varQty = item.selected_variation.quantity || 1;

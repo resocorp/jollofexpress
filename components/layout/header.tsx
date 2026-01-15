@@ -91,11 +91,11 @@ export function Header() {
               🏠 Home
             </Link>
             <Link 
-              href="/orders" 
+              href="/menu#menu-section" 
               className="block py-2 px-3 hover:bg-gray-100 rounded-lg font-medium transition-colors"
               onClick={() => setShowMobileMenu(false)}
             >
-              📋 My Orders
+              🍽️ Menu
             </Link>
             <Link 
               href="/about" 

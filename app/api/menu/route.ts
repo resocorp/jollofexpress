@@ -38,6 +38,7 @@ export async function GET() {
         name,
         description,
         base_price,
+        promo_price,
         image_url,
         is_available,
         dietary_tag,

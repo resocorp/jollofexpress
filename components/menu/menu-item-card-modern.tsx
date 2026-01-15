@@ -24,6 +24,11 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
   const hasCustomizations = (item.variations && item.variations.length > 0) || 
                            (item.addons && item.addons.length > 0);
 
+  // Calculate discount percentage
+  const discountPercentage = item.promo_price 
+    ? Math.round((item.base_price - item.promo_price) / item.base_price * 100)
+    : 0;
+
   const cardVariants = {
     initial: { opacity: 0, y: 20 },
     animate: { 
@@ -80,6 +85,15 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
             {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
+            {/* Discount Badge - Top Left */}
+            {discountPercentage > 0 && (
+              <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
+                <Badge className="bg-[#FF4433] hover:bg-[#FF4433] text-white border-0 shadow-lg text-xs sm:text-sm font-bold px-2 py-1">
+                  {discountPercentage}% OFF
+                </Badge>
+              </div>
+            )}
+
             {/* Top Right Badges */}
             <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1.5 sm:gap-2">
               {/* Favorite Button */}
@@ -135,13 +149,24 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
             {/* Price Row */}
             <div className="flex items-center justify-between mt-auto pt-1 sm:pt-2">
               <div className="flex flex-col gap-0.5 sm:gap-1">
-                <div className="flex items-baseline gap-1">
+                <div className="flex items-baseline gap-1 flex-wrap">
                   {hasCustomizations && (
                     <span className="text-[10px] sm:text-sm text-[#666] font-medium">From</span>
                   )}
-                  <span className="text-lg sm:text-[22px] font-bold text-[#FF4433]">
-                    {formatCurrency(item.base_price)}
-                  </span>
+                  {item.promo_price ? (
+                    <>
+                      <span className="text-lg sm:text-[22px] font-bold text-[#FF4433]">
+                        {formatCurrency(item.promo_price)}
+                      </span>
+                      <span className="text-xs sm:text-sm text-[#999] line-through">
+                        {formatCurrency(item.base_price)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-lg sm:text-[22px] font-bold text-[#FF4433]">
+                      {formatCurrency(item.base_price)}
+                    </span>
+                  )}
                 </div>
                 {hasCustomizations && (
                   <span className="text-[9px] sm:text-xs text-[#666] hidden sm:block">Customizable options available</span>

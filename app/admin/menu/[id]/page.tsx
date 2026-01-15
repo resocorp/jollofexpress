@@ -51,6 +51,7 @@ interface MenuItem {
   name: string;
   description: string;
   base_price: number;
+  promo_price?: number | null;
   category_id: string;
   is_available: boolean;
   image_url?: string;
@@ -69,6 +70,7 @@ export default function EditMenuItemPage() {
     name: '',
     description: '',
     base_price: '',
+    promo_price: '',
     category_id: '',
     is_available: true,
     image_url: '',
@@ -127,6 +129,7 @@ export default function EditMenuItemPage() {
         name: item.name,
         description: item.description || '',
         base_price: item.base_price.toString(),
+        promo_price: item.promo_price ? item.promo_price.toString() : '',
         category_id: item.category_id,
         is_available: item.is_available,
         image_url: item.image_url || '',
@@ -246,6 +249,7 @@ export default function EditMenuItemPage() {
     const payload = {
       ...formData,
       base_price: parseFloat(formData.base_price),
+      promo_price: formData.promo_price ? parseFloat(formData.promo_price) : null,
       variations,
       addons,
     };
@@ -411,6 +415,33 @@ export default function EditMenuItemPage() {
                     }
                   />
                   <p className="text-sm text-muted-foreground">Starting price before variations</p>
+                </div>
+
+                {/* Promo Price */}
+                <div className="space-y-2">
+                  <Label htmlFor="promo_price">
+                    Promo Price (₦)
+                  </Label>
+                  <Input
+                    id="promo_price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Leave empty for no promotion"
+                    value={formData.promo_price}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, promo_price: e.target.value }))
+                    }
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    {formData.promo_price ? (
+                      <span className="text-green-600">
+                        Customers will see ₦{parseFloat(formData.promo_price).toLocaleString()} instead of ₦{formData.base_price ? parseFloat(formData.base_price).toLocaleString() : '0'}
+                      </span>
+                    ) : (
+                      'Set a promotional price to offer discounts'
+                    )}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -690,8 +721,21 @@ export default function EditMenuItemPage() {
                   <div className="text-sm text-muted-foreground">
                     {formData.description || 'Item description'}
                   </div>
-                  <div className="text-lg font-bold">
-                    ₦{formData.base_price ? parseFloat(formData.base_price).toLocaleString() : '0'}
+                  <div className="flex items-center gap-2">
+                    {formData.promo_price ? (
+                      <>
+                        <span className="text-lg font-bold text-primary">
+                          ₦{parseFloat(formData.promo_price).toLocaleString()}
+                        </span>
+                        <span className="text-sm text-muted-foreground line-through">
+                          ₦{formData.base_price ? parseFloat(formData.base_price).toLocaleString() : '0'}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-lg font-bold">
+                        ₦{formData.base_price ? parseFloat(formData.base_price).toLocaleString() : '0'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </CardContent>

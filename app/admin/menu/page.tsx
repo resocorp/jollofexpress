@@ -32,6 +32,7 @@ interface MenuItem {
   description: string;
   price?: number;
   base_price?: number;
+  promo_price?: number | null;
   category?: string;
   category_id?: string;
   image_url?: string;
@@ -396,7 +397,19 @@ export default function MenuManagementPage() {
                         {item.category || 'Uncategorized'}
                       </Badge>
                     </TableCell>
-                    <TableCell>₦{(item.price || item.base_price || 0).toLocaleString()}</TableCell>
+                    <TableCell>
+                      {item.promo_price ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-primary">₦{item.promo_price.toLocaleString()}</span>
+                          <span className="text-sm text-muted-foreground line-through">₦{(item.price || item.base_price || 0).toLocaleString()}</span>
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                            {Math.round(((item.base_price || item.price || 0) - item.promo_price) / (item.base_price || item.price || 1) * 100)}% OFF
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span>₦{(item.price || item.base_price || 0).toLocaleString()}</span>
+                      )}
+                    </TableCell>
                     <TableCell>{item.prep_time || 15} min</TableCell>
                     <TableCell>
                       {item.is_available ? (
@@ -558,8 +571,26 @@ function MenuItemCard({ item, index, onToggleAvailability, onDelete }: MenuItemC
 
         {/* Price & Prep Time */}
         <div className="flex items-center justify-between mb-3">
-          <div className="text-xl font-bold text-primary">
-            ₦{(item.price || item.base_price || 0).toLocaleString()}
+          <div className="flex flex-col">
+            {item.promo_price ? (
+              <>
+                <div className="text-xl font-bold text-primary">
+                  ₦{item.promo_price.toLocaleString()}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground line-through">
+                    ₦{(item.price || item.base_price || 0).toLocaleString()}
+                  </span>
+                  <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                    {Math.round(((item.base_price || item.price || 0) - item.promo_price) / (item.base_price || item.price || 1) * 100)}% OFF
+                  </Badge>
+                </div>
+              </>
+            ) : (
+              <div className="text-xl font-bold text-primary">
+                ₦{(item.price || item.base_price || 0).toLocaleString()}
+              </div>
+            )}
           </div>
           {item.prep_time && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">

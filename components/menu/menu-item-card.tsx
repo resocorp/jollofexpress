@@ -23,6 +23,11 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
   const hasCustomizations = (item.variations && item.variations.length > 0) || 
                            (item.addons && item.addons.length > 0);
 
+  // Calculate discount percentage
+  const discountPercentage = item.promo_price 
+    ? Math.round((item.base_price - item.promo_price) / item.base_price * 100)
+    : 0;
+
   const cardVariants = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.4 } },
@@ -58,6 +63,13 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
             </div>
           )}
           
+          {/* Discount Badge - Top Left */}
+          {discountPercentage > 0 && (
+            <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-red-500 text-white border-0 shadow-lg font-bold">
+              {discountPercentage}% OFF
+            </Badge>
+          )}
+
           {/* Dietary Tag Badge */}
           {item.dietary_tag && item.dietary_tag !== 'none' && (
             <Badge className="absolute top-2 right-2" variant="secondary">
@@ -83,10 +95,24 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
             </p>
           )}
           <div className="flex items-center justify-between">
-            <span className="text-lg font-bold text-primary">
-              {formatCurrency(item.base_price)}
-              {hasCustomizations && <span className="text-sm text-muted-foreground">+</span>}
-            </span>
+            <div className="flex items-center gap-2">
+              {item.promo_price ? (
+                <>
+                  <span className="text-lg font-bold text-primary">
+                    {formatCurrency(item.promo_price)}
+                    {hasCustomizations && <span className="text-sm text-muted-foreground">+</span>}
+                  </span>
+                  <span className="text-sm text-muted-foreground line-through">
+                    {formatCurrency(item.base_price)}
+                  </span>
+                </>
+              ) : (
+                <span className="text-lg font-bold text-primary">
+                  {formatCurrency(item.base_price)}
+                  {hasCustomizations && <span className="text-sm text-muted-foreground">+</span>}
+                </span>
+              )}
+            </div>
           </div>
         </CardContent>
 
@@ -101,6 +127,7 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
           </Button>
         </CardFooter>
       </Card>
+      </motion.div>
 
       <ItemCustomizationDialog
         item={item}

@@ -9,6 +9,7 @@ const itemSchema = z.object({
   name: z.string().min(2).max(100),
   description: z.string().max(500),
   base_price: z.number().positive(),
+  promo_price: z.number().positive().nullable().optional(),
   category_id: z.string().uuid(),
   image_url: z.string().optional(),
   is_available: z.boolean().optional(),

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
 import { useCartStore } from '@/store/cart-store';
 import { useDeliverySettings } from '@/hooks/use-settings';
 import { formatCurrency } from '@/lib/formatters';
@@ -129,11 +129,13 @@ export function CartSheet() {
 
       {/* Checkout Button */}
       <div className="mt-6 space-y-2">
-        <Link href="/checkout">
-          <Button className="w-full" size="lg">
-            Proceed to Checkout
-          </Button>
-        </Link>
+        <SheetClose asChild>
+          <Link href="/checkout">
+            <Button className="w-full" size="lg">
+              Proceed to Checkout
+            </Button>
+          </Link>
+        </SheetClose>
         <Button variant="ghost" className="w-full" onClick={clearCart}>
           Clear Cart
         </Button>

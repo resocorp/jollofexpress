@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,8 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
   const validatePromo = useValidatePromo();
   const [promoInput, setPromoInput] = useState(promoCode || '');
   const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const subtotal = getSubtotal();
   const taxRate = paymentSettings?.tax_rate ?? 0;
@@ -39,29 +41,57 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
   const tax = Math.round((taxableAmount * taxRate) / 100);
   const total = discountedSubtotal + deliveryFee + tax;
 
-  const handleApplyPromo = async () => {
-    if (!promoInput.trim()) {
-      toast.error('Please enter a promo code');
+  // Auto-validate promo code with debounce
+  useEffect(() => {
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // If input is empty or already applied, skip
+    if (!promoInput.trim() || promoCode === promoInput.trim().toUpperCase()) {
+      setValidationError(null);
+      setIsValidating(false);
       return;
     }
 
-    setIsValidating(true);
-    try {
-      const result = await validatePromo.mutateAsync({
-        code: promoInput.trim().toUpperCase(),
-        orderTotal: subtotal,
-      });
+    // Set debounce timer (500ms after user stops typing)
+    debounceTimerRef.current = setTimeout(async () => {
+      setIsValidating(true);
+      setValidationError(null);
+      
+      try {
+        const result = await validatePromo.mutateAsync({
+          code: promoInput.trim().toUpperCase(),
+          orderTotal: subtotal,
+        });
 
-      if (result.valid) {
-        setPromoCode(promoInput.trim().toUpperCase(), result.discount_amount);
-        toast.success(`Promo code applied! You saved ${formatCurrency(result.discount_amount)}`);
-      } else {
-        toast.error(result.message || 'Invalid promo code');
+        if (result.valid) {
+          setPromoCode(promoInput.trim().toUpperCase(), result.discount_amount);
+          setValidationError(null);
+          toast.success(`Promo code applied! You saved ${formatCurrency(result.discount_amount)}`);
+        } else {
+          setValidationError(result.message || 'Invalid promo code');
+        }
+      } catch (error: any) {
+        setValidationError(error.message || 'Failed to validate promo code');
+      } finally {
+        setIsValidating(false);
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to validate promo code');
-    } finally {
-      setIsValidating(false);
+    }, 500);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [promoInput, subtotal, promoCode, setPromoCode, validatePromo]);
+
+  const handlePromoInputChange = (value: string) => {
+    setPromoInput(value.toUpperCase());
+    // Clear any previous error when user starts typing again
+    if (validationError) {
+      setValidationError(null);
     }
   };
 
@@ -131,27 +161,27 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
           </div>
           
           {!promoCode ? (
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter code"
-                value={promoInput}
-                onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                onKeyDown={(e) => e.key === 'Enter' && handleApplyPromo()}
-                disabled={isValidating}
-                className="flex-1 uppercase"
-              />
-              <Button
-                onClick={handleApplyPromo}
-                disabled={isValidating || !promoInput.trim()}
-                size="default"
-                className="bg-primary hover:bg-primary/90"
-              >
-                {isValidating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Apply'
+            <div className="space-y-2">
+              <div className="relative">
+                <Input
+                  placeholder="Enter code"
+                  value={promoInput}
+                  onChange={(e) => handlePromoInputChange(e.target.value)}
+                  disabled={isValidating}
+                  className={`uppercase pr-10 ${validationError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                />
+                {isValidating && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
                 )}
-              </Button>
+              </div>
+              {validationError && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <XCircle className="h-3 w-3" />
+                  {validationError}
+                </p>
+              )}
             </div>
           ) : (
             <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-200">
@@ -201,7 +231,7 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
             </div>
           )}
           {discount > 0 && (
-            <div className="flex justify-between items-center p-3 rounded-lg bg-green-50 border border-green-200">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-200">
               <span className="text-green-700 font-medium">Discount Applied</span>
               <span className="text-green-700 font-bold">-{formatCurrency(discount)}</span>
             </div>
@@ -249,6 +279,8 @@ export function OrderSummaryWithButton({
   const validatePromo = useValidatePromo();
   const [promoInput, setPromoInput] = useState(promoCode || '');
   const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const subtotal = getSubtotal();
   const taxRate = paymentSettings?.tax_rate ?? 0;
@@ -265,29 +297,57 @@ export function OrderSummaryWithButton({
   const tax = Math.round((taxableAmount * taxRate) / 100);
   const total = discountedSubtotal + deliveryFee + tax;
 
-  const handleApplyPromo = async () => {
-    if (!promoInput.trim()) {
-      toast.error('Please enter a promo code');
+  // Auto-validate promo code with debounce
+  useEffect(() => {
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // If input is empty or already applied, skip
+    if (!promoInput.trim() || promoCode === promoInput.trim().toUpperCase()) {
+      setValidationError(null);
+      setIsValidating(false);
       return;
     }
 
-    setIsValidating(true);
-    try {
-      const result = await validatePromo.mutateAsync({
-        code: promoInput.trim().toUpperCase(),
-        orderTotal: subtotal,
-      });
+    // Set debounce timer (500ms after user stops typing)
+    debounceTimerRef.current = setTimeout(async () => {
+      setIsValidating(true);
+      setValidationError(null);
+      
+      try {
+        const result = await validatePromo.mutateAsync({
+          code: promoInput.trim().toUpperCase(),
+          orderTotal: subtotal,
+        });
 
-      if (result.valid) {
-        setPromoCode(promoInput.trim().toUpperCase(), result.discount_amount);
-        toast.success(`Promo code applied! You saved ${formatCurrency(result.discount_amount)}`);
-      } else {
-        toast.error(result.message || 'Invalid promo code');
+        if (result.valid) {
+          setPromoCode(promoInput.trim().toUpperCase(), result.discount_amount);
+          setValidationError(null);
+          toast.success(`Promo code applied! You saved ${formatCurrency(result.discount_amount)}`);
+        } else {
+          setValidationError(result.message || 'Invalid promo code');
+        }
+      } catch (error: any) {
+        setValidationError(error.message || 'Failed to validate promo code');
+      } finally {
+        setIsValidating(false);
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to validate promo code');
-    } finally {
-      setIsValidating(false);
+    }, 500);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [promoInput, subtotal, promoCode, setPromoCode, validatePromo]);
+
+  const handlePromoInputChange = (value: string) => {
+    setPromoInput(value.toUpperCase());
+    // Clear any previous error when user starts typing again
+    if (validationError) {
+      setValidationError(null);
     }
   };
 
@@ -357,27 +417,27 @@ export function OrderSummaryWithButton({
           </div>
           
           {!promoCode ? (
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter code"
-                value={promoInput}
-                onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                onKeyDown={(e) => e.key === 'Enter' && handleApplyPromo()}
-                disabled={isValidating}
-                className="flex-1 uppercase"
-              />
-              <Button
-                onClick={handleApplyPromo}
-                disabled={isValidating || !promoInput.trim()}
-                size="default"
-                className="bg-primary hover:bg-primary/90"
-              >
-                {isValidating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Apply'
+            <div className="space-y-2">
+              <div className="relative">
+                <Input
+                  placeholder="Enter code"
+                  value={promoInput}
+                  onChange={(e) => handlePromoInputChange(e.target.value)}
+                  disabled={isValidating}
+                  className={`uppercase pr-10 ${validationError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                />
+                {isValidating && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
                 )}
-              </Button>
+              </div>
+              {validationError && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <XCircle className="h-3 w-3" />
+                  {validationError}
+                </p>
+              )}
             </div>
           ) : (
             <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-200">
@@ -427,7 +487,7 @@ export function OrderSummaryWithButton({
             </div>
           )}
           {discount > 0 && (
-            <div className="flex justify-between items-center p-3 rounded-lg bg-green-50 border border-green-200">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-200">
               <span className="text-green-700 font-medium">Discount Applied</span>
               <span className="text-green-700 font-bold">-{formatCurrency(discount)}</span>
             </div>

@@ -48,9 +48,13 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
     }
   };
 
+  // Get the effective price (promo or base)
+  const effectivePrice = item.promo_price ?? item.base_price;
+  const hasPromo = item.promo_price != null && item.promo_price < item.base_price;
+
   // Calculate total price
   const totalPrice = useMemo(() => {
-    let price = item.base_price;
+    let price = effectivePrice;
     
     // Add variation price adjustment (multiplied by variation quantity)
     if (selectedVariationOption) {
@@ -67,7 +71,7 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
     }
     
     return price * quantity;
-  }, [item, selectedVariationOption, variationQuantity, selectedAddonQuantities, quantity]);
+  }, [effectivePrice, item.addons, selectedVariationOption, variationQuantity, selectedAddonQuantities, quantity]);
 
   const handleAddToCart = () => {
     const selectedAddons = Object.entries(selectedAddonQuantities)
@@ -119,7 +123,16 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
 
         {/* Base Price & Dietary Info */}
         <div className="flex items-center justify-between">
-          <span className="text-2xl font-bold">{formatCurrency(item.base_price)}</span>
+          <div className="flex items-center gap-2">
+            {hasPromo ? (
+              <>
+                <span className="text-2xl font-bold text-primary">{formatCurrency(item.promo_price!)}</span>
+                <span className="text-lg text-muted-foreground line-through">{formatCurrency(item.base_price)}</span>
+              </>
+            ) : (
+              <span className="text-2xl font-bold">{formatCurrency(item.base_price)}</span>
+            )}
+          </div>
           {item.dietary_tag && item.dietary_tag !== 'none' && (
             <span className="text-sm text-muted-foreground">
               {getDietaryTagIcon(item.dietary_tag)} {item.dietary_tag.replace('_', ' ')}

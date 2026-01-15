@@ -8,6 +8,7 @@ const itemUpdateSchema = z.object({
   name: z.string().min(2).max(100).optional(),
   description: z.string().max(500).optional(),
   base_price: z.number().positive().optional(),
+  promo_price: z.number().positive().nullable().optional(),
   category_id: z.string().uuid().optional(),
   image_url: z.string().optional(),
   is_available: z.boolean().optional(),
