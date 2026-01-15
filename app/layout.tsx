@@ -3,6 +3,8 @@ import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "@/lib/env-validator"; // Validate environment on startup
+import { GoogleAnalytics } from "@/components/analytics";
+import { RestaurantJsonLd, WebsiteJsonLd } from "@/components/analytics";
 
 export const metadata: Metadata = {
   title: {
@@ -81,8 +83,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   
   verification: {
-    // google: 'your-google-site-verification-code',
-    // yandex: 'your-yandex-verification-code',
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
   },
   
   alternates: {
@@ -107,6 +108,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <RestaurantJsonLd />
+        <WebsiteJsonLd />
+      </head>
       <body
         className="font-sans antialiased"
         suppressHydrationWarning
@@ -114,6 +119,7 @@ export default function RootLayout({
         <QueryProvider>
           {children}
           <Toaster />
+          <GoogleAnalytics />
         </QueryProvider>
       </body>
     </html>

@@ -6,8 +6,8 @@ set -e
 
 # Configuration - Update these values
 SERVER_IP="${DO_SERVER_IP:-YOUR_SERVER_IP}"
-SERVER_USER="${DO_SERVER_USER:-deploy}"
-APP_DIR="/home/$SERVER_USER/jollofexpress"
+SERVER_USER="${DO_SERVER_USER:-nodeapp}"
+APP_DIR="/opt/jollofexpress"
 
 # Colors for output
 RED='\033[0;31m'
