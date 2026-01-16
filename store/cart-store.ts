@@ -9,8 +9,10 @@ interface CartStore {
   discount: number;
   pendingOrderId: string | null; // Track order ID for cart recovery
   selectedRegionId: string | null; // Selected delivery region ID
+  _hasHydrated: boolean; // Track if store has been hydrated from localStorage
   
   // Actions
+  setHasHydrated: (state: boolean) => void;
   addItem: (
     item: MenuItem,
     quantity: number,
@@ -37,6 +39,11 @@ export const useCartStore = create<CartStore>()(
       discount: 0,
       pendingOrderId: null,
       selectedRegionId: null,
+      _hasHydrated: false,
+
+      setHasHydrated: (state) => {
+        set({ _hasHydrated: state });
+      },
 
       addItem: (item, quantity, selectedVariation, selectedAddons = []) => {
         // Calculate item subtotal - use promo_price if available, otherwise base_price
@@ -130,6 +137,9 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'jollofexpress-cart',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

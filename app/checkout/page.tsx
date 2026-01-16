@@ -8,13 +8,14 @@ import { CheckoutForm } from '@/components/checkout/checkout-form';
 import { OrderSummaryWithButton } from '@/components/checkout/order-summary';
 import { useCartStore } from '@/store/cart-store';
 import { useDeliverySettings } from '@/hooks/use-settings';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export default function CheckoutPage() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
+  const hasHydrated = useCartStore((state) => state._hasHydrated);
   const getSubtotal = useCartStore((state) => state.getSubtotal);
   const { data: deliverySettings, isLoading: isLoadingSettings } = useDeliverySettings();
   const [orderType] = useState<'delivery' | 'carryout'>('delivery');
@@ -35,12 +36,29 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Redirect to menu if cart is empty
+  // Redirect to menu if cart is empty (only after hydration completes)
   useEffect(() => {
-    if (items.length === 0) {
+    // Wait for store to hydrate from localStorage before checking cart
+    if (hasHydrated && items.length === 0) {
       router.push('/menu');
     }
-  }, [items, router]);
+  }, [items, router, hasHydrated]);
+
+  // Show loading while hydrating to prevent flash of empty cart
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-12">
+          <div className="flex flex-col items-center justify-center min-h-[50vh]">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-lg text-muted-foreground">Loading checkout...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
