@@ -65,11 +65,12 @@ export async function GET(request: NextRequest) {
       .eq('influencer_id', influencer.id)
       .maybeSingle();
 
-    // Get all-time stats
+    // Get all-time stats (including order details for recent purchases)
     const { data: allTimeUsage } = await supabase
       .from('promo_code_usage')
-      .select('order_total, commission_amount, is_new_customer, created_at')
-      .eq('influencer_id', influencer.id);
+      .select('order_id, order_total, commission_amount, is_new_customer, customer_name, customer_phone, created_at')
+      .eq('influencer_id', influencer.id)
+      .order('created_at', { ascending: false });
 
     // Get period stats
     const periodUsage = allTimeUsage?.filter(
@@ -135,6 +136,17 @@ export async function GET(request: NextRequest) {
       .map(([date, data]) => ({ date, ...data }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
+    // Build recent purchases list (last 10 orders)
+    const recentPurchases = (allTimeUsage || []).slice(0, 10).map(u => ({
+      order_id: u.order_id,
+      customer_name: u.customer_name || 'Anonymous',
+      customer_phone: u.customer_phone,
+      order_total: u.order_total,
+      commission_earned: u.commission_amount,
+      is_new_customer: u.is_new_customer,
+      date: u.created_at,
+    }));
+
     return NextResponse.json({
       influencer: {
         id: influencer.id,
@@ -149,7 +161,7 @@ export async function GET(request: NextRequest) {
         code: promoCode.code,
         discount_type: promoCode.discount_type,
         discount_value: promoCode.discount_value,
-        used_count: promoCode.used_count,
+        used_count: allTimeUsage?.length || 0, // Use actual count from usage table
         is_active: promoCode.is_active,
       } : null,
       all_time_stats: allTimeStats,
@@ -162,6 +174,7 @@ export async function GET(request: NextRequest) {
       },
       total_customers: customers?.length || 0,
       top_customers: customers?.slice(0, 10) || [],
+      recent_purchases: recentPurchases,
       recent_payouts: payouts || [],
       trend,
     });

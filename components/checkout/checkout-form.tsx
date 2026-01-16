@@ -73,16 +73,6 @@ export function CheckoutForm({
   // Order type is always delivery
   const orderType = 'delivery' as const;
 
-  // Expose submit function to parent
-  useEffect(() => {
-    if (onSubmitExposed) {
-      onSubmitExposed(() => {
-        handleSubmit(onSubmit, handleFormError)();
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onSubmitExposed, orderType]);
-
   // Expose isSubmitting state to parent
   useEffect(() => {
     if (onSubmittingChange) {
@@ -253,6 +243,18 @@ export function CheckoutForm({
       }
     }
   };
+
+  // Expose submit function to parent
+  // IMPORTANT: Include all values used in onSubmit to avoid stale closures
+  // When discount/total changes (e.g., promo code applied), the parent needs the updated function
+  useEffect(() => {
+    if (onSubmitExposed) {
+      onSubmitExposed(() => {
+        handleSubmit(onSubmit, handleFormError)();
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onSubmitExposed, orderType, discount, promoCode, subtotal, total, deliveryFee, tax]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit, handleFormError)} className="space-y-6">

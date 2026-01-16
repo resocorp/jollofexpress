@@ -17,7 +17,7 @@ const promoSchema = z.object({
   is_active: z.boolean().optional(),
 });
 
-// GET - List all promo codes
+// GET - List all promo codes with actual usage from promo_code_usage table
 export async function GET(request: NextRequest) {
   // Verify authentication
   const authResult = await verifyAdminAuth(request);
@@ -48,6 +48,34 @@ export async function GET(request: NextRequest) {
         { error: 'Failed to fetch promo codes' },
         { status: 500 }
       );
+    }
+
+    // Get actual usage counts from promo_code_usage table (single source of truth)
+    // This replaces the potentially stale used_count field
+    if (promos && promos.length > 0) {
+      const promoIds = promos.map(p => p.id);
+      
+      // Count usage for each promo from the usage table
+      const { data: usageCounts } = await supabase
+        .from('promo_code_usage')
+        .select('promo_code_id')
+        .in('promo_code_id', promoIds);
+      
+      // Build a map of promo_id -> actual usage count
+      const usageMap = new Map<string, number>();
+      usageCounts?.forEach(u => {
+        if (u.promo_code_id) {
+          usageMap.set(u.promo_code_id, (usageMap.get(u.promo_code_id) || 0) + 1);
+        }
+      });
+      
+      // Replace used_count with actual count from promo_code_usage
+      const promosWithActualUsage = promos.map(promo => ({
+        ...promo,
+        used_count: usageMap.get(promo.id) || 0,
+      }));
+      
+      return NextResponse.json(promosWithActualUsage);
     }
 
     return NextResponse.json(promos || []);

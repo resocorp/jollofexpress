@@ -336,6 +336,71 @@ function InfluencerDashboardContent() {
           </CardContent>
         </Card>
 
+        {/* Recent Purchases */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5" />
+              Recent Purchases
+            </CardTitle>
+            <CardDescription>Latest orders from customers you referred</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {data.recent_purchases && data.recent_purchases.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead className="text-right">Order Total</TableHead>
+                    <TableHead className="text-right">Your Commission</TableHead>
+                    <TableHead className="text-right">Type</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.recent_purchases.map((purchase: any, index: number) => (
+                    <TableRow key={purchase.order_id || index}>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(purchase.date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{purchase.customer_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {purchase.customer_phone}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(purchase.order_total)}
+                      </TableCell>
+                      <TableCell className="text-right text-green-600 font-medium">
+                        +{formatCurrency(purchase.commission_earned)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {purchase.is_new_customer ? (
+                          <Badge className="bg-blue-500">New</Badge>
+                        ) : (
+                          <Badge variant="outline">Returning</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                No purchases yet. Share your promo code to start earning!
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Two Column Layout */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Top Customers */}

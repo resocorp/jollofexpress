@@ -14,7 +14,8 @@ import {
   Bell,
   Bike,
   Truck,
-  Car
+  Car,
+  Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,7 @@ const navigation = [
   { name: 'Delivery', href: '/admin/delivery', icon: Truck },
   { name: 'Drivers', href: '/admin/drivers', icon: Bike },
   { name: 'Vehicles', href: '/admin/vehicles', icon: Car },
-  { name: 'Promo Codes', href: '/admin/promos', icon: Tag },
+  { name: 'Influencers', href: '/admin/promos', icon: Users },
   { name: 'Notifications', href: '/admin/notifications', icon: Bell },
   { name: 'Printer Status', href: '/admin/printer', icon: Printer },
   { name: 'Settings', href: '/admin/settings', icon: Settings },

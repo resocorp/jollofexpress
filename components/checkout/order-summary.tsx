@@ -27,6 +27,7 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastValidatedInputRef = useRef<string | null>(null);
   
   const subtotal = getSubtotal();
   const taxRate = paymentSettings?.tax_rate ?? 0;
@@ -41,17 +42,24 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
   const tax = Math.round((taxableAmount * taxRate) / 100);
   const total = discountedSubtotal + deliveryFee + tax;
 
-  // Auto-validate promo code with debounce
+  // Auto-validate promo code with debounce - validates once per unique input
   useEffect(() => {
     // Clear any existing timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
+    const normalizedInput = promoInput.trim().toUpperCase();
+
     // If input is empty or already applied, skip
-    if (!promoInput.trim() || promoCode === promoInput.trim().toUpperCase()) {
+    if (!promoInput.trim() || promoCode === normalizedInput) {
       setValidationError(null);
       setIsValidating(false);
+      return;
+    }
+
+    // If this exact input was already validated, don't re-validate
+    if (lastValidatedInputRef.current === normalizedInput) {
       return;
     }
 
@@ -62,18 +70,21 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
       
       try {
         const result = await validatePromo.mutateAsync({
-          code: promoInput.trim().toUpperCase(),
+          code: normalizedInput,
           orderTotal: subtotal,
         });
 
+        lastValidatedInputRef.current = normalizedInput;
+
         if (result.valid) {
-          setPromoCode(promoInput.trim().toUpperCase(), result.discount_amount);
+          setPromoCode(normalizedInput, result.discount_amount);
           setValidationError(null);
           toast.success(`Promo code applied! You saved ${formatCurrency(result.discount_amount)}`);
         } else {
           setValidationError(result.message || 'Invalid promo code');
         }
       } catch (error: any) {
+        lastValidatedInputRef.current = normalizedInput;
         setValidationError(error.message || 'Failed to validate promo code');
       } finally {
         setIsValidating(false);
@@ -88,7 +99,12 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
   }, [promoInput, subtotal, promoCode, setPromoCode, validatePromo]);
 
   const handlePromoInputChange = (value: string) => {
-    setPromoInput(value.toUpperCase());
+    const newValue = value.toUpperCase();
+    setPromoInput(newValue);
+    // Reset validation cache when input changes
+    if (lastValidatedInputRef.current && newValue.trim() !== lastValidatedInputRef.current) {
+      lastValidatedInputRef.current = null;
+    }
     // Clear any previous error when user starts typing again
     if (validationError) {
       setValidationError(null);
@@ -98,6 +114,7 @@ export function OrderSummary({ orderType = 'delivery' }: OrderSummaryProps) {
   const handleRemovePromo = () => {
     setPromoCode(null, 0);
     setPromoInput('');
+    lastValidatedInputRef.current = null;
     toast.success('Promo code removed');
   };
 
@@ -281,6 +298,7 @@ export function OrderSummaryWithButton({
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastValidatedInputRef = useRef<string | null>(null);
   
   const subtotal = getSubtotal();
   const taxRate = paymentSettings?.tax_rate ?? 0;
@@ -297,17 +315,24 @@ export function OrderSummaryWithButton({
   const tax = Math.round((taxableAmount * taxRate) / 100);
   const total = discountedSubtotal + deliveryFee + tax;
 
-  // Auto-validate promo code with debounce
+  // Auto-validate promo code with debounce - validates once per unique input
   useEffect(() => {
     // Clear any existing timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
+    const normalizedInput = promoInput.trim().toUpperCase();
+
     // If input is empty or already applied, skip
-    if (!promoInput.trim() || promoCode === promoInput.trim().toUpperCase()) {
+    if (!promoInput.trim() || promoCode === normalizedInput) {
       setValidationError(null);
       setIsValidating(false);
+      return;
+    }
+
+    // If this exact input was already validated, don't re-validate
+    if (lastValidatedInputRef.current === normalizedInput) {
       return;
     }
 
@@ -318,18 +343,21 @@ export function OrderSummaryWithButton({
       
       try {
         const result = await validatePromo.mutateAsync({
-          code: promoInput.trim().toUpperCase(),
+          code: normalizedInput,
           orderTotal: subtotal,
         });
 
+        lastValidatedInputRef.current = normalizedInput;
+
         if (result.valid) {
-          setPromoCode(promoInput.trim().toUpperCase(), result.discount_amount);
+          setPromoCode(normalizedInput, result.discount_amount);
           setValidationError(null);
           toast.success(`Promo code applied! You saved ${formatCurrency(result.discount_amount)}`);
         } else {
           setValidationError(result.message || 'Invalid promo code');
         }
       } catch (error: any) {
+        lastValidatedInputRef.current = normalizedInput;
         setValidationError(error.message || 'Failed to validate promo code');
       } finally {
         setIsValidating(false);
@@ -344,7 +372,12 @@ export function OrderSummaryWithButton({
   }, [promoInput, subtotal, promoCode, setPromoCode, validatePromo]);
 
   const handlePromoInputChange = (value: string) => {
-    setPromoInput(value.toUpperCase());
+    const newValue = value.toUpperCase();
+    setPromoInput(newValue);
+    // Reset validation cache when input changes
+    if (lastValidatedInputRef.current && newValue.trim() !== lastValidatedInputRef.current) {
+      lastValidatedInputRef.current = null;
+    }
     // Clear any previous error when user starts typing again
     if (validationError) {
       setValidationError(null);
@@ -354,6 +387,7 @@ export function OrderSummaryWithButton({
   const handleRemovePromo = () => {
     setPromoCode(null, 0);
     setPromoInput('');
+    lastValidatedInputRef.current = null;
     toast.success('Promo code removed');
   };
 

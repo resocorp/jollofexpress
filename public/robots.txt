@@ -1,16 +1,13 @@
-# robots.txt for JollofExpress
-
-# Allow all crawlers
+# *
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api
+Disallow: /kitchen
+Disallow: /checkout
 
-# Disallow admin and API routes
-Disallow: /admin/
-Disallow: /api/
-Disallow: /kitchen/
+# Host
+Host: https://0086543e5457.ngrok-free.app
 
-# Sitemap location
-Sitemap: https://jollofexpress.com/sitemap.xml
-
-# Crawl delay (optional)
-Crawl-delay: 1
+# Sitemaps
+Sitemap: https://0086543e5457.ngrok-free.app/sitemap.xml

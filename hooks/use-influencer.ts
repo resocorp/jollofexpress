@@ -335,6 +335,15 @@ interface InfluencerDashboardData {
   };
   total_customers: number;
   top_customers: any[];
+  recent_purchases: Array<{
+    order_id: string;
+    customer_name: string;
+    customer_phone: string;
+    order_total: number;
+    commission_earned: number;
+    is_new_customer: boolean;
+    date: string;
+  }>;
   recent_payouts: any[];
   trend: Array<{ date: string; orders: number; revenue: number; commission: number }>;
 }
