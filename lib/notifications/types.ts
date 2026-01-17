@@ -73,10 +73,19 @@ export interface NotificationLog {
   created_at: string;
 }
 
-// UltraMsg API Request
+// UltraMsg API Request - Text Message
 export interface UltraMsgSendRequest {
   to: string; // Phone number with international format
   body: string; // Message text
+  priority?: number;
+  referenceId?: string;
+}
+
+// UltraMsg API Request - Image Message
+export interface UltraMsgImageRequest {
+  to: string; // Phone number with international format
+  image: string; // HTTP URL or base64-encoded image
+  caption?: string; // Optional caption (max 1024 chars)
   priority?: number;
   referenceId?: string;
 }

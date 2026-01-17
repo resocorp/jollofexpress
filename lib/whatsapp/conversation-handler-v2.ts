@@ -1,4 +1,4 @@
-// WhatsApp Conversation Handler V2 - Ultra-simplified flow
+// WhatsApp Conversation Handler V2 - Enhanced UX with images and better cart management
 // Flow: Hi → Menu → Select Item → More/Checkout → Details (name+address+notes) → Payment
 
 import { createServiceClient } from '@/lib/supabase/service';
@@ -18,7 +18,54 @@ import type {
   ParsedMessage,
   ParsedCommand,
   CartItem,
+  WhatsAppResponse,
 } from './types';
+
+// Helper to create text response
+const text = (message: string): WhatsAppResponse => ({ type: 'text', message });
+
+// Helper to create image response
+const image = (imageUrl: string, caption?: string): WhatsAppResponse => ({ 
+  type: 'image', 
+  imageUrl, 
+  caption 
+});
+
+// Settings types for checkout
+interface CheckoutSettings {
+  deliveryFee: number;
+  minOrder: number;
+  taxRate: number; // percentage (e.g., 7.5 for 7.5%)
+  deliveryEnabled: boolean;
+}
+
+// Fetch delivery and payment settings from database
+async function getCheckoutSettings(): Promise<CheckoutSettings> {
+  const supabase = createServiceClient();
+  
+  // Fetch both settings in parallel
+  const [deliveryResult, paymentResult] = await Promise.all([
+    supabase.from('settings').select('value').eq('key', 'delivery_settings').single(),
+    supabase.from('settings').select('value').eq('key', 'payment_settings').single(),
+  ]);
+  
+  const deliverySettings = deliveryResult.data?.value as { 
+    enabled?: boolean; 
+    delivery_fee?: number; 
+    min_order?: number;
+  } | null;
+  
+  const paymentSettings = paymentResult.data?.value as { 
+    tax_rate?: number;
+  } | null;
+  
+  return {
+    deliveryFee: deliverySettings?.delivery_fee ?? 500,
+    minOrder: deliverySettings?.min_order ?? 0,
+    taxRate: paymentSettings?.tax_rate ?? 0,
+    deliveryEnabled: deliverySettings?.enabled ?? true,
+  };
+}
 
 // Simplified types for menu (matches DB structure)
 interface SimpleMenuItem {
@@ -26,6 +73,7 @@ interface SimpleMenuItem {
   name: string;
   description?: string;
   price: number;
+  image_url?: string;
   variations?: { id: string; name: string; option: string; price_adjustment: number }[];
 }
 
@@ -43,7 +91,7 @@ const TAX_RATE = 0; // No tax for simplicity
  */
 export async function handleIncomingMessage(
   message: ParsedMessage
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   const session = await getOrCreateSession(message.phone);
   
   // Log inbound message
@@ -72,10 +120,10 @@ export async function handleIncomingMessage(
 async function handleGlobalCommands(
   session: WhatsAppSession,
   command: ParsedCommand
-): Promise<string[] | null> {
+): Promise<WhatsAppResponse[] | null> {
   switch (command.type) {
     case 'HELP':
-      return [getHelpMessage()];
+      return [text(getHelpMessage())];
     
     case 'MENU':
       await updateSession(session.id, {
@@ -86,18 +134,39 @@ async function handleGlobalCommands(
       return await showMenu(session);
     
     case 'CART':
-      return [getCartMessage(session.cart)];
+      return [text(getCartMessage(session.cart))];
     
     case 'CLEAR':
       await clearSessionCart(session.id);
-      return ['🗑️ Cart cleared!\n\nType *MENU* to order.'];
+      return [text('🗑️ Cart cleared!\n\nType *MENU* to order.')];
     
     case 'CANCEL':
       await resetSession(session.id);
-      return ['Order cancelled. Type *MENU* to start again.'];
+      return [text('Order cancelled. Type *MENU* to start again.')];
     
     case 'REORDER':
       return await handleReorder(session);
+    
+    case 'CHECKOUT':
+      return await startCheckout(session);
+    
+    // Quick number shortcuts (only when cart has items)
+    case 'NUMBER_SELECTION':
+      if (session.cart.length > 0) {
+        const num = Array.isArray(command.value) ? command.value[0] : command.value;
+        if (num === 0) {
+          await clearSessionCart(session.id);
+          return [text('🗑️ Cart cleared!\n\nType *MENU* to order.')];
+        }
+        if (num === 1 && session.state !== 'BROWSING_MENU' && session.state !== 'VIEWING_CATEGORY') {
+          await updateSession(session.id, { state: 'BROWSING_MENU' });
+          return await showMenu(session);
+        }
+        if (num === 2) {
+          return await startCheckout(session);
+        }
+      }
+      return null;
     
     default:
       return null;
@@ -110,7 +179,7 @@ async function handleGlobalCommands(
 async function routeByState(
   session: WhatsAppSession,
   command: ParsedCommand
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   switch (session.state) {
     case 'IDLE':
       return await handleIdle(session, command);
@@ -131,7 +200,7 @@ async function routeByState(
       return await handleCollectingDetails(session, command);
     
     case 'PAYMENT_PENDING':
-      return ['⏳ Please complete payment using the link sent.\n\nType *MENU* to start a new order.'];
+      return [text('⏳ Please complete payment using the link sent.\n\nType *MENU* to start a new order.')];
     
     case 'ORDER_COMPLETE':
       await resetSession(session.id);
@@ -149,7 +218,7 @@ async function routeByState(
 async function handleIdle(
   session: WhatsAppSession,
   command: ParsedCommand
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   const returning = await getReturningCustomerData(session.phone);
   
   if (returning) {
@@ -172,13 +241,13 @@ async function handleIdle(
   });
   msg += '\n💡 Reply with number to select';
   
-  return [msg];
+  return [text(msg)];
 }
 
 async function handleBrowsingMenu(
   session: WhatsAppSession,
   command: ParsedCommand
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   if (command.type === 'NUMBER_SELECTION') {
     const num = Array.isArray(command.value) ? command.value[0] : command.value;
     if (typeof num === 'number') {
@@ -191,7 +260,7 @@ async function handleBrowsingMenu(
 async function handleViewingCategory(
   session: WhatsAppSession,
   command: ParsedCommand
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   if (command.type === 'BACK') {
     await updateSession(session.id, { state: 'BROWSING_MENU' });
     return await showMenu(session);
@@ -211,7 +280,7 @@ async function handleViewingCategory(
 async function handleSelectingVariations(
   session: WhatsAppSession,
   command: ParsedCommand
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   if (command.type === 'BACK') {
     await updateSession(session.id, { state: 'VIEWING_CATEGORY' });
     return await showCategoryItems(session);
@@ -224,13 +293,33 @@ async function handleSelectingVariations(
     }
   }
   
-  return ['Please select a variation number.'];
+  return [text('Please select a variation number.')];
 }
 
 async function handleMoreOrCheckout(
   session: WhatsAppSession,
   command: ParsedCommand
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
+  // Handle quantity changes: +1, -1, remove
+  const qtyMatch = command.raw.match(/^([+-])?(\d+)$/i);
+  if (qtyMatch && session.cart.length > 0) {
+    const sign = qtyMatch[1];
+    const num = parseInt(qtyMatch[2], 10);
+    
+    // If it's a cart item index for quantity change
+    if (sign === '+' || sign === '-') {
+      return await adjustCartQuantity(session, session.cart.length - 1, sign === '+' ? 1 : -1);
+    }
+  }
+  
+  // Handle remove command
+  if (command.raw.toLowerCase().startsWith('remove ')) {
+    const itemNum = parseInt(command.raw.replace(/remove\s*/i, ''), 10);
+    if (!isNaN(itemNum) && itemNum >= 1 && itemNum <= session.cart.length) {
+      return await removeCartItem(session, itemNum - 1);
+    }
+  }
+  
   // "1" or "MORE" = add more items
   if (command.type === 'NUMBER_SELECTION') {
     const num = Array.isArray(command.value) ? command.value[0] : command.value;
@@ -252,27 +341,28 @@ async function handleMoreOrCheckout(
     return await startCheckout(session);
   }
   
-  return ['Reply *1* to add more items or *2* to checkout'];
+  // Show cart with options
+  return [text(getEnhancedCartMessage(session.cart))];
 }
 
 async function handleCollectingDetails(
   session: WhatsAppSession,
   command: ParsedCommand
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   if (command.type === 'BACK') {
     await updateSession(session.id, { state: 'AWAITING_MORE_OR_CHECKOUT' });
-    return [getCartMessage(session.cart) + '\n\n*1.* Add more\n*2.* Checkout'];
+    return [text(getCartMessage(session.cart) + '\n\n*1.* Add more\n*2.* Checkout')];
   }
   
   // Parse the details from user message
-  const text = command.raw.trim();
+  const inputText = command.raw.trim();
   
-  if (text.length < 5) {
-    return ['Please provide your details:\n\n*Name*\n*Address*\n*Notes* (optional)\n\nExample:\n_John Doe_\n_15 Aroma Junction, Awka_\n_Extra pepper please_'];
+  if (inputText.length < 5) {
+    return [text('Please provide your details:\n\n*Name*\n*Address*\n*Notes* (optional)\n\nExample:\n_John Doe_\n_15 Aroma Junction, Awka_\n_Extra pepper please_')];
   }
   
   // Split by newlines or parse as single block
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  const lines = inputText.split('\n').map(l => l.trim()).filter(l => l);
   
   let name = '';
   let address = '';
@@ -284,17 +374,17 @@ async function handleCollectingDetails(
     notes = lines.slice(2).join(' ');
   } else {
     // Single line - try to parse
-    const parts = text.split(',').map(p => p.trim());
+    const parts = inputText.split(',').map(p => p.trim());
     if (parts.length >= 2) {
       name = parts[0];
       address = parts.slice(1).join(', ');
     } else {
-      return ['Please provide details in this format:\n\n*Name*\n*Address*\n\nExample:\n_John Doe_\n_15 Aroma Junction, near Total, Awka_'];
+      return [text('Please provide details in this format:\n\n*Name*\n*Address*\n\nExample:\n_John Doe_\n_15 Aroma Junction, near Total, Awka_')];
     }
   }
   
   if (name.length < 2 || address.length < 5) {
-    return ['Please provide:\n- Your *name* (first line)\n- Your *address* (second line)\n\nExample:\n_John_\n_15 Aroma, Awka_'];
+    return [text('Please provide:\n- Your *name* (first line)\n- Your *address* (second line)\n\nExample:\n_John_\n_15 Aroma, Awka_')];
   }
   
   // Create order and get payment link
@@ -305,7 +395,7 @@ async function handleCollectingDetails(
 // HELPER FUNCTIONS
 // ============================================
 
-async function showMenu(session: WhatsAppSession): Promise<string[]> {
+async function showMenu(session: WhatsAppSession): Promise<WhatsAppResponse[]> {
   const menu = await getMenuCategories();
   let msg = '📋 *MENU*\n\n';
   menu.forEach((cat, i) => {
@@ -313,19 +403,21 @@ async function showMenu(session: WhatsAppSession): Promise<string[]> {
   });
   msg += '\n💡 Reply with number';
   if (session.cart.length > 0) {
-    msg += `\n🛒 Cart: ${session.cart.length} item(s) - Type *CART*`;
+    const total = session.cart.reduce((sum, c) => sum + c.subtotal * c.quantity, 0);
+    msg += `\n\n🛒 *Cart: ${session.cart.length} item(s) - ₦${total.toLocaleString()}*`;
+    msg += `\nType *CART* to view`;
   }
-  return [msg];
+  return [text(msg)];
 }
 
 async function selectCategory(
   session: WhatsAppSession,
   num: number
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   const menu = await getMenuCategories();
   
   if (num < 1 || num > menu.length) {
-    return [`Please select 1-${menu.length}`];
+    return [text(`Please select 1-${menu.length}`)];
   }
   
   const category = menu[num - 1];
@@ -342,10 +434,10 @@ async function selectCategory(
   });
   msg += '\n💡 Reply with number\n*B* = Back to menu';
   
-  return [msg];
+  return [text(msg)];
 }
 
-async function showCategoryItems(session: WhatsAppSession): Promise<string[]> {
+async function showCategoryItems(session: WhatsAppSession): Promise<WhatsAppResponse[]> {
   const menu = await getMenuCategories();
   const category = menu.find(c => c.id === session.selected_category_id);
   
@@ -360,13 +452,13 @@ async function showCategoryItems(session: WhatsAppSession): Promise<string[]> {
   });
   msg += '\n💡 Reply with number\n*B* = Back';
   
-  return [msg];
+  return [text(msg)];
 }
 
 async function selectItem(
   session: WhatsAppSession,
   num: number
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   const menu = await getMenuCategories();
   const category = menu.find(c => c.id === session.selected_category_id);
   
@@ -375,10 +467,16 @@ async function selectItem(
   }
   
   if (num < 1 || num > category.items.length) {
-    return [`Please select 1-${category.items.length}`];
+    return [text(`Please select 1-${category.items.length}`)];
   }
   
   const item = category.items[num - 1];
+  const responses: WhatsAppResponse[] = [];
+  
+  // Send item image if available
+  if (item.image_url) {
+    responses.push(image(item.image_url, `🍽️ *${item.name}*\n${item.description || ''}\n₦${item.price.toLocaleString()}`));
+  }
   
   // Check if item has variations
   if (item.variations && item.variations.length > 0) {
@@ -398,7 +496,8 @@ async function selectItem(
     });
     msg += '\n*B* = Back';
     
-    return [msg];
+    responses.push(text(msg));
+    return responses;
   }
   
   // No variations - add directly to cart
@@ -408,7 +507,7 @@ async function selectItem(
 async function selectVariation(
   session: WhatsAppSession,
   num: number
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   const item = session.message_context.pending_item as SimpleMenuItem;
   
   if (!item || !item.variations) {
@@ -417,7 +516,7 @@ async function selectVariation(
   }
   
   if (num < 1 || num > item.variations.length) {
-    return [`Please select 1-${item.variations.length}`];
+    return [text(`Please select 1-${item.variations.length}`)];
   }
   
   const variation = item.variations[num - 1];
@@ -429,7 +528,7 @@ async function addToCart(
   session: WhatsAppSession,
   item: SimpleMenuItem,
   variation?: { name: string; option: string; price_adjustment: number }
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   const price = item.price + (variation?.price_adjustment || 0);
   
   const cartItem: CartItem = {
@@ -456,33 +555,70 @@ async function addToCart(
   });
   
   const itemDesc = variation ? `${item.name} (${variation.option})` : item.name;
-  const total = newCart.reduce((sum, c) => sum + c.subtotal, 0);
+  const total = newCart.reduce((sum, c) => sum + c.subtotal * c.quantity, 0);
   
-  return [`✅ Added *${itemDesc}*\n\n🛒 Cart: ${newCart.length} item(s) - ₦${total.toLocaleString()}\n\n*1.* Add more items\n*2.* Checkout ➡️`];
+  let msg = `✅ Added *${itemDesc}* to cart!\n\n`;
+  msg += `━━━━━━━━━━━━━━━\n`;
+  msg += `🛒 *CART SUMMARY*\n\n`;
+  newCart.forEach((c, i) => {
+    msg += `${i + 1}. ${c.quantity}x ${c.item_name}`;
+    if (c.selected_variation) msg += ` (${c.selected_variation.option})`;
+    msg += ` - ₦${(c.subtotal * c.quantity).toLocaleString()}\n`;
+  });
+  msg += `\n*Total: ₦${total.toLocaleString()}*\n`;
+  msg += `━━━━━━━━━━━━━━━\n\n`;
+  msg += `👇 *What next?*\n`;
+  msg += `*1.* 🍽 Add more items\n`;
+  msg += `*2.* 💳 Checkout & Pay\n\n`;
+  msg += `💡 Reply with number`;
+  
+  return [text(msg)];
 }
 
-async function startCheckout(session: WhatsAppSession): Promise<string[]> {
+async function startCheckout(session: WhatsAppSession): Promise<WhatsAppResponse[]> {
   if (session.cart.length === 0) {
-    return ['Your cart is empty! Type *MENU* to order.'];
+    return [text('Your cart is empty! Type *MENU* to order.')];
   }
+  
+  // Fetch settings
+  const settings = await getCheckoutSettings();
+  
+  const subtotal = session.cart.reduce((sum, c) => sum + c.subtotal * c.quantity, 0);
+  
+  // Validate minimum order amount
+  if (settings.minOrder > 0 && subtotal < settings.minOrder) {
+    return [text(
+      `❌ *Minimum order is ₦${settings.minOrder.toLocaleString()}*\n\n` +
+      `Your cart: ₦${subtotal.toLocaleString()}\n` +
+      `Add ₦${(settings.minOrder - subtotal).toLocaleString()} more to checkout.\n\n` +
+      `Type *MENU* to add more items.`
+    )];
+  }
+  
+  // Calculate totals with settings
+  const tax = settings.taxRate > 0 ? Math.round(subtotal * settings.taxRate / 100) : 0;
+  const deliveryFee = settings.deliveryFee;
+  const total = subtotal + tax + deliveryFee;
   
   await updateSession(session.id, { state: 'COLLECTING_DETAILS' });
   
-  const total = session.cart.reduce((sum, c) => sum + c.subtotal * c.quantity, 0);
-  
   let msg = '📝 *CHECKOUT*\n\n';
-  msg += `Total: *₦${total.toLocaleString()}*\n\n`;
-  msg += '━━━━━━━━━━━━━━━\n';
+  msg += `Subtotal: ₦${subtotal.toLocaleString()}\n`;
+  if (tax > 0) {
+    msg += `Tax (${settings.taxRate}%): ₦${tax.toLocaleString()}\n`;
+  }
+  msg += `Delivery: ₦${deliveryFee.toLocaleString()}\n`;
+  msg += `━━━━━━━━━━━━━━━\n`;
+  msg += `*Total: ₦${total.toLocaleString()}*\n\n`;
   msg += 'Send your details:\n\n';
   msg += '*Line 1:* Your name\n';
   msg += '*Line 2:* Delivery address\n';
   msg += '*Line 3:* Notes (optional)\n\n';
   msg += '_Example:_\n';
   msg += '_John Doe_\n';
-  msg += '_15 Aroma Junction, Awka_\n';
-  msg += '_Extra pepper_';
+  msg += '_15 Aroma Junction, Awka_';
   
-  return [msg];
+  return [text(msg)];
 }
 
 async function createOrder(
@@ -490,13 +626,17 @@ async function createOrder(
   name: string,
   address: string,
   notes: string
-): Promise<string[]> {
+): Promise<WhatsAppResponse[]> {
   const supabase = createServiceClient();
   
-  // Calculate totals
+  // Fetch settings for accurate pricing
+  const settings = await getCheckoutSettings();
+  
+  // Calculate totals using settings
   const subtotal = session.cart.reduce((sum, item) => sum + item.subtotal * item.quantity, 0);
-  const deliveryFee = 500; // Fixed delivery fee
-  const total = subtotal + deliveryFee;
+  const tax = settings.taxRate > 0 ? Math.round(subtotal * settings.taxRate / 100) : 0;
+  const deliveryFee = settings.deliveryFee;
+  const total = subtotal + tax + deliveryFee;
   
   // Generate order number
   const orderNumber = `JE${Date.now().toString(36).toUpperCase()}`;
@@ -512,7 +652,7 @@ async function createOrder(
       notes: notes || null,
       subtotal,
       delivery_fee: deliveryFee,
-      tax: 0,
+      tax,
       total,
       order_type: 'delivery',
       status: 'pending',
@@ -526,22 +666,28 @@ async function createOrder(
   
   if (error || !order) {
     console.error('Order creation error:', error);
-    return ['❌ Error creating order. Please try again or call +234 810 682 8147'];
+    return [text('❌ Error creating order. Please try again or call +234 810 682 8147')];
   }
   
   // Insert order items
   const orderItems = session.cart.map(item => ({
     order_id: order.id,
-    menu_item_id: item.item_id,
+    item_id: item.item_id,
     item_name: item.item_name,
     quantity: item.quantity,
     unit_price: item.base_price,
     subtotal: item.subtotal * item.quantity,
-    variation_name: item.selected_variation?.name || null,
-    variation_option: item.selected_variation?.option || null,
+    selected_variation: item.selected_variation ? {
+      name: item.selected_variation.name,
+      option: item.selected_variation.option,
+      price_adjustment: item.selected_variation.price_adjustment || 0,
+    } : null,
   }));
   
-  await supabase.from('order_items').insert(orderItems);
+  const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+  if (itemsError) {
+    console.error('❌ Order items insert error:', itemsError);
+  }
   
   // Initialize Paystack payment
   const paystackKey = process.env.PAYSTACK_SECRET_KEY;
@@ -592,19 +738,19 @@ async function createOrder(
     msg += `💳 *PAY NOW:*\n${paystackData.data.authorization_url}\n\n`;
     msg += `⏰ Link expires in 30 mins`;
     
-    return [msg];
+    return [text(msg)];
     
   } catch (err) {
     console.error('Payment init error:', err);
-    return ['❌ Payment error. Please try again or call +234 810 682 8147'];
+    return [text('❌ Payment error. Please try again or call +234 810 682 8147')];
   }
 }
 
-async function handleReorder(session: WhatsAppSession): Promise<string[]> {
+async function handleReorder(session: WhatsAppSession): Promise<WhatsAppResponse[]> {
   const lastOrder = await getLastOrderItems(session.phone);
   
   if (!lastOrder) {
-    return ['No previous orders found. Type *MENU* to order.'];
+    return [text('No previous orders found. Type *MENU* to order.')];
   }
   
   // Convert to cart
@@ -641,7 +787,94 @@ async function handleReorder(session: WhatsAppSession): Promise<string[]> {
   msg += `*Line 2:* Address\n\n`;
   msg += `_Last address: ${lastOrder.delivery_address}_`;
   
-  return [msg];
+  return [text(msg)];
+}
+
+// Cart management helper functions
+async function adjustCartQuantity(
+  session: WhatsAppSession,
+  itemIndex: number,
+  change: number
+): Promise<WhatsAppResponse[]> {
+  if (itemIndex < 0 || itemIndex >= session.cart.length) {
+    return [text('Invalid item. Type *CART* to view your cart.')];
+  }
+  
+  const newCart = [...session.cart];
+  newCart[itemIndex].quantity += change;
+  
+  // Remove item if quantity is 0 or less
+  if (newCart[itemIndex].quantity <= 0) {
+    newCart.splice(itemIndex, 1);
+  }
+  
+  await updateSession(session.id, { cart: newCart });
+  
+  if (newCart.length === 0) {
+    return [text('🗑️ Item removed. Cart is now empty.\n\nType *MENU* to order.')];
+  }
+  
+  const total = newCart.reduce((sum, c) => sum + c.subtotal * c.quantity, 0);
+  let msg = `✅ Cart updated!\n\n`;
+  msg += getEnhancedCartMessage(newCart);
+  
+  return [text(msg)];
+}
+
+async function removeCartItem(
+  session: WhatsAppSession,
+  itemIndex: number
+): Promise<WhatsAppResponse[]> {
+  if (itemIndex < 0 || itemIndex >= session.cart.length) {
+    return [text('Invalid item number. Type *CART* to view your cart.')];
+  }
+  
+  const removedItem = session.cart[itemIndex];
+  const newCart = session.cart.filter((_, i) => i !== itemIndex);
+  
+  await updateSession(session.id, { cart: newCart });
+  
+  if (newCart.length === 0) {
+    return [text(`🗑️ Removed *${removedItem.item_name}*. Cart is now empty.\n\nType *MENU* to order.`)];
+  }
+  
+  let msg = `🗑️ Removed *${removedItem.item_name}*\n\n`;
+  msg += getEnhancedCartMessage(newCart);
+  
+  return [text(msg)];
+}
+
+function getEnhancedCartMessage(cart: CartItem[]): string {
+  if (cart.length === 0) {
+    return '🛒 Cart is empty\n\nType *MENU* to order';
+  }
+  
+  let msg = '🛒 *YOUR CART*\n\n';
+  let total = 0;
+  
+  cart.forEach((item, i) => {
+    const itemTotal = item.subtotal * item.quantity;
+    total += itemTotal;
+    msg += `*${i + 1}.* ${item.quantity}x ${item.item_name}`;
+    if (item.selected_variation) {
+      msg += ` (${item.selected_variation.option})`;
+    }
+    msg += ` - ₦${itemTotal.toLocaleString()}\n`;
+  });
+  
+  msg += `\n━━━━━━━━━━━━━━━\n`;
+  msg += `*Total: ₦${total.toLocaleString()}*\n`;
+  msg += `━━━━━━━━━━━━━━━\n\n`;
+  msg += `👇 *Options:*\n`;
+  msg += `*1.* 🍽 Add more items\n`;
+  msg += `*2.* 💳 Checkout & Pay\n\n`;
+  msg += `_Edit cart:_\n`;
+  msg += `• *+1* - Add 1 more of last item\n`;
+  msg += `• *-1* - Remove 1 of last item\n`;
+  msg += `• *remove 1* - Remove item #1\n`;
+  msg += `• *CLEAR* - Empty cart`;
+  
+  return msg;
 }
 
 function getCartMessage(cart: CartItem[]): string {
@@ -663,7 +896,11 @@ function getCartMessage(cart: CartItem[]): string {
   });
   
   msg += `\n*Total: ₦${total.toLocaleString()}*\n\n`;
-  msg += `*CHECKOUT* - Pay now\n*CLEAR* - Empty cart\n*MENU* - Add more`;
+  msg += `👇 *Quick actions:*\n`;
+  msg += `*1.* 🍽 Add more items\n`;
+  msg += `*2.* 💳 Checkout & Pay\n`;
+  msg += `*0.* 🗑 Clear cart\n\n`;
+  msg += `💡 Reply with number`;
   
   return msg;
 }
@@ -684,7 +921,7 @@ function getHelpMessage(): string {
 async function getMenuCategories(): Promise<SimpleMenuCategory[]> {
   const supabase = createServiceClient();
   
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('menu_categories')
     .select(`
       id,
@@ -694,18 +931,25 @@ async function getMenuCategories(): Promise<SimpleMenuCategory[]> {
         id,
         name,
         description,
-        price,
+        base_price,
+        image_url,
         is_available,
         item_variations (
           id,
-          name,
-          option,
-          price_adjustment
+          variation_name,
+          options
         )
       )
     `)
     .eq('is_active', true)
-    .order('sort_order');
+    .order('display_order');
+  
+  if (error) {
+    console.error('❌ Error fetching menu categories:', error);
+    return [];
+  }
+  
+  console.log('📋 Menu categories fetched:', data?.length || 0, 'categories');
   
   if (!data) return [];
   
@@ -719,14 +963,34 @@ async function getMenuCategories(): Promise<SimpleMenuCategory[]> {
         id: string;
         name: string;
         description: string;
-        price: number;
-        item_variations?: { id: string; name: string; option: string; price_adjustment: number }[];
-      }) => ({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        price: item.price,
-        variations: item.item_variations || [],
-      })),
+        base_price: number;
+        image_url?: string;
+        item_variations?: { id: string; variation_name: string; options: { name: string; price_adjustment: number }[] }[];
+      }) => {
+        // Flatten variations from JSONB options array
+        const variations: { id: string; name: string; option: string; price_adjustment: number }[] = [];
+        if (item.item_variations) {
+          item.item_variations.forEach(v => {
+            if (v.options && Array.isArray(v.options)) {
+              v.options.forEach(opt => {
+                variations.push({
+                  id: v.id,
+                  name: v.variation_name,
+                  option: opt.name,
+                  price_adjustment: opt.price_adjustment || 0,
+                });
+              });
+            }
+          });
+        }
+        return {
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          price: Number(item.base_price),
+          image_url: item.image_url,
+          variations,
+        };
+      }),
   }));
 }

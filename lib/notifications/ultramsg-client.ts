@@ -1,6 +1,7 @@
 // UltraMsg WhatsApp API Client
 import type { 
   UltraMsgSendRequest, 
+  UltraMsgImageRequest,
   UltraMsgSendResponse, 
   UltraMsgErrorResponse 
 } from './types';
@@ -81,6 +82,72 @@ export class UltraMsgClient {
         throw error;
       }
       throw new Error('Unknown error occurred while sending message');
+    }
+  }
+
+  /**
+   * Send an image message via UltraMsg API
+   */
+  async sendImage(request: UltraMsgImageRequest): Promise<UltraMsgSendResponse> {
+    const formattedPhone = this.formatPhoneNumber(request.to);
+    
+    // Build URL for image endpoint
+    const params = new URLSearchParams({
+      token: this.token,
+      to: formattedPhone,
+      image: request.image,
+      ...(request.caption && { caption: request.caption }),
+      priority: String(request.priority || 10),
+    });
+
+    const url = `${this.baseUrl}/${this.instanceId}/messages/image`;
+
+    try {
+      console.log('🖼️ Sending WhatsApp image:', {
+        to: formattedPhone.substring(0, 7) + '****',
+        hasCaption: !!request.caption,
+        imageUrlLength: request.image.length,
+      });
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+      });
+
+      const data = await response.json();
+
+      console.log('📥 UltraMsg image response:', {
+        status: response.status,
+        ok: response.ok,
+        data,
+      });
+
+      if (!response.ok) {
+        const error = data as UltraMsgErrorResponse;
+        const errorMsg = error.message || error.error || JSON.stringify(data);
+        console.error('❌ UltraMsg Image API Error:', errorMsg);
+        throw new Error(`UltraMsg Image API Error: ${errorMsg}`);
+      }
+
+      if (data.sent === 'true' || data.sent === true) {
+        console.log('✅ Image sent successfully:', data.id || data.chatId);
+        return {
+          sent: true,
+          message: data.message || 'Image sent successfully',
+          id: data.id || data.chatId,
+        };
+      }
+
+      return data as UltraMsgSendResponse;
+    } catch (error) {
+      console.error('❌ Error in sendImage:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred while sending image');
     }
   }
 

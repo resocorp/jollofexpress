@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ShoppingCart, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,10 +41,13 @@ export function Header() {
         {/* Center: Logo */}
         <Link href="/menu" className="flex items-center space-x-1.5 sm:space-x-2 absolute left-1/2 transform -translate-x-1/2">
           {info?.logo_url ? (
-            <img 
+            <Image 
               src={info.logo_url} 
               alt={info.name || 'Restaurant Logo'} 
+              width={40}
+              height={40}
               className="h-8 w-8 sm:h-10 sm:w-10 object-cover rounded-full"
+              priority
             />
           ) : (
             <div className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#FF4433] text-white font-bold text-sm sm:text-base">

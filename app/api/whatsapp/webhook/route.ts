@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { handleIncomingMessage } from '@/lib/whatsapp/conversation-handler-v2';
 import { logMessage, parseWebhookPayload } from '@/lib/whatsapp';
 import { UltraMsgClient } from '@/lib/notifications/ultramsg-client';
-import type { UltraMsgWebhookPayload } from '@/lib/whatsapp/types';
+import type { UltraMsgWebhookPayload, WhatsAppResponse } from '@/lib/whatsapp/types';
 
 /**
  * POST - Handle incoming WhatsApp messages from Ultra MSG webhook
@@ -42,10 +42,10 @@ export async function POST(request: NextRequest) {
       text: parsedMessage.text?.substring(0, 50),
     });
     
-    // Process the message and get responses
+    // Process the message and get responses (now supports text and image)
     const responses = await handleIncomingMessage(parsedMessage);
     
-    // Send responses via Ultra MSG
+    // Send responses via Ultra MSG (supports both text and images)
     await sendResponses(parsedMessage.phone, responses);
     
     return NextResponse.json({ 
@@ -91,8 +91,9 @@ export async function GET(request: NextRequest) {
 
 /**
  * Send multiple response messages to a phone number
+ * Supports both text and image responses
  */
-async function sendResponses(phone: string, messages: string[]): Promise<void> {
+async function sendResponses(phone: string, responses: WhatsAppResponse[]): Promise<void> {
   const instanceId = process.env.ULTRAMSG_INSTANCE_ID;
   const token = process.env.ULTRAMSG_TOKEN;
   
@@ -104,33 +105,52 @@ async function sendResponses(phone: string, messages: string[]): Promise<void> {
   const client = new UltraMsgClient(instanceId, token);
   
   // Send messages with small delay between them
-  for (let i = 0; i < messages.length; i++) {
-    const message = messages[i];
+  for (let i = 0; i < responses.length; i++) {
+    const response = responses[i];
     
     try {
-      console.log(`📤 Sending response ${i + 1}/${messages.length} to ${phone.substring(0, 7)}****`);
+      console.log(`📤 Sending response ${i + 1}/${responses.length} (${response.type}) to ${phone.substring(0, 7)}****`);
       
-      await client.sendMessage({
-        to: phone,
-        body: message,
-      });
-      
-      // Log outbound message
-      await logMessage(
-        null,
-        phone,
-        'outbound',
-        message,
-        { messageType: 'text' }
-      );
+      if (response.type === 'image') {
+        // Send image message
+        await client.sendImage({
+          to: phone,
+          image: response.imageUrl,
+          caption: response.caption,
+        });
+        
+        // Log outbound image
+        await logMessage(
+          null,
+          phone,
+          'outbound',
+          response.caption || '[Image]',
+          { messageType: 'image', mediaUrl: response.imageUrl }
+        );
+      } else {
+        // Send text message
+        await client.sendMessage({
+          to: phone,
+          body: response.message,
+        });
+        
+        // Log outbound message
+        await logMessage(
+          null,
+          phone,
+          'outbound',
+          response.message,
+          { messageType: 'text' }
+        );
+      }
       
       // Small delay between messages to preserve order
-      if (i < messages.length - 1) {
+      if (i < responses.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       
     } catch (error) {
-      console.error(`Error sending message ${i + 1}:`, error);
+      console.error(`Error sending response ${i + 1}:`, error);
     }
   }
 }

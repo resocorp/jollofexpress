@@ -177,7 +177,23 @@ export interface ParsedCommand {
   raw: string;
 }
 
-// Response to send back
+// Response types for WhatsApp messages
+export type WhatsAppResponseType = 'text' | 'image';
+
+export interface TextResponse {
+  type: 'text';
+  message: string;
+}
+
+export interface ImageResponse {
+  type: 'image';
+  imageUrl: string;
+  caption?: string;
+}
+
+export type WhatsAppResponse = TextResponse | ImageResponse;
+
+// Response to send back (legacy)
 export interface BotResponse {
   message: string;
   newState?: ConversationState;
