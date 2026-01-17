@@ -1,0 +1,17 @@
+# Target modern browsers only to reduce polyfills
+# This eliminates polyfills for Array.prototype.at, flat, flatMap, etc.
+
+# Production: Modern browsers from last 2 years
+[production]
+last 2 Chrome versions
+last 2 Firefox versions
+last 2 Safari versions
+last 2 Edge versions
+not dead
+not op_mini all
+
+# Development: Latest browsers for faster builds
+[development]
+last 1 Chrome version
+last 1 Firefox version
+last 1 Safari version

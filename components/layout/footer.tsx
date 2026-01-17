@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Facebook, Instagram, MessageCircle, MapPin, Clock } from 'lucide-react';
 import { useRestaurantInfo, useRestaurantStatus } from '@/hooks/use-settings';
 import { Button } from '@/components/ui/button';
@@ -67,15 +68,19 @@ export function Footer() {
           <div className="space-y-3 sm:space-y-4">
             <div className="flex items-center space-x-2">
               {info?.logo_url ? (
-                <img
+                <Image
                   src={info.logo_url}
                   alt={info.name || 'Restaurant Logo'}
+                  width={48}
+                  height={48}
                   className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-full"
                 />
               ) : (
-                <img
-                  src="/logo.png"
+                <Image
+                  src="/logo.webp"
                   alt="Ur' Shawarma Express Logo"
+                  width={48}
+                  height={48}
                   className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
                 />
               )}
