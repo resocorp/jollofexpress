@@ -110,7 +110,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Preconnect to external origins for faster resource loading */}
-        <link rel="preconnect" href="https://pijgeuspfgcccoxtjnby.supabase.co" />
+        <link rel="preconnect" href="https://pijgeuspfgcccoxtjnby.supabase.co" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://pijgeuspfgcccoxtjnby.supabase.co" />
         <RestaurantJsonLd />
         <WebsiteJsonLd />

@@ -56,7 +56,7 @@ export function BottomNav() {
                 onClick={item.action}
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 transition-all duration-200 touch-manipulation active:bg-gray-100",
-                  isActive ? "text-[#FF4433]" : "text-gray-600"
+                  isActive ? "text-[#D32F2F]" : "text-gray-600"
                 )}
               >
                 <motion.div
@@ -67,7 +67,7 @@ export function BottomNav() {
                   {isActive && (
                     <motion.div
                       layoutId="activeIndicator"
-                      className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#FF4433] rounded-full"
+                      className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#D32F2F] rounded-full"
                     />
                   )}
                 </motion.div>
@@ -87,7 +87,7 @@ export function BottomNav() {
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 transition-all duration-200 touch-manipulation active:bg-gray-100",
-                isActive ? "text-[#FF4433]" : "text-gray-600"
+                isActive ? "text-[#D32F2F]" : "text-gray-600"
               )}
             >
               <motion.div
@@ -98,7 +98,7 @@ export function BottomNav() {
                 {isActive && (
                   <motion.div
                     layoutId="activeIndicator"
-                    className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#FF4433] rounded-full"
+                    className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#D32F2F] rounded-full"
                   />
                 )}
               </motion.div>
@@ -120,7 +120,7 @@ export function BottomNav() {
             <motion.div
               key={`bar-${item.label}`}
               layoutId="bottomNavBar"
-              className="absolute top-0 h-0.5 bg-[#FF4433] rounded-full"
+              className="absolute top-0 h-0.5 bg-[#D32F2F] rounded-full"
               style={{
                 left: `${(index / navItems.length) * 100}%`,
                 width: `${100 / navItems.length}%`,

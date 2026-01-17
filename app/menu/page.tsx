@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Loader2, TrendingUp, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useMenu } from '@/hooks/use-menu';
 import { useCartCleanup } from '@/hooks/use-cart-cleanup';
@@ -80,6 +80,11 @@ export default function MenuPage() {
                   </TabsTrigger>
                 ))}
               </TabsList>
+              {/* Hidden TabsContent elements for ARIA compliance */}
+              <TabsContent value="all" className="hidden" />
+              {menu?.categories.map((category) => (
+                <TabsContent key={category.id} value={category.id} className="hidden" />
+              ))}
             </Tabs>
           </div>
         </motion.div>

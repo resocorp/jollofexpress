@@ -64,7 +64,7 @@ export function Header() {
           {/* Cart Button */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="relative h-9 w-9 sm:h-10 sm:w-10 p-0 touch-manipulation">
+              <Button variant="ghost" size="sm" className="relative h-9 w-9 sm:h-10 sm:w-10 p-0 touch-manipulation" aria-label="Shopping cart">
                 <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
                 {mounted && itemCount > 0 && (
                   <Badge

@@ -74,6 +74,7 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                   sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                   priority={index < 4}
+                  fetchPriority={index < 4 ? "high" : "auto"}
                 />
               </motion.div>
             ) : (
@@ -103,6 +104,7 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
                   e.stopPropagation();
                   setIsFavorite(!isFavorite);
                 }}
+                aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
                 className={cn(
                   "p-2 sm:p-2.5 rounded-full backdrop-blur-sm shadow-lg transition-all duration-300 touch-manipulation",
                   isFavorite 
@@ -155,15 +157,15 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
                   )}
                   {item.promo_price ? (
                     <>
-                      <span className="text-lg sm:text-[22px] font-bold text-[#FF4433]">
+                      <span className="text-lg sm:text-[22px] font-bold text-[#D32F2F]">
                         {formatCurrency(item.promo_price)}
                       </span>
-                      <span className="text-xs sm:text-sm text-[#999] line-through">
+                      <span className="text-xs sm:text-sm text-gray-500 line-through">
                         {formatCurrency(item.base_price)}
                       </span>
                     </>
                   ) : (
-                    <span className="text-lg sm:text-[22px] font-bold text-[#FF4433]">
+                    <span className="text-lg sm:text-[22px] font-bold text-[#D32F2F]">
                       {formatCurrency(item.base_price)}
                     </span>
                   )}
