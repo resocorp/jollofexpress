@@ -50,30 +50,17 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   commands.push(CHAR_SET_USA); // Set character set
   commands.push(LINE_SPACING_NARROW); // Narrow line spacing
   
-  // Header
-  commands.push(ALIGN_CENTER);
-  commands.push(LARGE);
-  commands.push("UR' SHAWARMA EXPRESS" + LF);
-  commands.push(NORMAL);
-  commands.push(line('=', 48) + LF);
-  commands.push(LF);
-  
-  // Order info - Make order number prominent
+  // Row 1: Header with URL (bold)
   commands.push(ALIGN_CENTER);
   commands.push(BOLD_ON);
-  commands.push(LARGE);
-  commands.push(`ORDER #${receipt.orderNumber}` + LF);
-  commands.push(NORMAL);
+  commands.push('https://myshawarma.express' + LF);
   commands.push(BOLD_OFF);
-  commands.push(LF);
-  commands.push(ALIGN_LEFT);
-  commands.push(`Date: ${receipt.orderDate} ${receipt.orderTime}` + LF);
   commands.push(line('-', 48) + LF);
-  commands.push(LF);
   
-  // Customer details - LARGER text for important info
+  // Row 2: Customer contact details - LARGE for dispatch readability
+  commands.push(ALIGN_LEFT);
   commands.push(BOLD_ON);
-  commands.push(DOUBLE_HEIGHT);
+  commands.push(LARGE);
   commands.push(`${receipt.customerName}` + LF);
   commands.push(`${receipt.customerPhone}` + LF);
   commands.push(NORMAL);
@@ -82,6 +69,15 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
     commands.push(`Alt: ${receipt.customerPhoneAlt}` + LF);
   }
   commands.push(`${receipt.orderType.toUpperCase()}` + LF);
+  commands.push(line('-', 48) + LF);
+  
+  // Row 4: Order number and date
+  commands.push(ALIGN_CENTER);
+  commands.push(BOLD_ON);
+  commands.push(`ORDER #${receipt.orderNumber}` + LF);
+  commands.push(BOLD_OFF);
+  commands.push(`${receipt.orderDate} ${receipt.orderTime}` + LF);
+  commands.push(ALIGN_LEFT);
   
   // Delivery address - LARGER text
   if (receipt.orderType === 'delivery' && receipt.deliveryAddress) {
@@ -171,17 +167,9 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   commands.push(line('=', 48) + LF);
   commands.push(LF);
   
-  // Concise footer
-  commands.push(LF);
+  // Compact footer: Thank you + phone on one line
   commands.push(ALIGN_CENTER);
-  commands.push(BOLD_ON);
-  commands.push(DOUBLE_HEIGHT);
-  commands.push('Thank You!' + LF);
-  commands.push(NORMAL);
-  commands.push(BOLD_OFF);
-  commands.push('Order again: myshawarma.express' + LF);
-  commands.push('+2348106828147' + LF);
-  commands.push(line('=', 48) + LF);
+  commands.push('Thank You! +2348106828147' + LF);
   
   // Feed and cut
   commands.push(LF + LF + LF);

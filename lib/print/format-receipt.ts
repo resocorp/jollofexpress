@@ -166,28 +166,22 @@ export function formatReceiptText(receipt: ReceiptData): string {
     return left + ' '.repeat(spacing) + right;
   };
 
-  // Header
-  lines.push(line());
-  lines.push(center("UR' SHAWARMA EXPRESS"));
-  lines.push(line());
-  lines.push('');
-  
-  // Order info - Make order number prominent
-  lines.push(center(`ORDER #${receipt.orderNumber}`));
-  lines.push('');
-  lines.push(`Date: ${receipt.orderDate} ${receipt.orderTime}`);
+  // Row 1: Header with URL
+  lines.push(center('https://myshawarma.express'));
   lines.push(line('-'));
-  lines.push('');
   
-  // Customer details
-  lines.push('CUSTOMER DETAILS');
-  lines.push(`Name: ${receipt.customerName}`);
-  lines.push(`Phone: ${receipt.customerPhone}`);
+  // Row 2: Customer contact details (prominent)
+  lines.push(`${receipt.customerName}`);
+  lines.push(`${receipt.customerPhone}`);
   if (receipt.customerPhoneAlt) {
     lines.push(`Alt: ${receipt.customerPhoneAlt}`);
   }
-  lines.push(`Type: ${receipt.orderType.toUpperCase()}`);
-  lines.push('');
+  lines.push(`${receipt.orderType.toUpperCase()}`);
+  lines.push(line('-'));
+  
+  // Row 4: Order number and date
+  lines.push(center(`ORDER #${receipt.orderNumber}`));
+  lines.push(center(`${receipt.orderDate} ${receipt.orderTime}`));
   
   // Delivery address
   if (receipt.orderType === 'delivery' && receipt.deliveryAddress) {
@@ -283,19 +277,8 @@ export function formatReceiptText(receipt: ReceiptData): string {
   lines.push(line('-'));
   lines.push('');
   
-  // Marketing copy and thank you message
-  lines.push(center('Thank You!'));
-  lines.push('');
-  lines.push(center('We appreciate your order!'));
-  lines.push(center('Enjoy the best Nigerian shawarma'));
-  lines.push(center('made with love.'));
-  lines.push('');
-  lines.push(line('-'));
-  lines.push(center('Order again: www.urshawarma.ng'));
-  lines.push(center('Follow us @urshawarma'));
-  lines.push('');
-  lines.push(center('REFER A FRIEND & GET 10% OFF!'));
-  lines.push(line('='));
+  // Compact footer: Thank you + phone on one line
+  lines.push(center('Thank You! +2348106828147'));
 
   return lines.join('\n');
 }

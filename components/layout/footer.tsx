@@ -126,7 +126,7 @@ export function Footer() {
             <ul className="space-y-2 sm:space-y-3">
               <li className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground">
                 <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0 text-orange-600" />
-                <span>Aroma Junction, Awka, Anambra State, Nigeria</span>
+                <span>Solution Arena, Abakaliki Street, Awka.</span>
               </li>
               <li className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                 <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-green-600" />
@@ -135,14 +135,6 @@ export function Footer() {
                 </a>
               </li>
             </ul>
-            <a 
-              href="https://myshawarma.express/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-xs sm:text-sm text-orange-600 hover:text-orange-700 font-medium"
-            >
-              myshawarma.express →
-            </a>
           </div>
 
           {/* Social Media & Newsletter */}
