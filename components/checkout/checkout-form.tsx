@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Clock, AlertCircle, MapPin } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,8 +16,9 @@ import { useCreateOrder } from '@/hooks/use-orders';
 import { useDeliverySettings, usePaymentSettings, useRestaurantStatus } from '@/hooks/use-settings';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
+import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LocationPicker } from '@/components/tracking/location-picker';
+import { LocationShareButton } from './location-share-button';
 
 interface CheckoutFormProps {
   onSubmitExposed?: (submitFn: () => void) => void;
@@ -36,7 +37,6 @@ export function CheckoutForm({
   const { data: restaurantStatus } = useRestaurantStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerLocation, setCustomerLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null);
-  const [showLocationPicker, setShowLocationPicker] = useState(false);
   // Payment method is always 'paystack' (online only)
   const paymentMethod = 'paystack' as const;
 
@@ -161,7 +161,6 @@ export function CheckoutForm({
         customer_phone_alt: data.phoneAlt || undefined,
         customer_latitude: customerLocation?.latitude,
         customer_longitude: customerLocation?.longitude,
-        customer_location_address: customerLocation?.address,
         payment_method_type: paymentMethod,
         subtotal,
         delivery_fee: deliveryFee,
@@ -359,89 +358,16 @@ export function CheckoutForm({
             {errors.fullAddress && <p className="text-sm text-destructive">{errors.fullAddress.message}</p>}
           </div>
 
-          {/* Optional Location Sharing */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <MapPin className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-blue-900">Share Your Location (Optional)</p>
-                <p className="text-xs text-blue-700 mt-1">
-                  Help us deliver faster by sharing your precise location. This helps us understand where our customers are and optimize our delivery routes.
-                </p>
-              </div>
-            </div>
-            
-            {!showLocationPicker && !customerLocation && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowLocationPicker(true)}
-                className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
-              >
-                <MapPin className="h-4 w-4 mr-2" />
-                Share My Location
-              </Button>
-            )}
-
-            {showLocationPicker && (
-              <div className="space-y-2">
-                <LocationPicker
-                  onLocationSelect={(location) => {
-                    setCustomerLocation(location);
-                    setShowLocationPicker(false);
-                    toast.success('Location shared successfully!');
-                  }}
-                  initialLocation={customerLocation || undefined}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setShowLocationPicker(false)}
-                  className="w-full text-sm"
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-
-            {customerLocation && !showLocationPicker && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-green-900">✓ Location Shared</p>
-                    {customerLocation.address && (
-                      <p className="text-xs text-green-700 mt-1 break-words">{customerLocation.address}</p>
-                    )}
-                    <p className="text-xs text-green-600 mt-1">
-                      {customerLocation.latitude.toFixed(6)}, {customerLocation.longitude.toFixed(6)}
-                    </p>
-                  </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowLocationPicker(true)}
-                      className="h-8 px-2 text-xs"
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setCustomerLocation(null);
-                        toast.info('Location removed');
-                      }}
-                      className="h-8 px-2 text-xs text-red-600 hover:text-red-700"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
+          {/* Location Sharing - Optional */}
+          <div className="pt-2">
+            <LocationShareButton
+              onLocationCaptured={(location) => {
+                setCustomerLocation(location ? {
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                } : null);
+              }}
+            />
           </div>
 
         </CardContent>
