@@ -29,7 +29,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { formatCurrency } from '@/lib/formatters';
-import { Search, Eye, Package, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Search, Eye, Package, Clock, CheckCircle, XCircle, Loader2, MapPin } from 'lucide-react';
 import type { OrderWithItems, OrderStatus, PaymentStatus } from '@/types/database';
 import { toast } from 'sonner';
 
@@ -264,6 +264,35 @@ export default function AdminOrdersPage() {
                   </div>
                 )}
               </div>
+
+              {/* Customer Location (if shared) */}
+              {selectedOrder.customer_latitude && selectedOrder.customer_longitude && (
+                <div className="border rounded-lg p-4 bg-blue-50">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-blue-900 mb-2">Customer Location Shared</h3>
+                      {selectedOrder.customer_location_address && (
+                        <p className="text-sm text-blue-800 mb-2">{selectedOrder.customer_location_address}</p>
+                      )}
+                      <div className="flex flex-col sm:flex-row gap-2 text-sm">
+                        <a
+                          href={`https://www.google.com/maps?q=${selectedOrder.customer_latitude},${selectedOrder.customer_longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          <MapPin className="h-4 w-4 mr-1" />
+                          View on Google Maps
+                        </a>
+                        <span className="text-blue-700">
+                          ({selectedOrder.customer_latitude.toFixed(6)}, {selectedOrder.customer_longitude.toFixed(6)})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Order Items */}
               <div>

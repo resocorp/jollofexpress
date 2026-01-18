@@ -112,6 +112,7 @@ export interface Order {
   assigned_driver_id?: string;
   customer_latitude?: number;
   customer_longitude?: number;
+  customer_location_address?: string;
   driver_pickup_time?: string;
   delivery_start_time?: string;
   delivery_completion_time?: string;
