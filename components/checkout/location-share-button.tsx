@@ -1,9 +1,23 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { MapPin, Check, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Dynamic import for map component (Leaflet requires client-side only)
+const LocationMap = dynamic(
+  () => import('./location-map').then((mod) => mod.LocationMap),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[250px] rounded-lg bg-gray-100 animate-pulse flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      </div>
+    ),
+  }
+);
 
 interface LocationData {
   latitude: number;
@@ -74,8 +88,18 @@ export function LocationShareButton({ onLocationCaptured, className }: LocationS
     onLocationCaptured(null);
   }, [onLocationCaptured]);
 
+  const handleLocationChange = useCallback((lat: number, lng: number) => {
+    const updatedLocation: LocationData = {
+      latitude: lat,
+      longitude: lng,
+    };
+    setLocation(updatedLocation);
+    onLocationCaptured(updatedLocation);
+  }, [onLocationCaptured]);
+
   return (
-    <div className={cn('space-y-2', className)}>
+    <div className={cn('space-y-3', className)}>
+      {/* Location button or status */}
       <div className="flex items-center gap-2">
         {status === 'success' && location ? (
           <>
@@ -122,13 +146,26 @@ export function LocationShareButton({ onLocationCaptured, className }: LocationS
         )}
       </div>
 
+      {/* Error message */}
       {status === 'error' && errorMessage && (
         <p className="text-xs text-red-600">{errorMessage}</p>
       )}
 
-      <p className="text-xs text-muted-foreground">
-        📍 Optional: Share your precise location to help us deliver faster
-      </p>
+      {/* Map display when location is captured */}
+      {status === 'success' && location && (
+        <LocationMap
+          latitude={location.latitude}
+          longitude={location.longitude}
+          onLocationChange={handleLocationChange}
+        />
+      )}
+
+      {/* Helper text */}
+      {status !== 'success' && (
+        <p className="text-xs text-muted-foreground">
+          📍 Optional: Share your precise location to help us deliver faster
+        </p>
+      )}
     </div>
   );
 }
