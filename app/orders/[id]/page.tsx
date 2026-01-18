@@ -2,19 +2,35 @@
 
 import { use, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { OrderTracker } from '@/components/orders/order-tracker';
 import { OrderDetails } from '@/components/orders/order-details';
 import { useOrder, useVerifyPayment } from '@/hooks/use-orders';
 import { Loader2, CheckCircle2, XCircle, ShoppingCart } from 'lucide-react';
-import { LiveMap } from '@/components/tracking/live-map';
 import { useDriverLocation } from '@/hooks/use-drivers';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
+
+// Dynamic import for LiveMap to prevent chunk loading errors after deployments
+// Mapbox GL is a large library that gets code-split and can fail to load if chunks change
+const LiveMap = dynamic(
+  () => import('@/components/tracking/live-map').then((mod) => mod.LiveMap),
+  { 
+    ssr: false,
+    loading: () => (
+      <Card>
+        <CardContent className="h-64 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    ),
+  }
+);
 
 interface PageProps {
   params: Promise<{ id: string }>;

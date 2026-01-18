@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import "@/lib/env-validator"; // Validate environment on startup
 import { GoogleAnalytics } from "@/components/analytics";
 import { RestaurantJsonLd, WebsiteJsonLd } from "@/components/analytics";
+import { ChunkErrorHandler } from "@/components/chunk-error-handler";
 
 export const metadata: Metadata = {
   title: {
@@ -120,6 +121,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <QueryProvider>
+          <ChunkErrorHandler />
           {children}
           <Toaster />
           <GoogleAnalytics />
