@@ -167,8 +167,15 @@ export async function POST(request: NextRequest) {
       total: orderData.total,
       order_type: orderData.order_type,
       items_count: orderData.items.length,
-      promo_code: orderData.promo_code, // Added promo code logging
+      promo_code: orderData.promo_code,
       calculated_total: orderData.subtotal + orderData.delivery_fee + orderData.tax - orderData.discount
+    });
+    
+    // Debug logging for location data
+    console.log('[ORDER CREATE] Location data:', {
+      customer_latitude: orderData.customer_latitude,
+      customer_longitude: orderData.customer_longitude,
+      has_location: !!(orderData.customer_latitude && orderData.customer_longitude)
     });
     
     // CHECK 0: Check if within operating hours (but allow orders to be scheduled)

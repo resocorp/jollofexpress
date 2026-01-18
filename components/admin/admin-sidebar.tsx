@@ -15,12 +15,12 @@ import {
   Bike,
   Truck,
   Car,
-  Users
+  Users,
+  MapPin,
+  UserRound
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-
-import { MapPin } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -28,6 +28,7 @@ const navigation = [
   { name: 'Menu Items', href: '/admin/menu', icon: UtensilsCrossed },
   { name: 'Categories', href: '/admin/menu/categories', icon: Tag },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
+  { name: 'Customers', href: '/admin/customers', icon: UserRound },
   { name: 'Delivery Regions', href: '/admin/delivery-regions', icon: MapPin },
   { name: 'Delivery', href: '/admin/delivery', icon: Truck },
   { name: 'Drivers', href: '/admin/drivers', icon: Bike },

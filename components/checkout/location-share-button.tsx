@@ -52,6 +52,7 @@ export function LocationShareButton({ onLocationCaptured, className }: LocationS
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
         };
+        console.log('[LOCATION] Captured:', locationData);
         setLocation(locationData);
         setStatus('success');
         onLocationCaptured(locationData);

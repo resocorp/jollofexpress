@@ -150,6 +150,8 @@ export function CheckoutForm({
       const customerEmail = data.email?.trim() || 'maintegraventures@gmail.com';
 
       // Create order
+      console.log('[CHECKOUT] Customer location state:', customerLocation);
+      
       const orderData = {
         customer_name: data.name,
         customer_phone: data.phone,
@@ -255,7 +257,7 @@ export function CheckoutForm({
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onSubmitExposed, orderType, discount, promoCode, subtotal, total, deliveryFee, tax]);
+  }, [onSubmitExposed, orderType, discount, promoCode, subtotal, total, deliveryFee, tax, customerLocation]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit, handleFormError)} className="space-y-6">
@@ -362,6 +364,7 @@ export function CheckoutForm({
           <div className="pt-2">
             <LocationShareButton
               onLocationCaptured={(location) => {
+                console.log('[CHECKOUT] Location captured from button:', location);
                 setCustomerLocation(location ? {
                   latitude: location.latitude,
                   longitude: location.longitude,
