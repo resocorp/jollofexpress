@@ -318,16 +318,17 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // DISABLED: WhatsApp ordering system
         // Send WhatsApp confirmation for WhatsApp orders
-        if (completeOrder?.order_source === 'whatsapp') {
-          try {
-            const { handlePaymentConfirmation } = await import('@/lib/whatsapp');
-            await handlePaymentConfirmation(orderId, true);
-            console.log(`WhatsApp confirmation sent for order ${orderId}`);
-          } catch (whatsappError) {
-            console.error('Failed to send WhatsApp confirmation:', whatsappError);
-          }
-        }
+        // if (completeOrder?.order_source === 'whatsapp') {
+        //   try {
+        //     const { handlePaymentConfirmation } = await import('@/lib/whatsapp');
+        //     await handlePaymentConfirmation(orderId, true);
+        //     console.log(`WhatsApp confirmation sent for order ${orderId}`);
+        //   } catch (whatsappError) {
+        //     console.error('Failed to send WhatsApp confirmation:', whatsappError);
+        //   }
+        // }
 
         // Send new order alert to admins
         if (completeOrder) {

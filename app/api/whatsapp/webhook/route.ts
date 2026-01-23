@@ -1,14 +1,27 @@
 // WhatsApp Webhook Endpoint - Receives messages from Ultra MSG
+// ⚠️ WHATSAPP ORDERING SYSTEM IS CURRENTLY DISABLED
 import { NextRequest, NextResponse } from 'next/server';
 import { handleIncomingMessage } from '@/lib/whatsapp/conversation-handler-v2';
 import { logMessage, parseWebhookPayload } from '@/lib/whatsapp';
 import { UltraMsgClient } from '@/lib/notifications/ultramsg-client';
 import type { UltraMsgWebhookPayload, WhatsAppResponse } from '@/lib/whatsapp/types';
 
+// Set to true to enable WhatsApp ordering system
+const WHATSAPP_ORDERING_ENABLED = false;
+
 /**
  * POST - Handle incoming WhatsApp messages from Ultra MSG webhook
  */
 export async function POST(request: NextRequest) {
+  // WhatsApp ordering is disabled
+  if (!WHATSAPP_ORDERING_ENABLED) {
+    return NextResponse.json({ 
+      received: true, 
+      status: 'disabled',
+      message: 'WhatsApp ordering system is currently disabled' 
+    });
+  }
+
   try {
     const body = await request.json();
     
@@ -68,6 +81,15 @@ export async function POST(request: NextRequest) {
  * GET - Webhook verification (if needed by Ultra MSG)
  */
 export async function GET(request: NextRequest) {
+  // Return disabled status
+  if (!WHATSAPP_ORDERING_ENABLED) {
+    return NextResponse.json({ 
+      status: 'WhatsApp ordering system is disabled',
+      enabled: false,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   const { searchParams } = new URL(request.url);
   
   // Some services require webhook verification

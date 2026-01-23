@@ -12,7 +12,8 @@ import { Footer } from '@/components/layout/footer';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { MenuItemCard } from '@/components/menu/menu-item-card-modern';
 import { ChristmasPromoBanner } from '@/components/menu/christmas-promo-banner';
-import { WhatsAppFloat } from '@/components/shared/whatsapp-float';
+// DISABLED: WhatsApp ordering system
+// import { WhatsAppFloat } from '@/components/shared/whatsapp-float';
 import { FloatingCartBadge } from '@/components/cart/floating-cart-badge';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -140,7 +141,8 @@ export default function MenuPage() {
       <Footer />
 
       {/* Floating Elements */}
-      <WhatsAppFloat />
+      {/* DISABLED: WhatsApp ordering system */}
+      {/* <WhatsAppFloat /> */}
       <FloatingCartBadge />
       
       {/* Bottom Navigation (Mobile Only) */}
