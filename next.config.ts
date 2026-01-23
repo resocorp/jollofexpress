@@ -59,11 +59,11 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.googletagmanager.com https://www.google-analytics.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paystack.co https://api.ultramsg.com https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paystack.co https://api.ultramsg.com https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://www.google-analytics.com https://www.googletagmanager.com",
               "media-src 'self' data: blob:",
               "worker-src 'self' blob:",
               "child-src 'self' blob:",
