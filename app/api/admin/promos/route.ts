@@ -15,6 +15,7 @@ const promoSchema = z.object({
   usage_limit: z.number().int().positive().optional(),
   expiry_date: z.string().datetime().optional(),
   is_active: z.boolean().optional(),
+  influencer_id: z.string().uuid().optional(),
 });
 
 // GET - List all promo codes with actual usage from promo_code_usage table

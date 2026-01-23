@@ -206,6 +206,8 @@ export default function InfluencersPage() {
                     <TableRow>
                       <TableHead>Influencer</TableHead>
                       <TableHead>Promo Code</TableHead>
+                      <TableHead>Discount</TableHead>
+                      <TableHead>Usage</TableHead>
                       <TableHead>Commission</TableHead>
                       <TableHead>Orders</TableHead>
                       <TableHead>Revenue</TableHead>
@@ -214,7 +216,14 @@ export default function InfluencersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {influencers.map((influencer: any) => (
+                    {influencers.map((influencer: any) => {
+                      const promoCode = influencer.promo_codes?.[0];
+                      const isExpired = promoCode?.expiry_date && new Date(promoCode.expiry_date) < new Date();
+                      const usagePercent = promoCode?.usage_limit 
+                        ? Math.round((promoCode.used_count / promoCode.usage_limit) * 100)
+                        : null;
+                      
+                      return (
                       <TableRow key={influencer.id}>
                         <TableCell>
                           <div>
@@ -223,9 +232,61 @@ export default function InfluencersPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <code className="bg-muted px-2 py-1 rounded text-sm">
-                            {influencer.promo_codes?.[0]?.code || 'N/A'}
-                          </code>
+                          {promoCode ? (
+                            <div>
+                              <code className="bg-muted px-2 py-1 rounded text-sm font-medium">
+                                {promoCode.code}
+                              </code>
+                              {isExpired && (
+                                <Badge variant="destructive" className="ml-2 text-[10px]">Expired</Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">No code</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {promoCode ? (
+                            <div className="text-sm">
+                              <p className="font-medium">
+                                {promoCode.discount_type === 'percentage'
+                                  ? `${promoCode.discount_value}%`
+                                  : formatCurrency(promoCode.discount_value)}
+                              </p>
+                              {promoCode.max_discount && promoCode.discount_type === 'percentage' && (
+                                <p className="text-xs text-muted-foreground">
+                                  Max: {formatCurrency(promoCode.max_discount)}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {promoCode ? (
+                            <div className="text-sm">
+                              <p className="font-medium">
+                                {promoCode.used_count || 0}
+                                {promoCode.usage_limit && ` / ${promoCode.usage_limit}`}
+                              </p>
+                              {usagePercent !== null && (
+                                <div className="w-16 h-1.5 bg-muted rounded-full mt-1">
+                                  <div 
+                                    className={`h-full rounded-full ${usagePercent >= 90 ? 'bg-destructive' : usagePercent >= 70 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                                    style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                                  />
+                                </div>
+                              )}
+                              {promoCode.expiry_date && (
+                                <p className={`text-xs ${isExpired ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                  {isExpired ? 'Expired' : 'Exp'}: {new Date(promoCode.expiry_date).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {influencer.commission_type === 'percentage'
@@ -270,7 +331,8 @@ export default function InfluencersPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               ) : (

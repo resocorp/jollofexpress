@@ -129,13 +129,6 @@ export default function AdminLoginPage() {
               )}
             </Button>
           </form>
-
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            <p>Default credentials:</p>
-            <p className="font-mono text-xs mt-1">
-              admin@jollofexpress.app / Admin@123
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
