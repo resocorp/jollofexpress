@@ -135,7 +135,7 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
           </div>
 
           {/* Content Section */}
-          <CardContent className="p-3 sm:p-5 flex-grow flex flex-col gap-2 sm:gap-3">
+          <CardContent className="p-2 sm:p-4 flex-grow flex flex-col gap-1 sm:gap-2">
             {/* Item Name */}
             <h3 className="font-semibold text-base sm:text-xl leading-tight line-clamp-2 group-hover:text-primary transition-colors">
               {item.name}
@@ -149,7 +149,7 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
             )}
 
             {/* Price Row */}
-            <div className="flex items-center justify-between mt-auto pt-1 sm:pt-2">
+            <div className="flex items-center justify-between mt-auto">
               <div className="flex flex-col gap-0.5 sm:gap-1">
                 <div className="flex items-baseline gap-1 flex-wrap">
                   {hasCustomizations && (
@@ -178,7 +178,7 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
           </CardContent>
 
           {/* Footer with Add Button */}
-          <CardFooter className="p-3 sm:p-5 pt-0">
+          <CardFooter className="p-2 sm:p-4 pt-0">
             <Button
               className="w-full group-hover:bg-primary group-hover:text-white transition-all duration-300 touch-manipulation text-xs sm:text-base min-h-[40px] sm:min-h-[44px] px-2 sm:px-4"
               variant={item.is_available ? "default" : "secondary"}

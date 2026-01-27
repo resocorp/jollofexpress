@@ -11,10 +11,11 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { MenuItemCard } from '@/components/menu/menu-item-card-modern';
-import { ChristmasPromoBanner } from '@/components/menu/christmas-promo-banner';
+import { PromoBanner } from '@/components/menu/christmas-promo-banner';
 // DISABLED: WhatsApp ordering system
 // import { WhatsAppFloat } from '@/components/shared/whatsapp-float';
 import { FloatingCartBadge } from '@/components/cart/floating-cart-badge';
+import { CartArrowIndicator } from '@/components/cart/cart-arrow-indicator';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function MenuPage() {
@@ -48,25 +49,25 @@ export default function MenuPage() {
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
       <Header />
       
-      {/* Combined Christmas Promo & Restaurant Info Banner */}
-      <ChristmasPromoBanner />
+      {/* Promo & Restaurant Info Banner */}
+      <PromoBanner />
 
       {/* Main Content */}
-      <div className="container mx-auto px-5 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-[1400px]">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-2 max-w-[1400px]">
         {/* Category Filter Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mb-8"
+          className="mb-2"
         >
           {/* Category Tabs */}
-          <div className="overflow-x-auto pb-3 -mx-5 px-5 sm:mx-0 sm:px-0 scrollbar-hide">
+          <div className="overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
             <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-              <TabsList className="inline-flex w-auto bg-white shadow-md rounded-xl p-1.5 border min-h-[48px]">
+              <TabsList className="inline-flex w-auto bg-white shadow-sm rounded-lg p-1 border min-h-[40px]">
                 <TabsTrigger 
                   value="all" 
-                  className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 font-semibold transition-all text-sm sm:text-base"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-md px-3 sm:px-4 py-2 font-semibold transition-all text-xs sm:text-sm"
                 >
                   <Flame className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                   All Items
@@ -75,7 +76,7 @@ export default function MenuPage() {
                   <TabsTrigger 
                     key={category.id} 
                     value={category.id}
-                    className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 font-semibold transition-all text-sm sm:text-base whitespace-nowrap"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-md px-3 sm:px-4 py-2 font-semibold transition-all text-xs sm:text-sm whitespace-nowrap"
                   >
                     {category.name}
                   </TabsTrigger>
@@ -93,7 +94,7 @@ export default function MenuPage() {
         {/* Menu Items by Category */}
         {filteredCategories && filteredCategories.length > 0 ? (
           <AnimatePresence mode="wait">
-            <div className="space-y-10 sm:space-y-12">
+            <div className="space-y-4 sm:space-y-6">
               {filteredCategories.map((category, catIndex) => (
                 <motion.section
                   key={category.id}
@@ -103,9 +104,9 @@ export default function MenuPage() {
                   transition={{ delay: catIndex * 0.1 }}
                 >
                   {/* Category Header */}
-                  <div className="mb-8 sm:mb-10">
-                    <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                      <h2 className="text-2xl sm:text-3xl font-semibold bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent">
+                  <div className="mb-2 sm:mb-3">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h2 className="text-xl sm:text-2xl font-semibold bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent">
                         {category.name}
                       </h2>
                       {catIndex === 0 && (
@@ -121,7 +122,7 @@ export default function MenuPage() {
                   </div>
 
                   {/* Menu Grid - Centered with max-width */}
-                  <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 auto-rows-fr">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr">
                     {category.items.map((item, itemIndex) => (
                       <MenuItemCard key={item.id} item={item} index={itemIndex} />
                     ))}
@@ -144,6 +145,7 @@ export default function MenuPage() {
       {/* DISABLED: WhatsApp ordering system */}
       {/* <WhatsAppFloat /> */}
       <FloatingCartBadge />
+      <CartArrowIndicator />
       
       {/* Bottom Navigation (Mobile Only) */}
       <BottomNav />
