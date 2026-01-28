@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { MapPin, Check, Loader2, X } from 'lucide-react';
@@ -30,10 +30,28 @@ interface LocationShareButtonProps {
   className?: string;
 }
 
+const LOCATION_ANIMATION_KEY = 'jollof_location_animation_count';
+const MAX_ANIMATION_VIEWS = 5;
+
 export function LocationShareButton({ onLocationCaptured, className }: LocationShareButtonProps) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [location, setLocation] = useState<LocationData | null>(null);
+  const [showAnimation, setShowAnimation] = useState(false);
+
+  // Check if should show animation (localStorage persistence)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const count = parseInt(localStorage.getItem(LOCATION_ANIMATION_KEY) || '0', 10);
+      setShowAnimation(count < MAX_ANIMATION_VIEWS);
+      if (count < MAX_ANIMATION_VIEWS) {
+        localStorage.setItem(LOCATION_ANIMATION_KEY, String(count + 1));
+      }
+    } catch {
+      setShowAnimation(true);
+    }
+  }, []);
 
   const handleGetLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -129,7 +147,8 @@ export function LocationShareButton({ onLocationCaptured, className }: LocationS
             disabled={status === 'loading'}
             className={cn(
               'w-full justify-start gap-2 border-dashed',
-              status === 'error' && 'border-red-300 text-red-600'
+              status === 'error' && 'border-red-300 text-red-600',
+              showAnimation && status === 'idle' && 'location-btn-animated'
             )}
           >
             {status === 'loading' ? (

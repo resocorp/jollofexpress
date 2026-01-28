@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,8 +37,14 @@ export function CheckoutForm({
   const { data: restaurantStatus } = useRestaurantStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerLocation, setCustomerLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null);
+  const [highlightedField, setHighlightedField] = useState<string | null>(null);
+  const [showFieldHighlight, setShowFieldHighlight] = useState(false);
   // Payment method is always 'paystack' (online only)
   const paymentMethod = 'paystack' as const;
+
+  // Constants for field highlight persistence
+  const FIELD_HIGHLIGHT_KEY = 'jollof_field_highlight_count';
+  const MAX_HIGHLIGHT_VIEWS = 5;
 
   // Load saved customer info from localStorage
   const getSavedCustomerInfo = () => {
@@ -70,6 +76,43 @@ export function CheckoutForm({
 
   // Check if returning customer (has saved info)
   const isReturningCustomer = !!savedInfo?.name && !!savedInfo?.phone && !!savedInfo?.fullAddress;
+
+  // Watch form values for field highlight logic
+  const watchedName = watch('name');
+  const watchedPhone = watch('phone');
+  const watchedAddress = watch('fullAddress');
+
+  // Determine which field needs attention
+  const getNextEmptyRequiredField = useCallback(() => {
+    if (!watchedName?.trim()) return 'name';
+    if (!watchedPhone?.trim()) return 'phone';
+    if (!watchedAddress?.trim()) return 'fullAddress';
+    return null;
+  }, [watchedName, watchedPhone, watchedAddress]);
+
+  // Check if should show field highlights (localStorage persistence)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const count = parseInt(localStorage.getItem(FIELD_HIGHLIGHT_KEY) || '0', 10);
+      setShowFieldHighlight(count < MAX_HIGHLIGHT_VIEWS);
+      if (count < MAX_HIGHLIGHT_VIEWS) {
+        localStorage.setItem(FIELD_HIGHLIGHT_KEY, String(count + 1));
+      }
+    } catch {
+      setShowFieldHighlight(true);
+    }
+  }, []);
+
+  // Update highlighted field when form values change
+  useEffect(() => {
+    if (!showFieldHighlight) {
+      setHighlightedField(null);
+      return;
+    }
+    const nextField = getNextEmptyRequiredField();
+    setHighlightedField(nextField);
+  }, [showFieldHighlight, getNextEmptyRequiredField]);
 
   // Order type is always delivery
   const orderType = 'delivery' as const;
@@ -317,31 +360,31 @@ export function CheckoutForm({
           </CardHeader>
           <CardContent className="space-y-4">
           {/* Name */}
-          <div className="space-y-1">
+          <div className={`space-y-1 ${showFieldHighlight ? 'field-attention' : ''}`}>
             <Label htmlFor="name">Name / Alias <span className="text-destructive">*</span></Label>
             <Input
               id="name"
               {...register('name')}
               placeholder="Your name"
-              className={errors.name ? 'border-destructive' : ''}
+              className={`${errors.name ? 'border-destructive' : ''} ${highlightedField === 'name' ? 'field-highlighted' : ''}`}
             />
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
 
           {/* Phone */}
-          <div className="space-y-1">
+          <div className={`space-y-1 ${showFieldHighlight ? 'field-attention' : ''}`}>
             <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
             <Input
               id="phone"
               {...register('phone')}
               placeholder="08012345678"
-              className={errors.phone ? 'border-destructive' : ''}
+              className={`${errors.phone ? 'border-destructive' : ''} ${highlightedField === 'phone' ? 'field-highlighted' : ''}`}
             />
             {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
           </div>
 
           {/* Email - optional */}
-          <div className="space-y-1">
+          <div className={`space-y-1 ${showFieldHighlight ? 'field-attention' : ''}`}>
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
@@ -354,14 +397,14 @@ export function CheckoutForm({
           </div>
 
           {/* Address */}
-          <div className="space-y-1">
+          <div className={`space-y-1 ${showFieldHighlight ? 'field-attention' : ''}`}>
             <Label htmlFor="fullAddress">Delivery Address <span className="text-destructive">*</span></Label>
             <Textarea
               id="fullAddress"
               {...register('fullAddress')}
               placeholder="Full address with landmark"
               rows={2}
-              className={errors.fullAddress ? 'border-destructive' : ''}
+              className={`${errors.fullAddress ? 'border-destructive' : ''} ${highlightedField === 'fullAddress' ? 'field-highlighted' : ''}`}
             />
             {errors.fullAddress && <p className="text-sm text-destructive">{errors.fullAddress.message}</p>}
           </div>

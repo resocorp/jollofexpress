@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,8 +9,36 @@ import { SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/compone
 import { useCartStore } from '@/store/cart-store';
 import { formatCurrency } from '@/lib/formatters';
 
+const CHECKOUT_ANIMATION_KEY = 'jollof_checkout_animation_count';
+const MAX_ANIMATION_VIEWS = 5;
+
 export function CartSheet() {
   const { items, removeItem, updateItemQuantity, clearCart, getSubtotal } = useCartStore();
+  const [showAnimation, setShowAnimation] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || items.length === 0) {
+      setShowAnimation(false);
+      return;
+    }
+
+    try {
+      const count = parseInt(localStorage.getItem(CHECKOUT_ANIMATION_KEY) || '0', 10);
+      if (count < MAX_ANIMATION_VIEWS) {
+        setShowAnimation(true);
+      }
+    } catch {
+      setShowAnimation(true);
+    }
+  }, [items.length]);
+
+  const handleCheckoutClick = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const count = parseInt(localStorage.getItem(CHECKOUT_ANIMATION_KEY) || '0', 10);
+      localStorage.setItem(CHECKOUT_ANIMATION_KEY, String(count + 1));
+    } catch { /* ignore */ }
+  };
 
   const subtotal = getSubtotal();
 
@@ -114,8 +143,11 @@ export function CartSheet() {
       {/* Checkout Button */}
       <div className="mt-6 space-y-2">
         <SheetClose asChild>
-          <Link href="/checkout">
-            <Button className="w-full" size="lg">
+          <Link href="/checkout" onClick={handleCheckoutClick}>
+            <Button 
+              className={`w-full ${showAnimation ? 'checkout-btn-animated' : ''}`} 
+              size="lg"
+            >
               Proceed to Checkout
             </Button>
           </Link>

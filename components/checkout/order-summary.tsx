@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,11 @@ export function OrderSummaryWithButton({
   const [validationError, setValidationError] = useState<string | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastValidatedInputRef = useRef<string | null>(null);
+  const [showPaymentAnimation, setShowPaymentAnimation] = useState(false);
+
+  // Constants for payment button animation persistence
+  const PAYMENT_ANIMATION_KEY = 'jollof_payment_animation_count';
+  const MAX_ANIMATION_VIEWS = 5;
   
   const subtotal = getSubtotal();
   const taxRate = paymentSettings?.tax_rate ?? 0;
@@ -146,6 +151,20 @@ export function OrderSummaryWithButton({
     lastValidatedInputRef.current = null;
     toast.success('Promo code removed');
   };
+
+  // Check if should show payment button animation (localStorage persistence)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const count = parseInt(localStorage.getItem(PAYMENT_ANIMATION_KEY) || '0', 10);
+      setShowPaymentAnimation(count < MAX_ANIMATION_VIEWS);
+      if (count < MAX_ANIMATION_VIEWS) {
+        localStorage.setItem(PAYMENT_ANIMATION_KEY, String(count + 1));
+      }
+    } catch {
+      setShowPaymentAnimation(true);
+    }
+  }, []);
 
   return (
     <Card className="border-2 shadow-lg overflow-hidden">
@@ -321,7 +340,7 @@ export function OrderSummaryWithButton({
             onClick={onSubmit}
             size="lg" 
             disabled={isSubmitting || isBelowMinimum || isLoadingSettings}
-            className="w-full min-h-[56px] bg-gradient-to-r from-amber-900 to-red-900 hover:from-amber-800 hover:to-red-800 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all"
+            className={`w-full min-h-[56px] bg-gradient-to-r from-amber-900 to-red-900 hover:from-amber-800 hover:to-red-800 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all ${showPaymentAnimation && !isSubmitting ? 'checkout-btn-animated' : ''}`}
           >
             {isSubmitting ? (
               <>
