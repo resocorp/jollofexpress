@@ -400,6 +400,7 @@ export interface DeliverySettings {
   cities: string[];
   min_order: number;
   delivery_fee: number; // Deprecated: Use delivery regions instead
+  free_delivery_threshold?: number | null; // Orders above this amount get free delivery
 }
 
 // ============ DELIVERY REGIONS ============

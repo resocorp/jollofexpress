@@ -29,6 +29,7 @@ const deliverySettingsSchema = z.object({
   cities: z.array(z.string()),
   min_order: z.number().min(0),
   delivery_fee: z.number().min(0),
+  free_delivery_threshold: z.number().min(0).nullable().optional(),
 });
 
 const paymentSettingsSchema = z.object({

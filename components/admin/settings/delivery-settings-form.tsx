@@ -17,6 +17,7 @@ const deliverySettingsSchema = z.object({
   enabled: z.boolean(),
   min_order: z.number().min(0, 'Minimum order must be 0 or greater'),
   delivery_fee: z.number().min(0, 'Delivery fee must be 0 or greater'),
+  free_delivery_threshold: z.number().min(0).nullable().optional(),
 });
 
 type FormData = z.infer<typeof deliverySettingsSchema>;
@@ -42,6 +43,7 @@ export function DeliverySettingsForm({ data }: DeliverySettingsFormProps) {
       enabled: data?.enabled ?? true,
       min_order: data?.min_order || 500,
       delivery_fee: data?.delivery_fee || 200,
+      free_delivery_threshold: data?.free_delivery_threshold || null,
     },
   });
 
@@ -213,6 +215,29 @@ export function DeliverySettingsForm({ data }: DeliverySettingsFormProps) {
             )}
             <p className="text-xs text-muted-foreground">
               Flat delivery fee applied to all orders
+            </p>
+          </div>
+
+          {/* Free Delivery Threshold */}
+          <div className="space-y-2">
+            <Label htmlFor="free_delivery_threshold">Free Delivery Threshold (₦)</Label>
+            <Input
+              id="free_delivery_threshold"
+              type="number"
+              step="500"
+              placeholder="5000"
+              {...register('free_delivery_threshold', { 
+                setValueAs: (v) => v === '' ? null : Number(v),
+              })}
+              className={errors.free_delivery_threshold ? 'border-red-500' : ''}
+            />
+            {errors.free_delivery_threshold && (
+              <p className="text-sm text-red-600">
+                {errors.free_delivery_threshold.message}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Orders above this amount get free delivery. Leave empty to disable free delivery promotion.
             </p>
           </div>
         </>

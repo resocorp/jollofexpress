@@ -28,6 +28,7 @@ export async function GET() {
       cities: settings.cities || ['Awka'],
       min_order: settings.min_order || 0,
       delivery_fee: settings.delivery_fee || 0,
+      free_delivery_threshold: settings.free_delivery_threshold ?? null,
     });
 
   } catch (error) {

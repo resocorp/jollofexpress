@@ -84,8 +84,14 @@ export function CheckoutForm({
   const subtotal = getSubtotal();
   const taxRate = paymentSettings?.tax_rate ?? 0;
   
-  // Use standard delivery fee from admin settings
-  const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
+  // Check if order qualifies for free delivery based on global threshold
+  const freeDeliveryThreshold = deliverySettings?.free_delivery_threshold;
+  const qualifiesForFreeDelivery = freeDeliveryThreshold && subtotal >= freeDeliveryThreshold;
+  
+  // Use standard delivery fee from admin settings (free if above threshold)
+  const deliveryFee = orderType === 'delivery' 
+    ? (qualifiesForFreeDelivery ? 0 : (deliverySettings?.delivery_fee || 0)) 
+    : 0;
   
   // VAT should be applied to subtotal + delivery fee (only if tax rate > 0)
   const tax = taxRate > 0 ? Math.round(((subtotal + deliveryFee) * taxRate) / 100) : 0;

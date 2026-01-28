@@ -6,19 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
 import { useCartStore } from '@/store/cart-store';
-import { useDeliverySettings } from '@/hooks/use-settings';
 import { formatCurrency } from '@/lib/formatters';
 
 export function CartSheet() {
   const { items, removeItem, updateItemQuantity, clearCart, getSubtotal } = useCartStore();
-  const { data: deliverySettings } = useDeliverySettings();
 
   const subtotal = getSubtotal();
-  
-  // Use standard delivery fee from admin settings
-  const deliveryFee = deliverySettings?.delivery_fee || 0;
-  // Tax is only calculated at checkout, not in cart
-  const total = subtotal + deliveryFee;
 
   if (items.length === 0) {
     return (
@@ -111,20 +104,11 @@ export function CartSheet() {
 
       {/* Order Summary */}
       <div className="space-y-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Subtotal</span>
+        <div className="flex justify-between text-lg font-bold">
+          <span>Subtotal</span>
           <span>{formatCurrency(subtotal)}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Delivery Fee</span>
-          <span>{formatCurrency(deliveryFee)}</span>
-        </div>
-        <p className="text-xs text-muted-foreground italic">Tax calculated at checkout</p>
-        <Separator />
-        <div className="flex justify-between text-lg font-bold">
-          <span>Estimated Total</span>
-          <span>{formatCurrency(total)}</span>
-        </div>
+        <p className="text-xs text-muted-foreground italic">Delivery fee & tax calculated at checkout</p>
       </div>
 
       {/* Checkout Button */}

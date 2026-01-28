@@ -2,11 +2,13 @@
 
 import { Clock, Phone, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useRestaurantStatus, useRestaurantInfo } from '@/hooks/use-settings';
+import { useRestaurantStatus, useRestaurantInfo, useDeliverySettings } from '@/hooks/use-settings';
+import { formatCurrency } from '@/lib/formatters';
 
 export function PromoBanner() {
   const { data: status } = useRestaurantStatus();
   const { data: info } = useRestaurantInfo();
+  const { data: deliverySettings } = useDeliverySettings();
 
   return (
     <motion.div
@@ -23,9 +25,11 @@ export function PromoBanner() {
               🌯 THE BEST TASTING SHAWARMA IN TOWN! 🔥
             </h2>
             
-            <p className="text-xs sm:text-sm font-semibold text-white/95 drop-shadow">
-              <span className="text-[#FFD700] font-black">*FREE DELIVERY</span> on orders above ₦5,000!
-            </p>
+            {deliverySettings?.free_delivery_threshold && (
+              <p className="text-xs sm:text-sm font-semibold text-white/95 drop-shadow">
+                <span className="text-[#FFD700] font-black">*FREE DELIVERY</span> on orders above {formatCurrency(deliverySettings.free_delivery_threshold)}!
+              </p>
+            )}
             
             <p className="text-[10px] sm:text-xs text-white/90 font-medium">
               🔥 Fresh ingredients • Grilled to perfection • Hot delivery! 🚗

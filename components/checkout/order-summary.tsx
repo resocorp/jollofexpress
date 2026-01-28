@@ -45,8 +45,15 @@ export function OrderSummaryWithButton({
   const subtotal = getSubtotal();
   const taxRate = paymentSettings?.tax_rate ?? 0;
   
-  // Use standard delivery fee from admin settings
-  const deliveryFee = orderType === 'delivery' ? (deliverySettings?.delivery_fee || 0) : 0;
+  // Check if order qualifies for free delivery based on global threshold
+  const freeDeliveryThreshold = deliverySettings?.free_delivery_threshold;
+  const qualifiesForFreeDelivery = freeDeliveryThreshold && subtotal >= freeDeliveryThreshold;
+  
+  // Use standard delivery fee from admin settings (free if above threshold)
+  const baseDeliveryFee = deliverySettings?.delivery_fee || 0;
+  const deliveryFee = orderType === 'delivery' 
+    ? (qualifiesForFreeDelivery ? 0 : baseDeliveryFee) 
+    : 0;
   
   // Correct calculation:
   // 1. Discount is applied to subtotal (cart items only)
@@ -252,12 +259,26 @@ export function OrderSummaryWithButton({
             <span className="font-medium">{formatCurrency(subtotal)}</span>
           </div>
           {orderType === 'delivery' && (
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground flex items-center gap-2">
-                <Bike className="h-4 w-4" />
-                Delivery Fee
-              </span>
-              <span className="font-medium">{formatCurrency(deliveryFee)}</span>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Bike className="h-4 w-4" />
+                  Delivery Fee
+                </span>
+                {qualifiesForFreeDelivery ? (
+                  <span className="font-medium text-green-600 flex items-center gap-1">
+                    <span className="line-through text-muted-foreground text-sm">{formatCurrency(baseDeliveryFee)}</span>
+                    FREE! 🎉
+                  </span>
+                ) : (
+                  <span className="font-medium">{formatCurrency(deliveryFee)}</span>
+                )}
+              </div>
+              {!qualifiesForFreeDelivery && freeDeliveryThreshold && (freeDeliveryThreshold - subtotal) > 0 && (freeDeliveryThreshold - subtotal) < 3000 && (
+                <p className="text-xs text-orange-600 text-right">
+                  Add {formatCurrency(freeDeliveryThreshold - subtotal)} more for free delivery!
+                </p>
+              )}
             </div>
           )}
           {taxRate > 0 && (
