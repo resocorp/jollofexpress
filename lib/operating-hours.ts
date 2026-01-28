@@ -1,6 +1,9 @@
 // Operating hours validation and time-based auto-close utilities
 import { createServiceClient } from '@/lib/supabase/service';
 
+// Restaurant timezone (Nigeria)
+const RESTAURANT_TIMEZONE = 'Africa/Lagos';
+
 // Day names matching database schema
 type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
@@ -33,11 +36,40 @@ async function getOperatingHours(): Promise<OperatingHours | null> {
 }
 
 /**
+ * Get current time in restaurant timezone
+ */
+function getNowInTimezone(): Date {
+  const now = new Date();
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: RESTAURANT_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  };
+  const formatter = new Intl.DateTimeFormat('en-CA', options);
+  const parts = formatter.formatToParts(now);
+  const get = (type: string) => parts.find(p => p.type === type)?.value || '0';
+  
+  return new Date(
+    parseInt(get('year')),
+    parseInt(get('month')) - 1,
+    parseInt(get('day')),
+    parseInt(get('hour')),
+    parseInt(get('minute')),
+    parseInt(get('second'))
+  );
+}
+
+/**
  * Get current day of week as lowercase string
  */
 function getCurrentDay(): DayOfWeek {
   const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const now = new Date();
+  const now = getNowInTimezone();
   return days[now.getDay()];
 }
 
@@ -50,10 +82,10 @@ function timeToMinutes(timeStr: string): number {
 }
 
 /**
- * Get current time in minutes since midnight
+ * Get current time in minutes since midnight (in restaurant timezone)
  */
 function getCurrentTimeInMinutes(): number {
-  const now = new Date();
+  const now = getNowInTimezone();
   return now.getHours() * 60 + now.getMinutes();
 }
 
