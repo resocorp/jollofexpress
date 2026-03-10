@@ -34,7 +34,7 @@ export default function TermsPage() {
     },
     {
       title: '7. Food Safety',
-      content: `We take hygiene seriously and prepare all food following proper food safety practices. If you have allergies, please let us know when ordering. Once your food is delivered, please consume it promptly.`
+      content: `We take hygiene seriously and prepare all food following proper food safety practices. Please note that we cannot guarantee allergen-free meals — if you have allergies, ordering is at your own risk. Once your food is delivered, please consume it promptly.`
     },
     {
       title: '8. Be Kind',

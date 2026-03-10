@@ -88,15 +88,11 @@ You can disable cookies in your browser settings, but some features may not work
 • If you ask us to delete your account, we will remove your personal data within 30 days (except what we are legally required to keep)`
     },
     {
-      title: '8. Children',
-      content: `Our service is not intended for anyone under 18. We do not knowingly collect data from minors. If you believe we have, please contact us and we will delete it.`
-    },
-    {
-      title: '9. Changes to This Policy',
+      title: '8. Changes to This Policy',
       content: `We may update this policy from time to time. If we make significant changes, we will notify you via WhatsApp or on our website. Continued use of our service means you accept the updated policy.`
     },
     {
-      title: '10. Contact Us',
+      title: '9. Contact Us',
       content: `For any privacy-related questions or requests:
 
 Email: myshawarmaexpress@gmail.com
