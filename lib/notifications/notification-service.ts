@@ -30,12 +30,12 @@ async function getNotificationSettings(): Promise<NotificationSettings | null> {
     }
 
     // Transform array into object
-    const settings: any = {};
+    const settings: Record<string, unknown> = {};
     data.forEach((row) => {
       settings[row.key] = row.value;
     });
 
-    return settings as NotificationSettings;
+    return settings as unknown as NotificationSettings;
   } catch (error) {
     console.error('Error in getNotificationSettings:', error);
     return null;
@@ -58,7 +58,7 @@ async function logNotification(
   const supabase = createServiceClient();
 
   try {
-    const logEntry: any = {
+    const logEntry: Record<string, unknown> = {
       notification_type: notificationType,
       event_type: eventType,
       recipient_phone: recipientPhone,

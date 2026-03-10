@@ -7,6 +7,8 @@ import type {
   InfluencerPayout,
   CustomerLTV,
   PromoAnalytics,
+  PromoCode,
+  PromoCodeUsage,
 } from '@/types/database';
 
 // ============ INFLUENCER HOOKS (Admin) ============
@@ -148,7 +150,7 @@ interface PromoAnalyticsResponse {
 }
 
 interface PromoDetailAnalytics {
-  promo: any;
+  promo: PromoCode;
   summary: {
     total_uses: number;
     total_revenue: number;
@@ -161,7 +163,7 @@ interface PromoDetailAnalytics {
     conversion_rate: number;
   };
   trend: Array<{ date: string; uses: number; revenue: number; discount: number; new_customers: number }>;
-  recent_usage: any[];
+  recent_usage: PromoCodeUsage[];
 }
 
 /**
@@ -268,7 +270,7 @@ export function useGeneratePayouts() {
   
   return useMutation({
     mutationFn: (month: string) =>
-      post<{ message: string; payouts: any[] }>('/api/admin/payouts', { month }),
+      post<{ message: string; payouts: InfluencerPayout[] }>('/api/admin/payouts', { month }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payouts'] });
     },
@@ -334,7 +336,7 @@ interface InfluencerDashboardData {
     pending: number;
   };
   total_customers: number;
-  top_customers: any[];
+  top_customers: Array<{ customer_phone: string; customer_name?: string; total_orders: number; total_spent: number }>;
   recent_purchases: Array<{
     order_id: string;
     customer_name: string;
@@ -344,7 +346,7 @@ interface InfluencerDashboardData {
     is_new_customer: boolean;
     date: string;
   }>;
-  recent_payouts: any[];
+  recent_payouts: Array<{ id: string; payout_month: string; commission_earned: number; status: string; paid_at?: string }>;
   trend: Array<{ date: string; orders: number; revenue: number; commission: number }>;
 }
 

@@ -1,6 +1,25 @@
 // Supabase query helpers to handle common patterns and RLS issues
-import { SupabaseClient } from '@supabase/supabase-js';
-import type { OrderWithItems } from '@/types/database';
+import { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
+import type { Order, OrderItem, OrderWithItems } from '@/types/database';
+
+interface QueryResult<T> {
+  data: T | null;
+  error: PostgrestError | null;
+}
+
+/**
+ * Group order items by their order_id into a lookup map
+ */
+function groupItemsByOrderId(items: OrderItem[]): Record<string, OrderItem[]> {
+  return items.reduce<Record<string, OrderItem[]>>((acc, item) => {
+    if (!item) return acc;
+    if (!acc[item.order_id]) {
+      acc[item.order_id] = [];
+    }
+    acc[item.order_id].push(item);
+    return acc;
+  }, {});
+}
 
 /**
  * Fetch a single order with its items
@@ -9,7 +28,7 @@ import type { OrderWithItems } from '@/types/database';
 export async function fetchOrderWithItems(
   supabase: SupabaseClient,
   orderId: string
-): Promise<{ data: OrderWithItems | null; error: any }> {
+): Promise<QueryResult<OrderWithItems>> {
   // Fetch order
   const { data: order, error: orderError } = await supabase
     .from('orders')
@@ -46,8 +65,8 @@ export async function fetchOrderWithItems(
  */
 export async function fetchOrdersWithItems(
   supabase: SupabaseClient,
-  query: any
-): Promise<{ data: OrderWithItems[] | null; error: any }> {
+  query: PromiseLike<{ data: Order[] | null; error: PostgrestError | null }>
+): Promise<QueryResult<OrderWithItems[]>> {
   // Execute the query to get orders
   const { data: orders, error: ordersError } = await query;
 
@@ -60,7 +79,7 @@ export async function fetchOrdersWithItems(
   }
 
   // Fetch all order items for these orders
-  const orderIds = orders.map((o: any) => o.id);
+  const orderIds = orders.map((o) => o.id);
   const { data: allItems, error: itemsError } = await supabase
     .from('order_items')
     .select('*')
@@ -71,17 +90,10 @@ export async function fetchOrdersWithItems(
   }
 
   // Group items by order_id
-  const itemsByOrderId = (allItems || []).reduce((acc: any, item: any) => {
-    if (!item) return acc; // Skip null/undefined items
-    if (!acc[item.order_id]) {
-      acc[item.order_id] = [];
-    }
-    acc[item.order_id].push(item);
-    return acc;
-  }, {});
+  const itemsByOrderId = groupItemsByOrderId((allItems || []) as OrderItem[]);
 
   // Combine orders with their items
-  const ordersWithItems: OrderWithItems[] = orders.map((order: any) => ({
+  const ordersWithItems: OrderWithItems[] = orders.map((order) => ({
     ...order,
     items: itemsByOrderId[order.id] || []
   }));

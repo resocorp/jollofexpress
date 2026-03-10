@@ -8,8 +8,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public statusCode: number,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public response?: any
+    public response?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'ApiError';
@@ -30,23 +29,26 @@ export async function getAuthToken(): Promise<string | null> {
 }
 
 /**
+ * Build an Authorization header if a token is available
+ */
+async function buildAuthHeaders(): Promise<Record<string, string>> {
+  const token = await getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/**
  * Authenticated fetch for admin API routes
  * Use this in hooks and components that need auth
  */
 export async function adminFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const token = await getAuthToken();
-  
-  const headers: HeadersInit = {
-    ...options.headers,
-  };
-  
-  if (token) {
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-  }
+  const authHeaders = await buildAuthHeaders();
   
   return fetch(url, {
     ...options,
-    headers,
+    headers: {
+      ...options.headers,
+      ...authHeaders,
+    },
   });
 }
 
@@ -66,10 +68,8 @@ export async function apiRequest<T>(
   
   // Automatically add auth token for admin and kitchen routes
   if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/kitchen')) {
-    const token = await getAuthToken();
-    if (token) {
-      (defaultHeaders as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-    }
+    const authHeaders = await buildAuthHeaders();
+    Object.assign(defaultHeaders, authHeaders);
   }
   
   const config: RequestInit = {
@@ -83,14 +83,15 @@ export async function apiRequest<T>(
   try {
     const response = await fetch(url, config);
     
-    const data = await response.json();
+    const data = await response.json() as Record<string, unknown>;
     
     if (!response.ok) {
       // Don't log expected errors (503 for capacity)
       const isExpectedError = response.status === 503;
       
+      const errorMessage = (data.error as string) || (data.message as string) || 'An error occurred';
       const apiError = new ApiError(
-        data.error || data.message || 'An error occurred',
+        errorMessage,
         response.status,
         data
       );
@@ -107,7 +108,7 @@ export async function apiRequest<T>(
       throw apiError;
     }
     
-    return data;
+    return data as T;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -133,7 +134,7 @@ export async function get<T>(endpoint: string): Promise<T> {
 /**
  * POST request
  */
-export async function post<T>(endpoint: string, data?: any): Promise<T> {
+export async function post<T>(endpoint: string, data?: unknown): Promise<T> {
   return apiRequest<T>(endpoint, {
     method: 'POST',
     body: JSON.stringify(data),
@@ -143,7 +144,7 @@ export async function post<T>(endpoint: string, data?: any): Promise<T> {
 /**
  * PATCH request
  */
-export async function patch<T>(endpoint: string, data?: any): Promise<T> {
+export async function patch<T>(endpoint: string, data?: unknown): Promise<T> {
   return apiRequest<T>(endpoint, {
     method: 'PATCH',
     body: JSON.stringify(data),
@@ -167,11 +168,10 @@ export async function uploadFile<T>(
   const formData = new FormData();
   formData.append('file', file);
   
+  // Omit Content-Type so browser sets multipart boundary for FormData
   return apiRequest<T>(endpoint, {
     method: 'POST',
-    body: formData,
-    headers: {
-      // Let browser set Content-Type for FormData
-    },
+    body: formData as unknown as string,
+    headers: { 'Content-Type': '' },
   });
 }

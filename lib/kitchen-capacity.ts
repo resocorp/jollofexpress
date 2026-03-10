@@ -101,7 +101,7 @@ export async function updateRestaurantStatus(
     return false;
   }
 
-  const currentSettings = currentData.value as Record<string, any>;
+  const currentSettings = currentData.value as Record<string, unknown>;
 
   // Update is_open status
   const updatedSettings = {

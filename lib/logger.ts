@@ -8,7 +8,7 @@ type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LoggerOptions {
   context?: string;
-  data?: any;
+  data?: unknown;
 }
 
 class Logger {
@@ -24,7 +24,6 @@ class Logger {
    * Format log message with context
    */
   private formatMessage(level: LogLevel, message: string, context?: string): string {
-    const timestamp = new Date().toISOString();
     const prefix = context ? `[${context}]` : '';
     const emoji = this.getEmoji(level);
     
@@ -80,10 +79,10 @@ class Logger {
       console.error(formattedMessage, {
         message: error.message,
         stack: error.stack,
-        ...options?.data,
+        ...(typeof options?.data === 'object' && options?.data !== null ? options.data as Record<string, unknown> : {}),
       });
     } else {
-      console.error(formattedMessage, error, options?.data || '');
+      console.error(formattedMessage, error, options?.data ?? '');
     }
   }
 

@@ -147,7 +147,7 @@ export const rscMonitor = new RSCSecurityMonitor();
  */
 export function detectSourceExposureAttempt(
   headers: Headers,
-  body?: any
+  body?: unknown
 ): boolean {
   // Check for suspicious patterns that might indicate CVE-2025-55183 exploitation
   const suspiciousPatterns = [

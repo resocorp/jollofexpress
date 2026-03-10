@@ -63,6 +63,25 @@ export function addCSRFTokenToResponse(response: NextResponse): NextResponse {
 }
 
 /**
+ * Check if a URL's host is allowed based on the request host and configured app URL
+ */
+function isAllowedHost(
+  urlString: string,
+  requestHost: string | null,
+  allowedAppUrl: string | undefined,
+  isLocalhost: boolean
+): boolean {
+  const parsed = new URL(urlString);
+  const allowedUrl = allowedAppUrl ? new URL(allowedAppUrl) : null;
+
+  if (parsed.host === requestHost) return true;
+  if (allowedUrl && parsed.host === allowedUrl.host) return true;
+  if (isLocalhost && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')) return true;
+
+  return false;
+}
+
+/**
  * Validate origin header to prevent CSRF attacks
  */
 export function validateOrigin(request: NextRequest): boolean {
@@ -73,34 +92,19 @@ export function validateOrigin(request: NextRequest): boolean {
   const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL;
   
   // Allow localhost/127.0.0.1 for development
-  const isLocalhost = host?.includes('localhost') || host?.includes('127.0.0.1');
+  const isLocalhost = host?.includes('localhost') || host?.includes('127.0.0.1') || false;
 
   // For state-changing requests, verify origin
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
     // Check origin header
     if (origin) {
-      const originUrl = new URL(origin);
-      const allowedUrl = allowedOrigin ? new URL(allowedOrigin) : null;
-
-      // Allow if origin matches host (same-origin request)
-      if (originUrl.host === host) {
+      if (isAllowedHost(origin, host, allowedOrigin, isLocalhost)) {
         return true;
       }
-
-      // Allow if origin matches configured NEXT_PUBLIC_APP_URL
-      if (allowedUrl && originUrl.host === allowedUrl.host) {
-        return true;
-      }
-
-      // Allow localhost in development
-      if (isLocalhost && (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1')) {
-        return true;
-      }
-
       console.error('[CSRF] Origin mismatch:', {
-        origin: originUrl.host,
+        origin: new URL(origin).host,
         host,
-        expected: allowedUrl?.host,
+        expected: allowedOrigin ? new URL(allowedOrigin).host : undefined,
         path: request.nextUrl.pathname,
       });
       return false;
@@ -108,28 +112,13 @@ export function validateOrigin(request: NextRequest): boolean {
 
     // Fallback to referer check if no origin
     if (!origin && referer) {
-      const refererUrl = new URL(referer);
-      const allowedUrl = allowedOrigin ? new URL(allowedOrigin) : null;
-
-      // Allow if referer matches host
-      if (refererUrl.host === host) {
+      if (isAllowedHost(referer, host, allowedOrigin, isLocalhost)) {
         return true;
       }
-
-      // Allow if referer matches configured NEXT_PUBLIC_APP_URL
-      if (allowedUrl && refererUrl.host === allowedUrl.host) {
-        return true;
-      }
-
-      // Allow localhost in development
-      if (isLocalhost && (refererUrl.hostname === 'localhost' || refererUrl.hostname === '127.0.0.1')) {
-        return true;
-      }
-
       console.error('[CSRF] Referer mismatch:', {
-        referer: refererUrl.host,
+        referer: new URL(referer).host,
         host,
-        expected: allowedUrl?.host,
+        expected: allowedOrigin ? new URL(allowedOrigin).host : undefined,
         path: request.nextUrl.pathname,
       });
       return false;

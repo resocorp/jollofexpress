@@ -1,9 +1,9 @@
 // React Query hooks for order operations
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
-import { get, post, patch } from '@/lib/api-client';
+import { get, post, patch, ApiError } from '@/lib/api-client';
 import { createClient } from '@/lib/supabase/client';
-import type { Order, OrderWithItems, OrderStatus } from '@/types/database';
+import type { Order, OrderItem, OrderWithItems, OrderStatus } from '@/types/database';
 
 /**
  * Fetch single order by ID
@@ -25,14 +25,14 @@ export function useOrder(orderId: string, phone?: string) {
  */
 export function useCreateOrder() {
   return useMutation({
-    mutationFn: (data: Partial<Order> & { items: any[] }) =>
+    mutationFn: (data: Partial<Order> & { items: Partial<OrderItem>[] }) =>
       post<{ order: Order; payment_url: string; scheduled?: boolean; scheduled_note?: string }>('/api/orders', data),
     // Don't log expected errors to console (503 is handled in UI)
-    onError: (error: any) => {
+    onError: (error: Error) => {
       // Suppress console logging for expected errors
       // They're already handled with user-friendly toast messages
-      const isExpectedError = 
-        error.statusCode === 503;   // Kitchen at capacity (orders outside hours are allowed as scheduled)
+      const isExpectedError =
+        error instanceof ApiError && error.statusCode === 503;
       
       if (!isExpectedError) {
         console.error('Unexpected order creation error:', error);
@@ -157,7 +157,7 @@ export function useAdminOrders(params?: {
   return useQuery({
     queryKey: ['admin-orders', params],
     queryFn: async () => {
-      const response = await get<{ orders: OrderWithItems[]; pagination: any }>(`/api/admin/orders${queryString ? `?${queryString}` : ''}`);
+      const response = await get<{ orders: OrderWithItems[]; pagination: { total: number; page: number; limit: number } }>(`/api/admin/orders${queryString ? `?${queryString}` : ''}`);
       return response.orders;
     },
   });

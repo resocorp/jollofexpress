@@ -74,8 +74,12 @@ export class MemoryRateLimiter implements RateLimiter {
  * Redis Rate Limiter (for production with multiple instances)
  * Requires Redis connection
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RedisClient = any; // Redis client type
+/** Minimal interface for the Redis methods used by the rate limiter */
+interface RedisClient {
+  incr(key: string): Promise<number>;
+  pexpire(key: string, milliseconds: number): Promise<number>;
+  del(key: string): Promise<number>;
+}
 
 export class RedisRateLimiter implements RateLimiter {
   private redis: RedisClient;

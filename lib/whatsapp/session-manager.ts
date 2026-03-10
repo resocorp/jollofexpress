@@ -70,7 +70,7 @@ export async function updateSessionState(
 ): Promise<void> {
   const supabase = createServiceClient();
   
-  const updates: any = {
+  const updates: Record<string, unknown> = {
     state,
     last_activity: new Date().toISOString(),
     ...additionalUpdates,

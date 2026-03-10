@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { adminFetch } from '@/lib/api-client';
+import { get } from '@/lib/api-client';
 
 interface OverviewMetrics {
   totalRevenue: number;
@@ -43,11 +43,7 @@ interface KitchenPerformance {
 export function useOverviewMetrics(period: string = '30') {
   return useQuery({
     queryKey: ['analytics', 'overview', period],
-    queryFn: async () => {
-      const res = await adminFetch(`/api/admin/analytics/overview?period=${period}`);
-      if (!res.ok) throw new Error('Failed to fetch overview metrics');
-      return res.json() as Promise<OverviewMetrics>;
-    },
+    queryFn: () => get<OverviewMetrics>(`/api/admin/analytics/overview?period=${period}`),
     refetchInterval: 60000, // Refetch every minute
   });
 }
@@ -55,11 +51,7 @@ export function useOverviewMetrics(period: string = '30') {
 export function useRevenueTrend(period: string = '30') {
   return useQuery({
     queryKey: ['analytics', 'revenue-trend', period],
-    queryFn: async () => {
-      const res = await adminFetch(`/api/admin/analytics/revenue-trend?period=${period}`);
-      if (!res.ok) throw new Error('Failed to fetch revenue trend');
-      return res.json() as Promise<RevenueTrendData[]>;
-    },
+    queryFn: () => get<RevenueTrendData[]>(`/api/admin/analytics/revenue-trend?period=${period}`),
     refetchInterval: 60000,
   });
 }
@@ -67,11 +59,7 @@ export function useRevenueTrend(period: string = '30') {
 export function useTopItems(period: string = '30', limit: number = 10) {
   return useQuery({
     queryKey: ['analytics', 'top-items', period, limit],
-    queryFn: async () => {
-      const res = await adminFetch(`/api/admin/analytics/top-items?period=${period}&limit=${limit}`);
-      if (!res.ok) throw new Error('Failed to fetch top items');
-      return res.json() as Promise<TopItemData[]>;
-    },
+    queryFn: () => get<TopItemData[]>(`/api/admin/analytics/top-items?period=${period}&limit=${limit}`),
     refetchInterval: 60000,
   });
 }
@@ -79,11 +67,7 @@ export function useTopItems(period: string = '30', limit: number = 10) {
 export function useCategoryPerformance(period: string = '30') {
   return useQuery({
     queryKey: ['analytics', 'category-performance', period],
-    queryFn: async () => {
-      const res = await adminFetch(`/api/admin/analytics/category-performance?period=${period}`);
-      if (!res.ok) throw new Error('Failed to fetch category performance');
-      return res.json() as Promise<CategoryPerformance[]>;
-    },
+    queryFn: () => get<CategoryPerformance[]>(`/api/admin/analytics/category-performance?period=${period}`),
     refetchInterval: 60000,
   });
 }
@@ -91,11 +75,7 @@ export function useCategoryPerformance(period: string = '30') {
 export function useKitchenPerformance(period: string = '30') {
   return useQuery({
     queryKey: ['analytics', 'kitchen-performance', period],
-    queryFn: async () => {
-      const res = await adminFetch(`/api/admin/analytics/kitchen-performance?period=${period}`);
-      if (!res.ok) throw new Error('Failed to fetch kitchen performance');
-      return res.json() as Promise<KitchenPerformance>;
-    },
+    queryFn: () => get<KitchenPerformance>(`/api/admin/analytics/kitchen-performance?period=${period}`),
     refetchInterval: 60000,
   });
 }

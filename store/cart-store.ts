@@ -3,6 +3,30 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItem, MenuItem, ItemAddon, ItemVariationOption, DeliveryRegion } from '@/types/database';
 
+/**
+ * Calculate the unit price for a cart item including variation and addon adjustments
+ */
+function calculateItemPrice(
+  baseItem: MenuItem,
+  selectedVariation?: { variation_name: string; option: ItemVariationOption; quantity?: number },
+  selectedAddons: (ItemAddon & { quantity: number })[] = []
+): number {
+  let price = baseItem.promo_price ?? baseItem.base_price;
+
+  if (selectedVariation) {
+    const variationQuantity = selectedVariation.quantity || 1;
+    price += selectedVariation.option.price_adjustment * variationQuantity;
+  }
+
+  const addonsTotal = selectedAddons.reduce(
+    (sum, addon) => sum + addon.price * addon.quantity,
+    0
+  );
+  price += addonsTotal;
+
+  return price;
+}
+
 interface CartStore {
   items: CartItem[];
   promoCode: string | null;
@@ -46,20 +70,8 @@ export const useCartStore = create<CartStore>()(
       },
 
       addItem: (item, quantity, selectedVariation, selectedAddons = []) => {
-        // Calculate item subtotal - use promo_price if available, otherwise base_price
-        let itemPrice = item.promo_price ?? item.base_price;
-        
-        // Add variation price adjustment (multiplied by variation quantity)
-        if (selectedVariation) {
-          const varQty = selectedVariation.quantity || 1;
-          itemPrice += selectedVariation.option.price_adjustment * varQty;
-        }
-        
-        // Add addons prices (each with their own quantity)
-        const addonsTotal = selectedAddons.reduce((sum, addon) => sum + (addon.price * addon.quantity), 0);
-        itemPrice += addonsTotal;
-        
-        const subtotal = itemPrice * quantity;
+        const unitPrice = calculateItemPrice(item, selectedVariation, selectedAddons);
+        const subtotal = unitPrice * quantity;
 
         const cartItem: CartItem = {
           item,
@@ -88,23 +100,17 @@ export const useCartStore = create<CartStore>()(
 
         set((state) => {
           const newItems = [...state.items];
-          const item = newItems[index];
-          
-          // Recalculate subtotal - use promo_price if available, otherwise base_price
-          let itemPrice = item.item.promo_price ?? item.item.base_price;
-          
-          if (item.selected_variation) {
-            const varQty = item.selected_variation.quantity || 1;
-            itemPrice += item.selected_variation.option.price_adjustment * varQty;
-          }
-          
-          const addonsTotal = item.selected_addons.reduce((sum, addon) => sum + (addon.price * addon.quantity), 0);
-          itemPrice += addonsTotal;
-          
+          const cartItem = newItems[index];
+          const unitPrice = calculateItemPrice(
+            cartItem.item,
+            cartItem.selected_variation,
+            cartItem.selected_addons
+          );
+
           newItems[index] = {
-            ...item,
+            ...cartItem,
             quantity,
-            subtotal: itemPrice * quantity,
+            subtotal: unitPrice * quantity,
           };
 
           return { items: newItems };

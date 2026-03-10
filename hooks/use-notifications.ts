@@ -110,7 +110,7 @@ export function useNotificationStats() {
       // Fetch recent logs for statistics
       const response = await get<{
         logs: NotificationLog[];
-        pagination: any;
+        pagination: { page: number; limit: number; total: number; totalPages: number; hasMore: boolean };
       }>('/api/notifications/logs?limit=100');
 
       const logs = response.logs;

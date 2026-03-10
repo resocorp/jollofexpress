@@ -5,9 +5,9 @@ import { createServiceClient } from '@/lib/supabase/service';
 const RESTAURANT_TIMEZONE = 'Africa/Lagos';
 
 // Day names matching database schema
-type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
-interface DayHours {
+export interface DayHours {
   open: string;      // "09:00"
   close: string;     // "21:00"
   closed: boolean;

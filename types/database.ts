@@ -535,44 +535,34 @@ export interface PaystackVerifyResponse {
     created_at: string;
     channel: string;
     currency: string;
-    authorization: any;
+    authorization: {
+      authorization_code?: string;
+      bin?: string;
+      last4?: string;
+      exp_month?: string;
+      exp_year?: string;
+      channel?: string;
+      card_type?: string;
+      bank?: string;
+      country_code?: string;
+      brand?: string;
+      reusable?: boolean;
+      signature?: string;
+    };
   };
 }
 
-// Notification types
-export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'delivered';
-export type NotificationType = 'customer' | 'admin';
-export type EventType = 
-  | 'order_confirmed'
-  | 'order_preparing'
-  | 'order_ready'
-  | 'order_out_for_delivery'
-  | 'order_completed'
-  | 'payment_failed'
-  | 'kitchen_closed'
-  | 'kitchen_reopened'
-  | 'payment_failure'
-  | 'daily_summary'
-  | 'system_alert';
+// Notification types — re-exported from the canonical source
+export type {
+  NotificationStatus,
+  NotificationType,
+  EventType,
+  NotificationLog,
+} from '@/lib/notifications/types';
 
-export interface NotificationLog {
-  id: string;
-  notification_type: NotificationType;
-  event_type: EventType;
-  recipient_phone: string;
-  message_body: string;
-  order_id?: string;
-  status: NotificationStatus;
-  ultramsg_id?: string;
-  error_message?: string;
-  sent_at?: string;
-  delivered_at?: string;
-  created_at: string;
-}
-
-export interface NotificationSettings {
+export interface NotificationSettingsRow {
   id: string;
   key: string;
-  value: any; // JSONB field
+  value: Record<string, unknown>;
   updated_at: string;
 }
