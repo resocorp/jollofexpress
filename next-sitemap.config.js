@@ -32,9 +32,6 @@ module.exports = {
     } else if (path === '/menu') {
       priority = 0.9;
       changefreq = 'daily';
-    } else if (path === '/about') {
-      priority = 0.6;
-      changefreq = 'monthly';
     }
 
     return {

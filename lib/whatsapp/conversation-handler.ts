@@ -1197,7 +1197,7 @@ async function createOrder(session: WhatsAppSession): Promise<string[]> {
     }
     
     const customerPhone = session.phone.startsWith('234') ? '0' + session.phone.substring(3) : session.phone;
-    const email = `${customerPhone.replace(/\D/g, '')}@urshawarma.com`;
+    const email = `${customerPhone.replace(/\D/g, '')}@myshawarma.express`;
     
     const paystackResponse = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',

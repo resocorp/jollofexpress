@@ -9,43 +9,34 @@ import {
   MapPin, 
   Clock, 
   MessageCircle,
-  Facebook,
-  Instagram
+  Loader2
 } from 'lucide-react';
+import { useRestaurantStatus } from '@/hooks/use-settings';
+
+// TikTok icon
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+  </svg>
+);
+
+const DAY_LABELS: Record<string, string> = {
+  monday: 'Monday',
+  tuesday: 'Tuesday',
+  wednesday: 'Wednesday',
+  thursday: 'Thursday',
+  friday: 'Friday',
+  saturday: 'Saturday',
+  sunday: 'Sunday',
+};
 
 export default function ContactPage() {
-  const contactInfo = [
-    {
-      icon: MapPin,
-      title: 'Visit Us',
-      details: [
-        'Ur\' Shawarma Express',
-        'Aroma Junction, Awka',
-        'Anambra State, Nigeria'
-      ],
-      color: 'text-red-600',
-      bgColor: 'bg-red-50'
-    },
-    {
-      icon: MessageCircle,
-      title: 'WhatsApp',
-      details: [
-        'Chat with us instantly',
-        '+234 810 682 8147',
-        'Available 8am - 10pm'
-      ],
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      action: 'https://wa.me/2348106828147'
-    }
-  ];
-
-  const businessHours = [
-    { day: 'Monday - Friday', hours: '8:00 AM - 10:00 PM' },
-    { day: 'Saturday', hours: '9:00 AM - 11:00 PM' },
-    { day: 'Sunday', hours: '10:00 AM - 10:00 PM' },
-    { day: 'Public Holidays', hours: '10:00 AM - 8:00 PM' }
-  ];
+  const { data: status, isLoading: statusLoading } = useRestaurantStatus();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -62,7 +53,7 @@ export default function ContactPage() {
           >
             <h1 className="text-5xl md:text-6xl font-bold mb-6">Get In Touch</h1>
             <p className="text-xl text-orange-50">
-              Have questions? Reach out to us on WhatsApp or follow us on social media!
+              Have questions? Reach out to us on WhatsApp or follow us on TikTok!
             </p>
           </motion.div>
         </div>
@@ -95,13 +86,13 @@ export default function ContactPage() {
                   Message Us on WhatsApp
                 </Button>
               </a>
-              <p className="text-sm text-green-600 mt-4">+234 810 682 8147 • Available 8am - 10pm</p>
+              <p className="text-sm text-green-600 mt-4">+234 810 682 8147</p>
             </CardContent>
           </Card>
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-8 mb-16">
-          {/* Business Hours */}
+          {/* Business Hours - from admin settings */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -115,14 +106,22 @@ export default function ContactPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {businessHours.map((schedule, index) => (
-                    <div key={index} className="flex justify-between items-center py-3 border-b last:border-b-0">
-                      <span className="font-medium">{schedule.day}</span>
-                      <span className="text-muted-foreground">{schedule.hours}</span>
-                    </div>
-                  ))}
-                </div>
+                {statusLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : status?.hours?.all ? (
+                  <div className="space-y-3">
+                    {Object.entries(status.hours.all).map(([day, hours]) => (
+                      <div key={day} className="flex justify-between items-center py-3 border-b last:border-b-0">
+                        <span className="font-medium">{DAY_LABELS[day] || day}</span>
+                        <span className="text-muted-foreground">{hours as string}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Hours not available. Please contact us on WhatsApp.</p>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -142,8 +141,8 @@ export default function ContactPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <p className="font-semibold text-lg">Ur' Shawarma Express</p>
-                  <p className="text-muted-foreground">Aroma Junction, Awka</p>
+                  <p className="font-semibold text-lg">myshawarma.express</p>
+                  <p className="text-muted-foreground">Solution Arena, Abakaliki Street, Awka.</p>
                   <p className="text-muted-foreground">Anambra State, Nigeria</p>
                 </div>
                 <div className="mt-6">
@@ -161,42 +160,26 @@ export default function ContactPage() {
           </motion.div>
         </div>
 
-        {/* Social Media Section */}
+        {/* Social Media Section - TikTok only */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
             <CardContent className="p-8 text-center">
-              <h3 className="text-2xl font-bold mb-4">Connect With Us on Social Media</h3>
+              <h3 className="text-2xl font-bold mb-4">Follow Us on TikTok</h3>
               <p className="text-muted-foreground mb-6">
                 Follow us for daily specials, behind-the-scenes content, and exclusive offers!
               </p>
               <div className="flex justify-center gap-6">
                 <a 
-                  href="https://facebook.com/urshawarmaexpress" 
+                  href="https://tiktok.com/@myshawarmaexpress" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="p-4 rounded-full bg-white border-2 border-blue-200 hover:border-blue-600 hover:scale-110 transition-all duration-200"
+                  className="p-4 rounded-full bg-white border-2 border-gray-200 hover:border-black hover:scale-110 transition-all duration-200"
                 >
-                  <Facebook className="h-8 w-8 text-blue-600" />
-                </a>
-                <a 
-                  href="https://instagram.com/urshawarmaexpress" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="p-4 rounded-full bg-white border-2 border-pink-200 hover:border-pink-600 hover:scale-110 transition-all duration-200"
-                >
-                  <Instagram className="h-8 w-8 text-pink-600" />
-                </a>
-                <a 
-                  href="https://wa.me/2348106828147" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="p-4 rounded-full bg-white border-2 border-green-200 hover:border-green-600 hover:scale-110 transition-all duration-200"
-                >
-                  <MessageCircle className="h-8 w-8 text-green-600" />
+                  <TikTokIcon className="h-8 w-8" />
                 </a>
               </div>
             </CardContent>

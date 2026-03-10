@@ -1,6 +1,6 @@
 {
-  "name": "Ur' Shawarma Express - Shawarma Delivery",
-  "short_name": "Ur' Shawarma",
+  "name": "myshawarma.express - Shawarma Delivery",
+  "short_name": "myshawarma.express",
   "description": "Order the best Nigerian-style shawarma delivered fresh to your doorstep in Awka",
   "start_url": "/",
   "display": "standalone",

@@ -38,7 +38,7 @@ export function createClient() {
       },
       global: {
         headers: {
-          'X-Client-Info': 'urshawarma-web',
+          'X-Client-Info': 'myshawarma-web',
         },
       },
     }

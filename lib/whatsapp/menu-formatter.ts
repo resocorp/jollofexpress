@@ -196,7 +196,7 @@ export async function getRestaurantStatus(): Promise<{
 export function formatWelcomeMessage(customerName?: string, isReturning?: boolean): string {
   const greeting = customerName 
     ? `${EMOJI.welcome} Welcome back, *${customerName}*!`
-    : `${EMOJI.welcome} Welcome to *Ur' Shawarma Express*!`;
+    : `${EMOJI.welcome} Welcome to *myshawarma.express*!`;
   
   const tagline = isReturning
     ? `Great to see you again! Ready for another delicious meal?`
@@ -217,7 +217,7 @@ export function formatWelcomeMessage(customerName?: string, isReturning?: boolea
  * Format menu categories
  */
 export function formatCategoriesMessage(categories: MenuCategory[]): string {
-  let message = `${EMOJI.menu} *UR' SHAWARMA EXPRESS MENU*\n\n`;
+  let message = `${EMOJI.menu} *MYSHAWARMA.EXPRESS MENU*\n\n`;
   message += `Select a category:\n\n`;
   
   categories.forEach((cat, index) => {
@@ -556,7 +556,7 @@ ${EMOJI.time} Estimated delivery: *${estimatedTime} minutes*
 
 You'll receive updates as your order is prepared and delivered.
 
-Thank you for ordering with Ur' Shawarma Express! ${EMOJI.fire}`;
+Thank you for ordering with myshawarma.express! ${EMOJI.fire}`;
 }
 
 /**
@@ -580,7 +580,7 @@ export function formatClosedMessage(nextOpenTime?: string): string {
  * Format help message
  */
 export function formatHelpMessage(): string {
-  return `${EMOJI.menu} *UR' SHAWARMA EXPRESS COMMANDS*
+  return `${EMOJI.menu} *MYSHAWARMA.EXPRESS COMMANDS*
 
 *MENU* - Browse our menu
 *CART* - View your cart

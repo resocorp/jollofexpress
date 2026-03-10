@@ -442,7 +442,7 @@ export async function testNotificationConnection(): Promise<{ success: boolean; 
 export async function sendTestNotification(phone: string): Promise<boolean> {
   const message = templates.systemAlertMessage(
     'Test Notification',
-    'This is a test message from JollofExpress. If you received this, your WhatsApp notifications are working correctly! 🎉'
+    'This is a test message from myshawarma.express. If you received this, your WhatsApp notifications are working correctly! 🎉'
   );
 
   return sendNotification({

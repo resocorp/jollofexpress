@@ -51,11 +51,11 @@ export function Header() {
             />
           ) : (
             <div className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#FF4433] text-white font-bold text-sm sm:text-base">
-              US
+              MS
             </div>
           )}
           <span className="font-bold text-lg sm:text-xl hidden md:inline-block">
-            {info?.name || "Ur' Shawarma Express"}
+            {info?.name || "myshawarma.express"}
           </span>
         </Link>
 
@@ -100,13 +100,6 @@ export function Header() {
               onClick={() => setShowMobileMenu(false)}
             >
               🍽️ Menu
-            </Link>
-            <Link 
-              href="/about" 
-              className="block py-2 px-3 hover:bg-gray-100 rounded-lg font-medium transition-colors"
-              onClick={() => setShowMobileMenu(false)}
-            >
-              ℹ️ About Us
             </Link>
             <Link 
               href="/contact" 

@@ -28,7 +28,7 @@ function formatOrderItems(items: OrderWithItems['items']): string {
  */
 function formatDeliveryInfo(order: OrderWithItems): string {
   if (order.order_type === 'carryout') {
-    return "📍 Type: Carryout\nPick up at: Ur' Shawarma Express, Awka";
+    return "📍 Type: Carryout\nPick up at: myshawarma.express, Awka";
   }
 
   return `📍 Delivery Address:\n${order.delivery_address}\n${order.delivery_city}`;
@@ -38,7 +38,7 @@ function formatDeliveryInfo(order: OrderWithItems): string {
  * Get app URL from environment
  */
 function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || 'https://urshawarma.com';
+  return process.env.NEXT_PUBLIC_APP_URL || 'https://myshawarma.express';
 }
 
 // ============================================
@@ -67,7 +67,7 @@ ${formatDeliveryInfo(order)}
 
 Track your order: ${trackingUrl}
 
-_- Ur' Shawarma Express 🌯_`;
+_- myshawarma.express 🌯_`;
 }
 
 /**
@@ -81,7 +81,7 @@ Status: Preparing
 
 Your delicious meal is being prepared with care by our chefs.
 
-_- Ur' Shawarma Express 🌯_`;
+_- myshawarma.express 🌯_`;
 }
 
 /**
@@ -98,7 +98,7 @@ export function orderReadyMessage(order: OrderWithItems): string {
 
 ${deliveryMessage}
 
-_- Ur' Shawarma Express 🌯_`;
+_- myshawarma.express 🌯_`;
 }
 
 /**
@@ -117,7 +117,7 @@ export function orderOutForDeliveryMessage(order: OrderWithItems): string {
 
 Get ready to enjoy your meal! 😋
 
-_- Ur' Shawarma Express 🌯_`;
+_- myshawarma.express 🌯_`;
 }
 
 /**
@@ -129,7 +129,7 @@ export function orderCompletedMessage(order: OrderWithItems): string {
 
   return `🎊 *Order Delivered!*
 
-Thank you for choosing Ur' Shawarma Express!
+Thank you for choosing myshawarma.express!
 
 📋 Order #${order.order_number}
 
@@ -137,7 +137,7 @@ We hope you enjoyed your meal! 🍽️
 
 Order again: ${menuUrl}
 
-_- Ur' Shawarma Express 🌯_`;
+_- myshawarma.express 🌯_`;
 }
 
 /**
@@ -156,7 +156,7 @@ Your payment could not be processed. Please try again or contact support.
 
 Retry payment: ${orderUrl}
 
-_- Ur' Shawarma Express 🌯_`;
+_- myshawarma.express 🌯_`;
 }
 
 // ============================================
@@ -181,7 +181,7 @@ export function kitchenClosedMessage(data: KitchenCapacityData): string {
 
 Orders will resume automatically when capacity is available.
 
-_- Ur' Shawarma Express System_`;
+_- myshawarma.express System_`;
 }
 
 /**
@@ -200,7 +200,7 @@ export function kitchenReopenedMessage(data: KitchenCapacityData): string {
 📊 Active Orders: ${data.active_orders}/${data.max_orders}
 ⏰ Time: ${timestamp}
 
-_- Ur' Shawarma Express System_`;
+_- myshawarma.express System_`;
 }
 
 /**
@@ -216,7 +216,7 @@ export function paymentFailureAlertMessage(order: OrderWithItems): string {
 
 Payment verification failed. Customer may need assistance.
 
-_- Ur' Shawarma Express System_`;
+_- myshawarma.express System_`;
 }
 
 /**
@@ -247,7 +247,7 @@ ${topItemsList || 'No orders today'}
 
 View dashboard: ${dashboardUrl}
 
-_- Ur' Shawarma Express Analytics_`;
+_- myshawarma.express Analytics_`;
 }
 
 /**
@@ -267,7 +267,7 @@ ${message}
 
 ⏰ ${timestamp}
 
-_- Ur' Shawarma Express System_`;
+_- myshawarma.express System_`;
 }
 
 /**
@@ -298,5 +298,5 @@ ${order.order_type === 'delivery' ? `📍 *Deliver to:*\n${order.delivery_addres
 
 ⏰ ${timestamp}
 
-_- Ur' Shawarma Express System_`;
+_- myshawarma.express System_`;
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Facebook, Instagram, MessageCircle, MapPin, Clock } from 'lucide-react';
+import { MessageCircle, MapPin, Clock } from 'lucide-react';
 import { useRestaurantInfo, useRestaurantStatus } from '@/hooks/use-settings';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -27,34 +27,15 @@ export function Footer() {
 
   const socialLinks = [
     {
-      name: 'Facebook',
-      icon: Facebook,
-      href: 'https://facebook.com/urshawarmaexpress',
-      color: 'hover:text-blue-600',
-    },
-    {
-      name: 'Instagram',
-      icon: Instagram,
-      href: 'https://instagram.com/urshawarmaexpress',
-      color: 'hover:text-pink-600',
-    },
-    {
       name: 'TikTok',
       icon: TikTokIcon,
-      href: 'https://tiktok.com/@urshawarmaexpress',
+      href: 'https://tiktok.com/@myshawarmaexpress',
       color: 'hover:text-black dark:hover:text-white',
-    },
-    {
-      name: 'WhatsApp',
-      icon: MessageCircle,
-      href: 'https://wa.me/2348106828147',
-      color: 'hover:text-green-600',
     },
   ];
 
   const quickLinks = [
     { name: 'Menu', href: '/menu' },
-    { name: 'About Us', href: '/about' },
     { name: 'Contact', href: '/contact' },
     { name: 'Terms & Conditions', href: '/terms' },
     { name: 'Privacy Policy', href: '/privacy' },
@@ -78,7 +59,7 @@ export function Footer() {
               ) : (
                 <Image
                   src="/logo.webp"
-                  alt="Ur' Shawarma Express Logo"
+                  alt="myshawarma.express Logo"
                   width={48}
                   height={48}
                   className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
@@ -86,7 +67,7 @@ export function Footer() {
               )}
               <div>
                 <h3 className="font-bold text-lg sm:text-xl bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                  {info?.name || "Ur' Shawarma Express"}
+                  {info?.name || "myshawarma.express"}
                 </h3>
               </div>
             </div>
@@ -175,7 +156,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="flex flex-col items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
           <p className="text-center">
-            © {currentYear} {info?.name || "Ur' Shawarma Express"}. All rights reserved.
+            © {currentYear} {info?.name || "myshawarma.express"}. All rights reserved.
           </p>
           <div className="flex items-center gap-3 sm:gap-4">
             <span className="text-[10px] sm:text-xs">Made with ❤️ in Nigeria</span>

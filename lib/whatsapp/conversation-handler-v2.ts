@@ -232,7 +232,7 @@ async function handleIdle(
   
   const welcome = returning
     ? `👋 Welcome back, *${returning.name}*!\n\n🔄 Type *R* to reorder your last order\n📋 Or select from our menu:`
-    : `👋 Welcome to *Ur' Shawarma Express*!\n\n🌯 Fresh shawarma & more!\n\nSelect a category:`;
+    : `👋 Welcome to *myshawarma.express*!\n\n🌯 Fresh shawarma & more!\n\nSelect a category:`;
   
   const menu = await getMenuCategories();
   let msg = welcome + '\n\n';
@@ -701,7 +701,7 @@ async function createOrder(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: `${session.phone}@whatsapp.urshawarma.ng`,
+        email: `${session.phone}@whatsapp.myshawarma.express`,
         amount: Math.round(total * 100),
         reference: order.id,
         callback_url: callbackUrl,

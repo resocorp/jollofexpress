@@ -9,8 +9,8 @@ import { ChunkErrorHandler } from "@/components/chunk-error-handler";
 
 export const metadata: Metadata = {
   title: {
-    default: "Ur' Shawarma Express - Shawarma Delivery in Awka",
-    template: "%s | Ur' Shawarma Express"
+    default: "myshawarma.express - Shawarma Delivery in Awka",
+    template: "%s | myshawarma.express"
   },
   description: "Order the best tasting Nigerian-style shawarma delivered fresh to your doorstep in Awka. Fast delivery in 30 minutes!",
   keywords: [
@@ -24,10 +24,10 @@ export const metadata: Metadata = {
     "shawarma delivery",
     "African food"
   ],
-  authors: [{ name: "Ur' Shawarma Express" }],
-  creator: "Ur' Shawarma Express",
-  publisher: "Ur' Shawarma Express",
-  applicationName: "Ur' Shawarma Express",
+  authors: [{ name: "myshawarma.express" }],
+  creator: "myshawarma.express",
+  publisher: "myshawarma.express",
+  applicationName: "myshawarma.express",
   category: "Food & Dining",
   
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
@@ -36,25 +36,25 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_NG",
     url: "/",
-    siteName: "Ur' Shawarma Express",
-    title: "Ur' Shawarma Express - Best Shawarma Delivery",
+    siteName: "myshawarma.express",
+    title: "myshawarma.express - Best Shawarma Delivery",
     description: "Order the best Nigerian-style shawarma delivered fresh to your doorstep in Awka. Fast delivery, authentic flavors!",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Ur' Shawarma Express - Shawarma Delivery"
+        alt: "myshawarma.express - Shawarma Delivery"
       }
     ]
   },
   
   twitter: {
     card: "summary_large_image",
-    title: "Ur' Shawarma Express - Shawarma Delivery",
+    title: "myshawarma.express - Shawarma Delivery",
     description: "Order the best Nigerian-style shawarma delivered fresh to your doorstep in Awka",
     images: ["/og-image.png"],
-    creator: "@urshawarma"
+    creator: "@myshawarmaexpress"
   },
   
   robots: {
@@ -95,8 +95,8 @@ export const metadata: Metadata = {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'apple-mobile-web-app-title': "Ur' Shawarma Express",
-    'application-name': "Ur' Shawarma Express",
+    'apple-mobile-web-app-title': "myshawarma.express",
+    'application-name': "myshawarma.express",
     'msapplication-TileColor': '#FF4433',
     'theme-color': '#FF4433'
   }

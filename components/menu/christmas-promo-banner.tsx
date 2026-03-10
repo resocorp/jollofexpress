@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, Phone, Star } from 'lucide-react';
+import { Clock, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRestaurantStatus, useRestaurantInfo, useDeliverySettings } from '@/hooks/use-settings';
 import { formatCurrency } from '@/lib/formatters';
@@ -44,19 +44,6 @@ export function PromoBanner() {
             className="mt-2 pt-2 border-t border-white/20"
           >
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-white text-xs sm:text-sm">
-              {/* Star Rating */}
-              <div className="flex items-center gap-1">
-                <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <span className="font-semibold">4.8</span>
-                <span className="text-white/80">(500+)</span>
-              </div>
-
-              <span className="text-white/40">•</span>
-
               {/* Status Badge */}
               {status?.is_open ? (
                 <span className="flex items-center gap-1 font-medium">

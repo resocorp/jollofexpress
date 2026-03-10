@@ -4,7 +4,7 @@ export function RestaurantJsonLd() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Restaurant',
-    name: "Ur' Shawarma Express",
+    name: "myshawarma.express",
     description: 'Order the best tasting Nigerian-style shawarma delivered fresh to your doorstep in Awka. Fast delivery in 30 minutes!',
     url: baseUrl,
     logo: `${baseUrl}/logo.png`,
@@ -59,9 +59,7 @@ export function RestaurantJsonLd() {
       deliveryMethod: ['http://purl.org/goodrelations/v1#DeliveryModeOwnFleet'],
     },
     sameAs: [
-      process.env.NEXT_PUBLIC_FACEBOOK_URL || '',
-      process.env.NEXT_PUBLIC_INSTAGRAM_URL || '',
-      process.env.NEXT_PUBLIC_TWITTER_URL || '',
+      process.env.NEXT_PUBLIC_TIKTOK_URL || '',
     ].filter(Boolean),
   };
 
@@ -79,7 +77,7 @@ export function WebsiteJsonLd() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: "Ur' Shawarma Express",
+    name: "myshawarma.express",
     url: baseUrl,
     potentialAction: {
       '@type': 'SearchAction',
@@ -106,7 +104,7 @@ export function LocalBusinessJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     '@id': `${baseUrl}/#localbusiness`,
-    name: "Ur' Shawarma Express",
+    name: "myshawarma.express",
     image: `${baseUrl}/og-image.png`,
     url: baseUrl,
     telephone: process.env.NEXT_PUBLIC_BUSINESS_PHONE || '',
