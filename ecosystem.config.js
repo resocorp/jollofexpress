@@ -30,6 +30,26 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     },
     {
+      // Baileys WhatsApp Service
+      name: 'whatsapp-service',
+      script: './scripts/baileys-server.js',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '300M',
+      restart_delay: 5000,
+      max_restarts: 10,
+      min_uptime: 10000,
+      env_file: './.env.local',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3001,
+      },
+      error_file: './logs/whatsapp-error.log',
+      out_file: './logs/whatsapp-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    },
+    {
       // Print Queue Worker
       name: 'print-worker',
       script: './scripts/print-worker.js',

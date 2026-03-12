@@ -13,7 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
 import { useCartStore } from '@/store/cart-store';
 import { useCreateOrder } from '@/hooks/use-orders';
-import { useDeliverySettings, usePaymentSettings, useRestaurantStatus } from '@/hooks/use-settings';
+import { useDeliverySettings, usePaymentSettings } from '@/hooks/use-settings';
+import { useOrderWindow } from '@/hooks/use-order-window';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
 import { AlertCircle } from 'lucide-react';
@@ -34,7 +35,7 @@ export function CheckoutForm({
   const createOrder = useCreateOrder();
   const { data: deliverySettings, isLoading: isLoadingSettings } = useDeliverySettings();
   const { data: paymentSettings } = usePaymentSettings();
-  const { data: restaurantStatus } = useRestaurantStatus();
+  const { isAccepting, isPreorder, deliveryDate, deliveryWindow } = useOrderWindow();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerLocation, setCustomerLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null);
   const [highlightedField, setHighlightedField] = useState<string | null>(null);
@@ -310,21 +311,21 @@ export function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit, handleFormError)} className="space-y-6">
-      {/* Restaurant Closed Notice */}
-      {!restaurantStatus?.is_open && (
-        <Alert className="border-2 border-amber-500 bg-amber-50">
-          <Clock className="h-5 w-5 text-amber-600" />
-          <AlertTitle className="text-lg font-bold text-amber-900">Restaurant Currently Closed</AlertTitle>
-          <AlertDescription className="mt-2 space-y-2 text-amber-800">
-            <p className="font-medium">{restaurantStatus?.message}</p>
-            <div className="mt-3 p-3 bg-white rounded-md border border-amber-200">
-              <p className="text-sm font-semibold text-amber-900">
-                📦 You can still place your order!
-              </p>
-              <p className="text-sm mt-1">
-                Your payment will be processed immediately, and your order will be prepared when we reopen.
-              </p>
-            </div>
+      {/* Batch Delivery Confirmation */}
+      {deliveryWindow && (
+        <Alert className={`border-2 ${isPreorder ? 'border-blue-400 bg-blue-50' : 'border-green-400 bg-green-50'}`}>
+          <Clock className={`h-5 w-5 ${isPreorder ? 'text-blue-600' : 'text-green-600'}`} />
+          <AlertTitle className={`text-lg font-bold ${isPreorder ? 'text-blue-900' : 'text-green-900'}`}>
+            {isPreorder
+              ? `📅 Your order will be delivered ${deliveryDate} between ${deliveryWindow}`
+              : `✅ Your order will be delivered today between ${deliveryWindow}`
+            }
+          </AlertTitle>
+          <AlertDescription className={`mt-2 ${isPreorder ? 'text-blue-800' : 'text-green-800'}`}>
+            {isPreorder
+              ? "Today's batch has closed. Your shawarma will be grilled fresh for the next delivery window."
+              : "We'll grill your shawarma fresh this afternoon. You'll receive a WhatsApp notification when it's on the way."
+            }
           </AlertDescription>
         </Alert>
       )}

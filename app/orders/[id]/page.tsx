@@ -185,7 +185,14 @@ export default function OrderTrackingPage({ params }: PageProps) {
                 <div>
                   <h3 className="text-lg font-semibold text-green-900">Order Confirmed!</h3>
                   <p className="text-green-800">
-                    Your payment was successful. We're preparing your order now.
+                    Your payment was successful.
+                    {order.delivery_window
+                      ? ` Delivery ${order.delivery_date === new Date().toISOString().split('T')[0] ? 'today' : order.delivery_date} between ${order.delivery_window}.`
+                      : " We're preparing your order now."
+                    }
+                  </p>
+                  <p className="text-green-700 text-sm mt-1">
+                    You'll receive a WhatsApp notification when your order is on the way.
                   </p>
                 </div>
               </div>

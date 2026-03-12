@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { isRestaurantOpen, checkAndManageCapacity } from '@/lib/kitchen-capacity';
 import { shouldBeOpenNow } from '@/lib/operating-hours';
+import { assignOrderToBatch, getNextAvailableBatch } from '@/lib/batch/batch-service';
 import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 import { z } from 'zod';
 
@@ -178,50 +179,43 @@ export async function POST(request: NextRequest) {
       has_location: !!(orderData.customer_latitude && orderData.customer_longitude)
     });
     
-    // CHECK 0: Check if within operating hours (but allow orders to be scheduled)
-    const hoursCheck = await shouldBeOpenNow();
-    const isOutsideHours = !hoursCheck.shouldBeOpen;
-    
-    // CHECK 1: Check if restaurant is manually closed or at capacity
-    const restaurantOpen = await isRestaurantOpen();
-    const isManuallyClosedOrAtCapacity = !restaurantOpen && hoursCheck.shouldBeOpen;
-    
-    // CHECK 2: Check kitchen capacity only if within operating hours
-    let capacityCheck = null;
-    if (!isOutsideHours) {
-      capacityCheck = await checkAndManageCapacity();
-      if (capacityCheck.action === 'closed') {
-        return NextResponse.json(
-          { 
-            error: 'Kitchen at capacity',
-            message: `We're currently experiencing high demand (${capacityCheck.activeOrders} active orders). Please try again in a few minutes.`,
-            details: {
-              activeOrders: capacityCheck.activeOrders,
-              maxOrders: capacityCheck.threshold,
-            }
+    // BATCH DELIVERY: Find the next available batch for this order
+    const { batch: nextBatch, isPreorder, deliveryDate, deliveryWindow } = await getNextAvailableBatch();
+
+    if (!nextBatch) {
+      return NextResponse.json(
+        {
+          error: 'No delivery windows available',
+          message: 'There are no active delivery windows at this time. Please check back later.',
+        },
+        { status: 503 }
+      );
+    }
+
+    // Check batch capacity
+    if (nextBatch.total_orders >= nextBatch.max_capacity) {
+      return NextResponse.json(
+        {
+          error: 'Batch at capacity',
+          message: `The ${deliveryWindow} delivery batch is full. Please try the next available window.`,
+          details: {
+            ordersPlaced: nextBatch.total_orders,
+            maxCapacity: nextBatch.max_capacity,
           },
-          { status: 503 }
-        );
-      }
+        },
+        { status: 503 }
+      );
     }
-    
+
     const supabase = createServiceClient();
-    
-    // Determine order status based on restaurant availability
-    let orderStatus = 'pending';
-    let scheduledNote = '';
-    
-    if (isOutsideHours) {
-      orderStatus = 'scheduled';
-      scheduledNote = `Order placed outside operating hours. Will be processed when restaurant opens: ${hoursCheck.reason}`;
-      console.log('📅 Creating scheduled order (outside operating hours):', scheduledNote);
-    } else if (isManuallyClosedOrAtCapacity) {
-      orderStatus = 'scheduled';
-      scheduledNote = 'Order placed while restaurant was temporarily closed. Will be processed when restaurant reopens.';
-      console.log('📅 Creating scheduled order (manually closed):', scheduledNote);
-    } else {
-      console.log('✅ Restaurant open, creating order...');
-    }
+
+    // All orders are 'pending' — batch assignment handles scheduling
+    const orderStatus = 'pending';
+    const scheduledNote = isPreorder
+      ? `Pre-order for ${deliveryDate} delivery window ${deliveryWindow}`
+      : '';
+
+    console.log(`� Assigning order to batch: ${nextBatch.id} (${deliveryWindow}, preorder: ${isPreorder})`);
 
     // Generate unique order number
     const orderNumber = generateOrderNumber();
@@ -235,7 +229,7 @@ export async function POST(request: NextRequest) {
 
     const prepTime = settingsData?.value?.current_prep_time || 30;
 
-    // Insert order
+    // Insert order with batch assignment
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -266,6 +260,9 @@ export async function POST(request: NextRequest) {
         promo_code: orderData.promo_code,
         estimated_prep_time: prepTime,
         notes: scheduledNote || undefined,
+        batch_id: nextBatch.id,
+        delivery_date: deliveryDate,
+        delivery_window: deliveryWindow,
       })
       .select()
       .single();
@@ -341,13 +338,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return order and payment URL
+    // Return order and payment URL with batch delivery info
     return NextResponse.json(
       {
         order: { ...order, items: orderItems },
         payment_url: paymentUrl,
-        scheduled: orderStatus === 'scheduled',
+        scheduled: isPreorder,
         scheduled_note: scheduledNote || undefined,
+        batch: {
+          id: nextBatch.id,
+          delivery_date: deliveryDate,
+          delivery_window: deliveryWindow,
+          is_preorder: isPreorder,
+        },
       },
       { status: 201 }
     );

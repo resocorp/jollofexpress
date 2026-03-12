@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input';
 import { useCartStore } from '@/store/cart-store';
 import { useDeliverySettings, usePaymentSettings } from '@/hooks/use-settings';
 import { useValidatePromo } from '@/hooks/use-promo';
+import { useOrderWindow } from '@/hooks/use-order-window';
 import { formatCurrency } from '@/lib/formatters';
-import { ShoppingCart, Tag, Bike, Receipt, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { ShoppingCart, Tag, Bike, Receipt, Loader2, CheckCircle2, XCircle, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -36,6 +37,7 @@ export function OrderSummaryWithButton({
   const { data: deliverySettings } = useDeliverySettings();
   const { data: paymentSettings } = usePaymentSettings();
   const validatePromo = useValidatePromo();
+  const { deliveryDate, deliveryWindow, isPreorder } = useOrderWindow();
   const [promoInput, setPromoInput] = useState(promoCode || '');
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -268,6 +270,21 @@ export function OrderSummaryWithButton({
 
         <Separator className="my-4" />
 
+        {/* K2: Delivery Date/Time in Sidebar */}
+        {deliveryWindow && (
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <CalendarDays className="h-5 w-5 text-primary flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">
+                {isPreorder ? `Delivery ${deliveryDate}` : 'Delivery Today'}
+              </p>
+              <p className="text-xs text-muted-foreground">{deliveryWindow}</p>
+            </div>
+          </div>
+        )}
+
+        <Separator className="my-4" />
+
         {/* Price Breakdown */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
@@ -349,10 +366,14 @@ export function OrderSummaryWithButton({
               </>
             ) : (
               <>
-                Proceed to Payment →
+                Pay {formatCurrency(total)} · {isPreorder ? `Delivery ${deliveryDate}` : 'Delivery Today'} {deliveryWindow ? deliveryWindow : ''} →
               </>
             )}
           </Button>
+          {/* K4: Post-payment reassurance */}
+          <p className="text-xs text-center text-muted-foreground">
+            After payment, you'll receive a WhatsApp confirmation with your delivery details.
+          </p>
         </div>
       </CardContent>
     </Card>

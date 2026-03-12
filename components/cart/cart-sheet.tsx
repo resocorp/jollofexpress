@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, Package, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
 import { useCartStore } from '@/store/cart-store';
+import { useDeliverySettings } from '@/hooks/use-settings';
+import { useOrderWindow } from '@/hooks/use-order-window';
 import { formatCurrency } from '@/lib/formatters';
 
 const CHECKOUT_ANIMATION_KEY = 'jollof_checkout_animation_count';
@@ -14,6 +16,8 @@ const MAX_ANIMATION_VIEWS = 5;
 
 export function CartSheet() {
   const { items, removeItem, updateItemQuantity, clearCart, getSubtotal } = useCartStore();
+  const { data: deliverySettings } = useDeliverySettings();
+  const { deliveryDate, deliveryWindow, isPreorder, countdownFormatted, isAccepting, secondsUntilCutoff } = useOrderWindow();
   const [showAnimation, setShowAnimation] = useState(false);
 
   useEffect(() => {
@@ -40,8 +44,6 @@ export function CartSheet() {
     } catch { /* ignore */ }
   };
 
-  const subtotal = getSubtotal();
-
   if (items.length === 0) {
     return (
       <>
@@ -61,6 +63,11 @@ export function CartSheet() {
     );
   }
 
+  const subtotal = getSubtotal();
+  const freeDeliveryThreshold = deliverySettings?.free_delivery_threshold;
+  const amountToFreeDelivery = freeDeliveryThreshold ? Math.max(0, freeDeliveryThreshold - subtotal) : 0;
+  const freeDeliveryPercent = freeDeliveryThreshold ? Math.min(100, (subtotal / freeDeliveryThreshold) * 100) : 0;
+
   return (
     <div className="flex flex-col h-full">
       <SheetHeader>
@@ -68,8 +75,60 @@ export function CartSheet() {
         <SheetDescription>Review your order before checkout</SheetDescription>
       </SheetHeader>
 
+      {/* C1: Delivery Window Confirmation Banner */}
+      {deliveryWindow && (
+        <div className={`mx-0 mt-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+          isPreorder
+            ? 'bg-blue-50 border border-blue-200 text-blue-800'
+            : 'bg-green-50 border border-green-200 text-green-800'
+        }`}>
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4 flex-shrink-0" />
+            <span>
+              {isPreorder
+                ? `Delivery ${deliveryDate}, ${deliveryWindow}`
+                : `Delivery today, ${deliveryWindow}`
+              }
+              {isAccepting && secondsUntilCutoff > 0 && (
+                <span className="text-xs opacity-75"> · Closes in {countdownFormatted}</span>
+              )}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* C2: Free Delivery Progress Bar */}
+      {freeDeliveryThreshold && amountToFreeDelivery > 0 && (
+        <div className="mx-0 mt-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Truck className="h-3.5 w-3.5 text-orange-600" />
+            <span className="text-xs font-medium text-orange-800">
+              {formatCurrency(amountToFreeDelivery)} away from <strong>FREE DELIVERY</strong>
+            </span>
+          </div>
+          <div className="w-full h-2 bg-orange-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-orange-400 to-green-500 rounded-full transition-all duration-500"
+              style={{ width: `${freeDeliveryPercent}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[10px] text-orange-600">{formatCurrency(subtotal)}</span>
+            <span className="text-[10px] text-orange-600">{formatCurrency(freeDeliveryThreshold)}</span>
+          </div>
+        </div>
+      )}
+      {freeDeliveryThreshold && amountToFreeDelivery <= 0 && (
+        <div className="mx-0 mt-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Truck className="h-3.5 w-3.5 text-green-600" />
+            <span className="text-xs font-semibold text-green-700">🎉 You qualify for FREE DELIVERY!</span>
+          </div>
+        </div>
+      )}
+
       {/* Cart Items */}
-      <div className="flex-1 overflow-y-auto py-6 space-y-4">
+      <div className="flex-1 overflow-y-auto py-4 space-y-4">
         {items.map((cartItem, index) => (
           <div key={index} className="flex gap-4 p-4 border rounded-lg">
             <div className="flex-1">

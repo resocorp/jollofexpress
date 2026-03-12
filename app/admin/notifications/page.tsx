@@ -1,236 +1,248 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { 
-  Bell, 
   Send, 
   CheckCircle, 
   XCircle, 
-  Clock, 
   Settings,
   History,
   TrendingUp,
-  Loader2
+  Loader2,
+  RefreshCw,
+  MessageSquare,
 } from 'lucide-react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNotificationStats } from '@/hooks/use-notifications';
+import { adminFetch } from '@/lib/api-client';
+import { toast } from 'sonner';
+
+interface WhatsAppStatus {
+  status: string;
+  uptime: number;
+  messages_sent_last_minute?: number;
+  rate_limit?: number;
+  error?: string;
+}
+
+interface QRResponse {
+  status: string;
+  qr: string | null;
+  message?: string;
+}
 
 export default function NotificationCenterPage() {
   const { data: stats, isLoading } = useNotificationStats();
+  const [manualPhone, setManualPhone] = useState('');
+  const [manualMessage, setManualMessage] = useState('');
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // WhatsApp status
+  const { data: waStatus, refetch: refetchStatus } = useQuery({
+    queryKey: ['whatsapp-status'],
+    queryFn: async (): Promise<WhatsAppStatus> => {
+      const res = await adminFetch('/api/admin/whatsapp/status');
+      return res.json();
+    },
+    refetchInterval: 10000,
+  });
+
+  // QR code
+  const { data: qrData, refetch: refetchQR } = useQuery({
+    queryKey: ['whatsapp-qr'],
+    queryFn: async (): Promise<QRResponse> => {
+      const res = await adminFetch('/api/admin/whatsapp/qr');
+      return res.json();
+    },
+    refetchInterval: waStatus?.status === 'awaiting_scan' ? 3000 : 30000,
+  });
+
+  // Reconnect
+  const reconnectMutation = useMutation({
+    mutationFn: async () => {
+      const res = await adminFetch('/api/admin/whatsapp/reconnect', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Reconnection initiated');
+      refetchStatus();
+      refetchQR();
+    },
+    onError: () => toast.error('Failed to reconnect'),
+  });
+
+  // Send test message
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      const res = await adminFetch('/api/notifications/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: manualPhone }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Test notification sent');
+      setManualPhone('');
+      setManualMessage('');
+    },
+    onError: () => toast.error('Failed to send'),
+  });
 
   const successRate = stats?.successRate || 0;
-  const getSuccessRateColor = () => {
-    if (successRate >= 90) return 'text-green-600';
-    if (successRate >= 70) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  const waConnected = waStatus?.status === 'connected';
+  const waAwaiting = waStatus?.status === 'awaiting_scan';
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Notification Center</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage WhatsApp notifications for customers and admins
-          </p>
+          <h1 className="text-2xl font-bold text-white">Notification Center</h1>
+          <p className="text-gray-500 mt-1 text-sm">Manage WhatsApp notifications via Baileys</p>
         </div>
         <div className="flex gap-2">
           <Link href="/admin/notifications/settings">
-            <Button variant="outline">
-              <Settings className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" className="text-gray-400 border-[#1F2233] hover:bg-[#1F2233] hover:text-white bg-transparent text-xs">
+              <Settings className="h-3 w-3 mr-1" />
               Settings
             </Button>
           </Link>
           <Link href="/admin/notifications/logs">
-            <Button variant="outline">
-              <History className="h-4 w-4 mr-2" />
-              View Logs
+            <Button variant="outline" size="sm" className="text-gray-400 border-[#1F2233] hover:bg-[#1F2233] hover:text-white bg-transparent text-xs">
+              <History className="h-3 w-3 mr-1" />
+              Logs
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Sent</CardTitle>
-            <Send className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.total || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Last 100 notifications
-            </p>
-          </CardContent>
-        </Card>
+      {/* WhatsApp Connection Status */}
+      <div className="bg-[#161822] rounded-xl p-5 border border-[#1F2233]">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            WhatsApp (Baileys)
+          </h3>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => reconnectMutation.mutate()}
+              disabled={reconnectMutation.isPending}
+              size="sm"
+              variant="outline"
+              className="text-gray-400 border-[#1F2233] hover:bg-[#1F2233] hover:text-white bg-transparent text-xs h-8"
+            >
+              <RefreshCw className={`h-3 w-3 mr-1 ${reconnectMutation.isPending ? 'animate-spin' : ''}`} />
+              Reconnect
+            </Button>
+            <Badge className={`text-xs border ${
+              waConnected ? 'bg-green-500/20 text-green-400 border-green-500/30'
+              : waAwaiting ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+              : 'bg-red-500/20 text-red-400 border-red-500/30'
+            }`}>
+              {waStatus?.status || 'checking...'}
+            </Badge>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Delivered</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {stats?.sent || 0}
+        {/* QR Code display when awaiting scan */}
+        {waAwaiting && qrData?.qr && (
+          <div className="flex items-start gap-5 p-4 bg-[#0F1117] rounded-lg border border-[#1F2233]">
+            <div className="flex-shrink-0 bg-white p-2 rounded-lg">
+              <img src={qrData.qr} alt="WhatsApp QR Code" width={160} height={160} />
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Successfully delivered
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Failed</CardTitle>
-            <XCircle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {stats?.failed || 0}
+            <div>
+              <p className="text-sm text-gray-300 mb-2">To connect WhatsApp:</p>
+              <ol className="text-xs text-gray-500 space-y-1 list-decimal list-inside">
+                <li>Open WhatsApp on your business phone</li>
+                <li>Go to Settings → Linked Devices → Link a Device</li>
+                <li>Scan the QR code shown here</li>
+              </ol>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Delivery failures
+          </div>
+        )}
+
+        {/* Connected status */}
+        {waConnected && (
+          <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+            <p className="text-sm text-green-400">
+              WhatsApp connected and active. Notifications will be sent via WhatsApp.
             </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${getSuccessRateColor()}`}>
-              {successRate}%
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Delivery success rate
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Notification Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* By Type */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Notifications by Type</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-blue-600" />
-                  <span className="font-medium">Customer Notifications</span>
-                </div>
-                <Badge variant="secondary">{stats?.customerCount || 0}</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-orange-600" />
-                  <span className="font-medium">Admin Notifications</span>
-                </div>
-                <Badge variant="secondary">{stats?.adminCount || 0}</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Failures */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Failures</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {stats?.recentFailures && stats.recentFailures.length > 0 ? (
-              <div className="space-y-3">
-                {stats.recentFailures.map((failure: any) => (
-                  <div key={failure.id} className="text-sm border-l-2 border-red-500 pl-3">
-                    <p className="font-medium">{failure.event_type}</p>
-                    <p className="text-muted-foreground text-xs">
-                      {failure.recipient_phone}
-                    </p>
-                    <p className="text-red-600 text-xs mt-1">
-                      {failure.error_message || 'Send failed'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                <p>No recent failures</p>
-              </div>
+            {waStatus?.uptime && (
+              <p className="text-xs text-green-500/70 mt-1">
+                Uptime: {Math.floor(waStatus.uptime / 60)}m · Messages/min: {waStatus.messages_sent_last_minute || 0}/{waStatus.rate_limit || 30}
+              </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        )}
+
+        {/* Disconnected / unreachable */}
+        {!waConnected && !waAwaiting && (
+          <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+            <p className="text-sm text-red-400">
+              {waStatus?.error || 'WhatsApp is disconnected. Click "Reconnect" to generate a new QR code.'}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/admin/notifications/settings">
-              <Button variant="outline" className="w-full justify-start">
-                <Settings className="h-4 w-4 mr-2" />
-                Configure Settings
-              </Button>
-            </Link>
-            <Link href="/admin/notifications/logs">
-              <Button variant="outline" className="w-full justify-start">
-                <History className="h-4 w-4 mr-2" />
-                View All Logs
-              </Button>
-            </Link>
-            <Link href="/admin/notifications/settings">
-              <Button variant="outline" className="w-full justify-start">
-                <Send className="h-4 w-4 mr-2" />
-                Send Test Notification
-              </Button>
-            </Link>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Sent', value: stats?.total || 0, color: '#3B82F6', icon: Send },
+          { label: 'Delivered', value: stats?.sent || 0, color: '#10B981', icon: CheckCircle },
+          { label: 'Failed', value: stats?.failed || 0, color: '#EF4444', icon: XCircle },
+          { label: 'Success Rate', value: `${successRate}%`, color: successRate >= 90 ? '#10B981' : successRate >= 70 ? '#F59E0B' : '#EF4444', icon: TrendingUp },
+        ].map((s, i) => (
+          <div key={i} className="bg-[#161822] rounded-xl p-5 border border-[#1F2233]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] text-gray-500 uppercase tracking-wider">{s.label}</span>
+              <s.icon className="h-4 w-4 text-gray-600" />
+            </div>
+            <div className="text-2xl font-extrabold" style={{ color: s.color }}>{s.value}</div>
           </div>
-        </CardContent>
-      </Card>
+        ))}
+      </div>
 
-      {/* Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>About WhatsApp Notifications</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              <strong>Customer Notifications:</strong> Automatically sent when orders are confirmed,
-              prepared, ready, out for delivery, and completed.
-            </p>
-            <p>
-              <strong>Admin Notifications:</strong> Sent to configured admin phone numbers for
-              kitchen capacity alerts, payment failures, and daily summaries.
-            </p>
-            <p>
-              <strong>Powered by UltraMsg:</strong> Enterprise WhatsApp API with unlimited messages
-              at $39/month.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Manual Send */}
+      <div className="bg-[#161822] rounded-xl p-5 border border-[#1F2233]">
+        <h3 className="text-sm font-semibold text-white mb-3">Send Test Message</h3>
+        <div className="flex gap-3">
+          <Input
+            value={manualPhone}
+            onChange={(e) => setManualPhone(e.target.value)}
+            placeholder="Phone number (e.g., 08099988875)"
+            className="bg-[#0F1117] border-[#1F2233] text-white text-sm h-9 flex-1"
+          />
+          <Button
+            onClick={() => sendMutation.mutate()}
+            disabled={sendMutation.isPending || !manualPhone}
+            size="sm"
+            className="bg-gradient-to-r from-red-600 to-orange-500 text-white text-xs h-9"
+          >
+            {sendMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Send className="h-3 w-3 mr-1" />}
+            Send Test
+          </Button>
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="bg-[#161822] rounded-xl p-5 border border-[#1F2233]">
+        <h3 className="text-sm font-semibold text-white mb-2">About WhatsApp Notifications</h3>
+        <div className="space-y-1.5 text-xs text-gray-500">
+          <p><strong className="text-gray-400">Customer:</strong> Sent on order placement, batch preparing, dispatch, and delivery.</p>
+          <p><strong className="text-gray-400">Admin:</strong> Kitchen alerts, payment failures, daily summaries.</p>
+          <p><strong className="text-gray-400">Powered by Baileys:</strong> Free, open-source WhatsApp Web connection running as a PM2 sidecar process.</p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,5 @@
-// Main Notification Service - Orchestrates WhatsApp notifications
+// Main Notification Service - Orchestrates WhatsApp notifications via Baileys sidecar
 import { createServiceClient } from '@/lib/supabase/service';
-import { UltraMsgClient } from './ultramsg-client';
 import * as templates from './message-templates';
 import type { 
   NotificationSettings,
@@ -12,6 +11,10 @@ import type {
 } from './types';
 import type { OrderWithItems } from '@/types/database';
 
+// Baileys sidecar configuration
+const BAILEYS_URL = process.env.BAILEYS_SIDECAR_URL || 'http://localhost:3001';
+const BAILEYS_SECRET = process.env.BAILEYS_API_SECRET || 'dev-secret-change-me';
+
 /**
  * Fetch notification settings from database
  */
@@ -22,7 +25,7 @@ async function getNotificationSettings(): Promise<NotificationSettings | null> {
     const { data, error } = await supabase
       .from('notification_settings')
       .select('key, value')
-      .in('key', ['ultramsg', 'customer_notifications', 'admin_notifications']);
+      .in('key', ['whatsapp', 'ultramsg', 'customer_notifications', 'admin_notifications']);
 
     if (error || !data) {
       console.error('Error fetching notification settings:', error);
@@ -34,6 +37,11 @@ async function getNotificationSettings(): Promise<NotificationSettings | null> {
     data.forEach((row) => {
       settings[row.key] = row.value;
     });
+
+    // Support both old 'ultramsg' key and new 'whatsapp' key
+    if (!settings.ultramsg && settings.whatsapp) {
+      settings.ultramsg = settings.whatsapp;
+    }
 
     return settings as unknown as NotificationSettings;
   } catch (error) {
@@ -52,7 +60,7 @@ async function logNotification(
   messageBody: string,
   status: 'pending' | 'sent' | 'failed',
   orderId?: string,
-  ultramsgId?: string,
+  messageId?: string,
   errorMessage?: string
 ): Promise<void> {
   const supabase = createServiceClient();
@@ -65,7 +73,7 @@ async function logNotification(
       message_body: messageBody,
       status,
       order_id: orderId,
-      ultramsg_id: ultramsgId,
+      ultramsg_id: messageId,
       error_message: errorMessage,
     };
 
@@ -80,6 +88,48 @@ async function logNotification(
 }
 
 /**
+ * Send a WhatsApp message via Baileys sidecar HTTP API
+ */
+async function sendWhatsAppMessage(phone: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  try {
+    const response = await fetch(`${BAILEYS_URL}/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Secret': BAILEYS_SECRET,
+      },
+      body: JSON.stringify({ phone, message }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      return { success: true, messageId: data.messageId };
+    }
+
+    return { success: false, error: data.error || data.message || 'Send failed' };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Baileys sidecar error:', errorMsg);
+    return { success: false, error: `Baileys connection error: ${errorMsg}` };
+  }
+}
+
+/**
+ * Check Baileys sidecar connection status
+ */
+export async function getBaileysStatus(): Promise<{ status: string; uptime: number }> {
+  try {
+    const response = await fetch(`${BAILEYS_URL}/status`, {
+      headers: { 'X-API-Secret': BAILEYS_SECRET },
+    });
+    return await response.json();
+  } catch {
+    return { status: 'unreachable', uptime: 0 };
+  }
+}
+
+/**
  * Send a WhatsApp notification
  */
 async function sendNotification(options: SendNotificationOptions): Promise<boolean> {
@@ -90,53 +140,10 @@ async function sendNotification(options: SendNotificationOptions): Promise<boole
     return false;
   }
 
-  // Check for credentials in database first, then fall back to env vars
-  const instanceId = settings.ultramsg.instance_id || process.env.ULTRAMSG_INSTANCE_ID;
-  const token = settings.ultramsg.token || process.env.ULTRAMSG_TOKEN;
-
-  if (!instanceId || !token) {
-    console.error('❌ UltraMsg credentials not configured in database or environment variables');
-    console.error('Database settings:', { 
-      hasInstanceId: !!settings.ultramsg.instance_id, 
-      hasToken: !!settings.ultramsg.token 
-    });
-    return false;
-  }
-
-  console.log('✅ Using UltraMsg credentials:', {
-    instanceId,
-    tokenLength: token.length,
-    source: settings.ultramsg.instance_id ? 'database' : 'environment'
-  });
-
-  const client = new UltraMsgClient(instanceId, token);
-
-  // Validate phone number
-  if (!UltraMsgClient.validatePhoneNumber(options.phone)) {
-    console.error('Invalid phone number:', options.phone);
-    await logNotification(
-      options.notificationType,
-      options.eventType,
-      options.phone,
-      options.message,
-      'failed',
-      options.orderId,
-      undefined,
-      'Invalid phone number format'
-    );
-    return false;
-  }
-
   try {
-    // Send message via UltraMsg
-    const response = await client.sendMessage({
-      to: options.phone,
-      body: options.message,
-      referenceId: options.orderId,
-    });
+    const result = await sendWhatsAppMessage(options.phone, options.message);
 
-    if (response.sent) {
-      // Log success
+    if (result.success) {
       await logNotification(
         options.notificationType,
         options.eventType,
@@ -144,13 +151,12 @@ async function sendNotification(options: SendNotificationOptions): Promise<boole
         options.message,
         'sent',
         options.orderId,
-        response.id
+        result.messageId
       );
 
       console.log(`✅ Notification sent: ${options.eventType} to ${options.phone}`);
       return true;
     } else {
-      // Log failure
       await logNotification(
         options.notificationType,
         options.eventType,
@@ -159,16 +165,15 @@ async function sendNotification(options: SendNotificationOptions): Promise<boole
         'failed',
         options.orderId,
         undefined,
-        response.message || 'Send failed'
+        result.error || 'Send failed'
       );
 
-      console.error('Failed to send notification:', response.message);
+      console.error('Failed to send notification:', result.error);
       return false;
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
-    // Log error
+
     await logNotification(
       options.notificationType,
       options.eventType,
@@ -403,37 +408,31 @@ export async function sendSystemAlert(title: string, alertMessage: string): Prom
 // ============================================
 
 /**
- * Test notification connection
+ * Test notification connection (Baileys sidecar health check)
  */
 export async function testNotificationConnection(): Promise<{ success: boolean; message: string }> {
-  const settings = await getNotificationSettings();
+  try {
+    const status = await getBaileysStatus();
 
-  // Check for credentials in database first, then fall back to env vars
-  const instanceId = settings?.ultramsg.instance_id || process.env.ULTRAMSG_INSTANCE_ID;
-  const token = settings?.ultramsg.token || process.env.ULTRAMSG_TOKEN;
+    if (status.status === 'connected') {
+      return { success: true, message: 'WhatsApp connected via Baileys' };
+    }
 
-  if (!instanceId || !token) {
-    console.error('❌ UltraMsg credentials not configured');
-    console.error('Database settings:', settings?.ultramsg);
-    console.error('Env vars:', {
-      hasInstanceId: !!process.env.ULTRAMSG_INSTANCE_ID,
-      hasToken: !!process.env.ULTRAMSG_TOKEN,
-    });
+    if (status.status === 'awaiting_scan') {
+      return { success: false, message: 'WhatsApp awaiting QR scan. Please scan from admin panel.' };
+    }
+
+    if (status.status === 'unreachable') {
+      return { success: false, message: 'Baileys sidecar is not running. Start it with: pm2 start ecosystem.config.js' };
+    }
+
+    return { success: false, message: `WhatsApp status: ${status.status}` };
+  } catch (error) {
     return {
       success: false,
-      message: 'UltraMsg credentials not configured in database or environment variables',
+      message: error instanceof Error ? error.message : 'Connection test failed',
     };
   }
-
-  console.log('🔍 Testing connection with:', {
-    instanceId,
-    tokenLength: token.length,
-    source: settings?.ultramsg.instance_id ? 'database' : 'environment'
-  });
-
-  const client = new UltraMsgClient(instanceId, token);
-
-  return client.testConnection();
 }
 
 /**

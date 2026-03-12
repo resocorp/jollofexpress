@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { Loader2 } from 'lucide-react';
+import { ThemeProvider } from 'next-themes';
 
 export default function AdminLayout({
   children,
@@ -88,13 +89,15 @@ export default function AdminLayout({
     return null;
   }
 
-  // Show admin layout
+  // Show admin layout with forced dark theme
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <AdminSidebar />
-      <main className="flex-1 p-8">
-        {children}
-      </main>
-    </div>
+    <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
+      <div className="flex min-h-screen bg-[#0F1117] text-gray-200 dark">
+        <AdminSidebar />
+        <main className="flex-1 p-8 overflow-auto">
+          {children}
+        </main>
+      </div>
+    </ThemeProvider>
   );
 }

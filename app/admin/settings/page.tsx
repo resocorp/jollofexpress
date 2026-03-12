@@ -9,7 +9,9 @@ import { OperatingHoursForm } from '@/components/admin/settings/operating-hours-
 import { DeliverySettingsForm } from '@/components/admin/settings/delivery-settings-form';
 import { PaymentSettingsForm } from '@/components/admin/settings/payment-settings-form';
 import { OrderSettingsForm } from '@/components/admin/settings/order-settings-form';
-import { Loader2, Store, Clock, Truck, CreditCard, Settings } from 'lucide-react';
+import { Loader2, Store, Clock, Truck, CreditCard, Settings, Package } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function SettingsPage() {
   const { data: settings, isLoading, error } = useAllSettings();
@@ -66,7 +68,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="restaurant" className="flex items-center gap-2">
             <Store className="h-4 w-4" />
             Restaurant
@@ -86,6 +88,10 @@ export default function SettingsPage() {
           <TabsTrigger value="orders" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Orders
+          </TabsTrigger>
+          <TabsTrigger value="batch" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Batch
           </TabsTrigger>
         </TabsList>
 
@@ -155,6 +161,44 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <OrderSettingsForm data={settings?.order_settings} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="batch" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Batch Delivery Settings</CardTitle>
+              <CardDescription>
+                Configure delivery windows, batch capacity, and WhatsApp notifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Link href="/admin/batches">
+                  <div className="p-4 border rounded-lg hover:bg-muted/50 transition cursor-pointer">
+                    <h4 className="font-semibold text-sm">Delivery Windows</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Configure daily delivery batches, cutoff times, and capacity</p>
+                  </div>
+                </Link>
+                <Link href="/admin/notifications">
+                  <div className="p-4 border rounded-lg hover:bg-muted/50 transition cursor-pointer">
+                    <h4 className="font-semibold text-sm">WhatsApp (Baileys)</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Manage WhatsApp connection, QR code, and notification templates</p>
+                  </div>
+                </Link>
+                <Link href="/admin/feature-flags">
+                  <div className="p-4 border rounded-lg hover:bg-muted/50 transition cursor-pointer">
+                    <h4 className="font-semibold text-sm">Feature Flags</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Toggle countdown timer, capacity warnings, and pre-order mode</p>
+                  </div>
+                </Link>
+                <Link href="/admin/testing">
+                  <div className="p-4 border rounded-lg hover:bg-muted/50 transition cursor-pointer">
+                    <h4 className="font-semibold text-sm">Adoption Testing</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Test mode, simulated batches, and notification previews</p>
+                  </div>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

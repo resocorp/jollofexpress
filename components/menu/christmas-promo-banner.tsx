@@ -1,14 +1,37 @@
 'use client';
 
-import { Clock, Phone } from 'lucide-react';
+import { Clock, Phone, Timer } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useRestaurantStatus, useRestaurantInfo, useDeliverySettings } from '@/hooks/use-settings';
+import { useRestaurantInfo, useDeliverySettings } from '@/hooks/use-settings';
+import { useOrderWindow } from '@/hooks/use-order-window';
 import { formatCurrency } from '@/lib/formatters';
 
 export function PromoBanner() {
-  const { data: status } = useRestaurantStatus();
   const { data: info } = useRestaurantInfo();
   const { data: deliverySettings } = useDeliverySettings();
+  const {
+    isAccepting,
+    isPreorder,
+    deliveryDate,
+    deliveryWindow,
+    countdownFormatted,
+    secondsUntilCutoff,
+    message,
+    isLoading,
+  } = useOrderWindow();
+
+  // Determine status indicator color and label
+  const getStatusIndicator = () => {
+    if (isAccepting) {
+      return { color: 'bg-green-400', pulse: true, label: 'Ordering Open' };
+    }
+    if (isPreorder) {
+      return { color: 'bg-yellow-400', pulse: false, label: 'Pre-ordering' };
+    }
+    return { color: 'bg-yellow-400', pulse: false, label: 'Batch in Progress' };
+  };
+
+  const statusIndicator = getStatusIndicator();
 
   return (
     <motion.div
@@ -25,18 +48,22 @@ export function PromoBanner() {
               🌯 THE BEST TASTING SHAWARMA IN TOWN! 🔥
             </h2>
             
-            {deliverySettings?.free_delivery_threshold && (
+            {/* Batch delivery info line */}
+            {deliveryWindow ? (
               <p className="text-xs sm:text-sm font-semibold text-white/95 drop-shadow">
-                <span className="text-[#FFD700] font-black">*FREE DELIVERY</span> on orders above {formatCurrency(deliverySettings.free_delivery_threshold)}!
+                <span className="font-bold">Fresh batch daily</span> · Delivered hot between {deliveryWindow}
+              </p>
+            ) : null}
+
+            {deliverySettings?.free_delivery_threshold && (
+              <p className="text-[10px] sm:text-xs text-white/90 font-medium">
+                <span className="text-[#FFD700] font-black">FREE DELIVERY</span> on orders above {formatCurrency(deliverySettings.free_delivery_threshold)}
+                {isAccepting && deliveryWindow ? ` · Order by cutoff today!` : ''}
               </p>
             )}
-            
-            <p className="text-[10px] sm:text-xs text-white/90 font-medium">
-              🔥 Fresh ingredients • Grilled to perfection • Hot delivery! 🚗
-            </p>
           </div>
 
-          {/* Restaurant Info Section - Compact Single Line */}
+          {/* Smart Status Section */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -44,20 +71,33 @@ export function PromoBanner() {
             className="mt-2 pt-2 border-t border-white/20"
           >
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-white text-xs sm:text-sm">
-              {/* Status Badge */}
-              {status?.is_open ? (
-                <span className="flex items-center gap-1 font-medium">
-                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                  Open
-                  {status.estimated_prep_time && (
-                    <span className="text-white/80">({status.estimated_prep_time} min)</span>
-                  )}
+              {/* Smart Status Badge */}
+              {!isLoading && (
+                <span className="flex items-center gap-1.5 font-medium">
+                  <span className={`w-1.5 h-1.5 ${statusIndicator.color} rounded-full ${statusIndicator.pulse ? 'animate-pulse' : ''}`}></span>
+                  {statusIndicator.label}
                 </span>
-              ) : (
-                <span className="flex items-center gap-1 font-medium">
-                  <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
-                  Closed
-                </span>
+              )}
+
+              {/* Delivery Window Info */}
+              {deliveryWindow && (
+                <>
+                  <span className="text-white/40">•</span>
+                  <span className="font-medium">
+                    {deliveryDate} {deliveryWindow}
+                  </span>
+                </>
+              )}
+
+              {/* Countdown Timer */}
+              {isAccepting && secondsUntilCutoff > 0 && (
+                <>
+                  <span className="text-white/40">•</span>
+                  <span className="flex items-center gap-1 text-[#FFD700] font-bold">
+                    <Timer className="h-3 w-3" />
+                    Closes in {countdownFormatted}
+                  </span>
+                </>
               )}
 
               {/* Phone */}
@@ -72,17 +112,6 @@ export function PromoBanner() {
                     <span className="hidden sm:inline">{info.phone}</span>
                     <span className="sm:hidden">Call</span>
                   </a>
-                </>
-              )}
-
-              {/* Last Orders Time */}
-              {status?.is_open && status?.next_status_change?.action === 'close' && (
-                <>
-                  <span className="text-white/40">•</span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Last orders at {status.next_status_change.time}
-                  </span>
                 </>
               )}
             </div>

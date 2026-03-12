@@ -24,10 +24,11 @@ import { Button } from '@/components/ui/button';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Batches', href: '/admin/batches', icon: Tag },
+  { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Menu Items', href: '/admin/menu', icon: UtensilsCrossed },
   { name: 'Categories', href: '/admin/menu/categories', icon: Tag },
-  { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
   { name: 'Customers', href: '/admin/customers', icon: UserRound },
   { name: 'Delivery Regions', href: '/admin/delivery-regions', icon: MapPin },
   { name: 'Delivery', href: '/admin/delivery', icon: Truck },
@@ -35,6 +36,8 @@ const navigation = [
   { name: 'Vehicles', href: '/admin/vehicles', icon: Car },
   { name: 'Influencers', href: '/admin/promos', icon: Users },
   { name: 'Notifications', href: '/admin/notifications', icon: Bell },
+  { name: 'Feature Flags', href: '/admin/feature-flags', icon: Settings },
+  { name: 'Testing', href: '/admin/testing', icon: BarChart3 },
   { name: 'Printer Status', href: '/admin/printer', icon: Printer },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
@@ -43,22 +46,22 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <aside className="w-64 bg-[#161822] border-r border-[#1F2233] flex flex-col flex-shrink-0">
       {/* Logo */}
-      <div className="p-6 border-b">
-        <Link href="/admin" className="flex items-center space-x-2">
-          <div className="flex items-center justify-center h-10 w-10 rounded-full bg-orange-500 text-white font-bold">
-            JE
+      <div className="p-5 border-b border-[#1F2233]">
+        <Link href="/admin" className="flex items-center space-x-3">
+          <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-gradient-to-br from-red-600 to-orange-500 text-white font-bold text-sm">
+            MS
           </div>
           <div>
-            <h1 className="font-bold text-lg">JollofExpress</h1>
-            <p className="text-xs text-muted-foreground">Admin Panel</p>
+            <h1 className="font-bold text-sm text-white">Shawarma Admin</h1>
+            <p className="text-[11px] text-gray-500">myshawarma.express</p>
           </div>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
           return (
@@ -66,13 +69,13 @@ export function AdminSidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-orange-50 text-orange-600'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-[#1F2233] text-white'
+                  : 'text-gray-500 hover:bg-[#1F2233]/50 hover:text-gray-300'
               )}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-4 w-4" />
               {item.name}
             </Link>
           );
@@ -80,28 +83,22 @@ export function AdminSidebar() {
       </nav>
 
       {/* Kitchen & Logout */}
-      <div className="p-4 border-t space-y-2">
+      <div className="p-3 border-t border-[#1F2233] space-y-1.5">
         <Link href="/kitchen">
-          <Button variant="outline" className="w-full justify-start">
-            <LayoutDashboard className="h-4 w-4 mr-2" />
+          <Button variant="outline" className="w-full justify-start text-gray-400 border-[#1F2233] hover:bg-[#1F2233] hover:text-white bg-transparent text-xs h-9">
+            <LayoutDashboard className="h-3.5 w-3.5 mr-2" />
             Kitchen Display
           </Button>
         </Link>
-        <Link href="/driver">
-          <Button variant="outline" className="w-full justify-start">
-            <Bike className="h-4 w-4 mr-2" />
-            Driver App
-          </Button>
-        </Link>
         <Link href="/menu">
-          <Button variant="outline" className="w-full justify-start">
-            <UtensilsCrossed className="h-4 w-4 mr-2" />
+          <Button variant="outline" className="w-full justify-start text-gray-400 border-[#1F2233] hover:bg-[#1F2233] hover:text-white bg-transparent text-xs h-9">
+            <UtensilsCrossed className="h-3.5 w-3.5 mr-2" />
             View Menu
           </Button>
         </Link>
         <Button 
           variant="ghost" 
-          className="w-full justify-start text-destructive hover:text-destructive"
+          className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-950/30 text-xs h-9"
           onClick={async () => {
             const { createClient } = await import('@/lib/supabase/client');
             const supabase = createClient();
@@ -109,7 +106,7 @@ export function AdminSidebar() {
             window.location.href = '/admin/login';
           }}
         >
-          <LogOut className="h-4 w-4 mr-2" />
+          <LogOut className="h-3.5 w-3.5 mr-2" />
           Logout
         </Button>
       </div>

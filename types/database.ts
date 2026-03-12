@@ -126,6 +126,11 @@ export interface Order {
   // Order source tracking
   order_source?: 'web' | 'whatsapp';
   whatsapp_session_id?: string;
+  
+  // Batch delivery fields
+  batch_id?: string;
+  delivery_date?: string;
+  delivery_window?: string;
 }
 
 // ============ DELIVERY TRACKING INTERFACES ============

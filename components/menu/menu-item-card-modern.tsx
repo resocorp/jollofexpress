@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency, getDietaryTagIcon } from '@/lib/formatters';
 import type { MenuItemWithDetails } from '@/types/database';
 import { ItemCustomizationDialog } from './item-customization-dialog';
+import { useOrderWindow } from '@/hooks/use-order-window';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,7 @@ interface MenuItemCardProps {
 export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
   const [showCustomization, setShowCustomization] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const { isAccepting, isPreorder } = useOrderWindow();
 
   const hasCustomizations = (item.variations && item.variations.length > 0) || 
                            (item.addons && item.addons.length > 0);
@@ -180,8 +182,13 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
           {/* Footer with Add Button */}
           <CardFooter className="p-2 sm:p-4 pt-0">
             <Button
-              className="w-full group-hover:bg-primary group-hover:text-white transition-all duration-300 touch-manipulation text-xs sm:text-base min-h-[40px] sm:min-h-[44px] px-2 sm:px-4"
-              variant={item.is_available ? "default" : "secondary"}
+              className={cn(
+                "w-full transition-all duration-300 touch-manipulation text-xs sm:text-base min-h-[40px] sm:min-h-[44px] px-2 sm:px-4",
+                isPreorder && item.is_available
+                  ? "bg-muted hover:bg-muted/80 text-muted-foreground border border-input"
+                  : "group-hover:bg-primary group-hover:text-white"
+              )}
+              variant={item.is_available ? (isPreorder ? "outline" : "default") : "secondary"}
               onClick={(e) => {
                 e.stopPropagation();
                 setShowCustomization(true);
@@ -189,7 +196,14 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
               disabled={!item.is_available}
             >
               <Plus className="h-3.5 w-3.5 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
-              <span className="truncate">{hasCustomizations ? 'Customize & Add' : 'Add to Cart'}</span>
+              <span className="truncate">
+                {!item.is_available
+                  ? 'Sold Out'
+                  : hasCustomizations
+                    ? (isPreorder ? 'Pre-order & Customize' : 'Customize & Add')
+                    : (isPreorder ? 'Pre-order for Tomorrow' : 'Add to Cart')
+                }
+              </span>
             </Button>
           </CardFooter>
         </Card>
