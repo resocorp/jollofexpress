@@ -51,10 +51,10 @@ export default function NotificationLogsPage() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { label: string; icon: any; className: string }> = {
-      pending: { label: 'Pending', icon: Clock, className: 'bg-yellow-100 text-yellow-800' },
-      sent: { label: 'Sent', icon: Send, className: 'bg-blue-100 text-blue-800' },
-      failed: { label: 'Failed', icon: XCircle, className: 'bg-red-100 text-red-800' },
-      delivered: { label: 'Delivered', icon: CheckCircle, className: 'bg-green-100 text-green-800' },
+      pending: { label: 'Pending', icon: Clock, className: 'bg-yellow-500/20 text-yellow-400' },
+      sent: { label: 'Sent', icon: Send, className: 'bg-blue-500/20 text-blue-400' },
+      failed: { label: 'Failed', icon: XCircle, className: 'bg-red-500/20 text-red-400' },
+      delivered: { label: 'Delivered', icon: CheckCircle, className: 'bg-green-500/20 text-green-400' },
     };
 
     const config = variants[status];
@@ -72,9 +72,9 @@ export default function NotificationLogsPage() {
 
   const getTypeBadge = (type: string) => {
     return type === 'customer' ? (
-      <Badge variant="outline" className="bg-blue-50">Customer</Badge>
+      <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">Customer</Badge>
     ) : (
-      <Badge variant="outline" className="bg-orange-50">Admin</Badge>
+      <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30">Admin</Badge>
     );
   };
 

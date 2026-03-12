@@ -243,8 +243,8 @@ export function OrderSettingsForm({ data }: OrderSettingsFormProps) {
             </p>
           </div>
 
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
+          <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+            <p className="text-sm text-blue-300">
               💡 When enabled, the restaurant will automatically close for new
               orders when active orders reach the threshold set above.
             </p>
@@ -253,7 +253,7 @@ export function OrderSettingsForm({ data }: OrderSettingsFormProps) {
       )}
 
       {/* Information Box */}
-      <div className="p-4 bg-gray-50 border rounded-lg">
+      <div className="p-4 bg-[#1F2233] border border-[#2D3348] rounded-lg">
         <h4 className="text-sm font-medium mb-2">Quick Tips</h4>
         <ul className="text-xs text-muted-foreground space-y-1">
           <li>

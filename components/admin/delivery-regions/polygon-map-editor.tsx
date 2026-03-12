@@ -561,8 +561,8 @@ export function PolygonMapEditor({
             </div>
 
             {/* Instructions */}
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm font-medium text-blue-900 flex items-center gap-2">
+            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <p className="text-sm font-medium text-blue-300 flex items-center gap-2">
                 <Info className="h-4 w-4" />
                 How to export from Google Maps
               </p>
@@ -578,8 +578,8 @@ export function PolygonMapEditor({
 
         {/* Status indicator */}
         {hasPolygon ? (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm font-medium text-green-900 flex items-center gap-2">
+          <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+            <p className="text-sm font-medium text-green-300 flex items-center gap-2">
               <MapPin className="h-4 w-4" />
               Delivery zone defined
             </p>

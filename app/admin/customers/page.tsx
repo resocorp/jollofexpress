@@ -450,25 +450,25 @@ export default function CustomersPage() {
               <TabsContent value="overview" className="space-y-4 mt-4">
                 {/* Order Stats */}
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3 bg-orange-50 rounded-lg text-center border border-orange-100">
-                    <ShoppingBag className="h-5 w-5 mx-auto mb-1 text-orange-600" />
-                    <p className="text-xl font-bold text-orange-700">{selectedCustomer.total_orders}</p>
-                    <p className="text-xs text-orange-600">Total Orders</p>
+                  <div className="p-3 bg-orange-500/10 rounded-lg text-center border border-orange-500/20">
+                    <ShoppingBag className="h-5 w-5 mx-auto mb-1 text-orange-400" />
+                    <p className="text-xl font-bold text-orange-300">{selectedCustomer.total_orders}</p>
+                    <p className="text-xs text-orange-400">Total Orders</p>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-lg text-center border border-green-100">
-                    <Banknote className="h-5 w-5 mx-auto mb-1 text-green-600" />
-                    <p className="text-xl font-bold text-green-700">{formatCurrency(selectedCustomer.total_spent)}</p>
-                    <p className="text-xs text-green-600">Total Spent</p>
+                  <div className="p-3 bg-green-500/10 rounded-lg text-center border border-green-500/20">
+                    <Banknote className="h-5 w-5 mx-auto mb-1 text-green-400" />
+                    <p className="text-xl font-bold text-green-300">{formatCurrency(selectedCustomer.total_spent)}</p>
+                    <p className="text-xs text-green-400">Total Spent</p>
                   </div>
-                  <div className="p-3 bg-blue-50 rounded-lg text-center border border-blue-100">
-                    <Banknote className="h-5 w-5 mx-auto mb-1 text-blue-600" />
-                    <p className="text-xl font-bold text-blue-700">{formatCurrency(selectedCustomer.avg_order_value)}</p>
-                    <p className="text-xs text-blue-600">Avg Order</p>
+                  <div className="p-3 bg-blue-500/10 rounded-lg text-center border border-blue-500/20">
+                    <Banknote className="h-5 w-5 mx-auto mb-1 text-blue-400" />
+                    <p className="text-xl font-bold text-blue-300">{formatCurrency(selectedCustomer.avg_order_value)}</p>
+                    <p className="text-xs text-blue-400">Avg Order</p>
                   </div>
                 </div>
 
                 {/* Dates */}
-                <div className="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 p-3 bg-[#1F2233] rounded-lg">
                   <div>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
@@ -491,7 +491,7 @@ export default function CustomersPage() {
 
                 {/* Last Delivery Address */}
                 {selectedCustomer.delivery_address && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="p-3 bg-[#1F2233] rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">Last Delivery Address</p>
                     <p className="font-medium text-sm">
                       {selectedCustomer.delivery_address}
@@ -502,7 +502,7 @@ export default function CustomersPage() {
 
                 {/* Promo Codes Used */}
                 {selectedCustomer.promo_codes_used.length > 0 && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="p-3 bg-[#1F2233] rounded-lg">
                     <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
                       <Tag className="h-3 w-3" />
                       Promo Codes Used
@@ -578,22 +578,22 @@ export default function CustomersPage() {
               {/* Attribution Tab */}
               <TabsContent value="attribution" className="space-y-4 mt-4">
                 {selectedCustomer.influencer_name ? (
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-blue-100 rounded-full">
-                        <UserCheck className="h-5 w-5 text-blue-600" />
+                      <div className="p-2 bg-blue-500/20 rounded-full">
+                        <UserCheck className="h-5 w-5 text-blue-400" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-blue-800">
+                        <p className="font-semibold text-blue-300">
                           {selectedCustomer.influencer_name}
                         </p>
-                        <p className="text-sm text-blue-600">
+                        <p className="text-sm text-blue-400">
                           Influencer Code: <span className="font-mono">{selectedCustomer.influencer_code}</span>
                         </p>
                         {selectedCustomer.first_promo_code && (
-                          <div className="mt-3 p-2 bg-blue-100 rounded">
-                            <p className="text-xs text-blue-700 font-medium">First Promo Code Used</p>
-                            <p className="font-mono text-blue-800">{selectedCustomer.first_promo_code}</p>
+                          <div className="mt-3 p-2 bg-blue-500/20 rounded">
+                            <p className="text-xs text-blue-400 font-medium">First Promo Code Used</p>
+                            <p className="font-mono text-blue-300">{selectedCustomer.first_promo_code}</p>
                           </div>
                         )}
                         {selectedCustomer.attribution_date && (
@@ -601,7 +601,7 @@ export default function CustomersPage() {
                             Attributed on {format(new Date(selectedCustomer.attribution_date), 'PPP')}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground mt-3 p-2 bg-white rounded border">
+                        <p className="text-xs text-muted-foreground mt-3 p-2 bg-[#1F2233] rounded border border-[#2D3348]">
                           💡 This customer was attributed to {selectedCustomer.influencer_name} when they first used the promo code <strong>{selectedCustomer.first_promo_code}</strong>. 
                           All subsequent orders from this customer will generate commission for this influencer.
                         </p>

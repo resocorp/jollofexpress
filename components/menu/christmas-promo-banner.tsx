@@ -45,7 +45,7 @@ export function PromoBanner() {
           {/* Main Promo Text */}
           <div className="text-center space-y-1">
             <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white drop-shadow-md tracking-tight">
-              🌯 THE BEST TASTING SHAWARMA IN TOWN! 🔥
+              🌯 THE BEST TASTING SHAWARMA IN AWKA! 🔥
             </h2>
             
             {/* Batch delivery info line */}

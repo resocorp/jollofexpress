@@ -138,7 +138,7 @@ export function DeliverySettingsForm({ data }: DeliverySettingsFormProps) {
               {cities.map((city) => (
                 <div
                   key={city}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-full"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-full"
                 >
                   <span className="text-sm font-medium text-orange-700">
                     {city}

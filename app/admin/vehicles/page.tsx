@@ -92,22 +92,22 @@ export default function VehiclesPage() {
     const variants: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
       available: { 
         label: 'Available', 
-        className: 'bg-green-100 text-green-800',
+        className: 'bg-green-500/20 text-green-400',
         icon: <CheckCircle2 className="h-3 w-3" />
       },
       in_use: { 
         label: 'In Use', 
-        className: 'bg-blue-100 text-blue-800',
+        className: 'bg-blue-500/20 text-blue-400',
         icon: <User className="h-3 w-3" />
       },
       maintenance: { 
         label: 'Maintenance', 
-        className: 'bg-yellow-100 text-yellow-800',
+        className: 'bg-yellow-500/20 text-yellow-400',
         icon: <Wrench className="h-3 w-3" />
       },
       offline: { 
         label: 'Offline', 
-        className: 'bg-red-100 text-red-800',
+        className: 'bg-red-500/20 text-red-400',
         icon: <XCircle className="h-3 w-3" />
       },
     };

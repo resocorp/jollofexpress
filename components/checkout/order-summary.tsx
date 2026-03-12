@@ -336,41 +336,31 @@ export function OrderSummaryWithButton({
 
         <Separator className="my-4" />
 
-        {/* Combined Total Amount and Payment Button */}
-        <div className="space-y-3">
-          <div className="p-4 rounded-xl bg-gradient-to-r from-primary to-orange-600 text-white shadow-lg">
-            <div className="flex justify-between items-center mb-3">
-              <div>
-                <p className="text-sm opacity-90">Total Amount</p>
-                <p className="text-3xl font-bold">{formatCurrency(total)}</p>
-              </div>
-              <div className="text-right">
-                <Badge className="bg-white/20 backdrop-blur-sm border-white/30 text-white">
-                  {orderType === 'delivery' ? 'Delivery' : 'Carryout'}
-                </Badge>
-              </div>
-            </div>
-          </div>
-          
+        {/* Single CTA: Total + Delivery Info + Pay Button */}
+        <div className="space-y-2">
           <Button 
             type="button"
             onClick={onSubmit}
             size="lg" 
             disabled={isSubmitting || isBelowMinimum || isLoadingSettings}
-            className={`w-full min-h-[56px] bg-gradient-to-r from-amber-900 to-red-900 hover:from-amber-800 hover:to-red-800 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all ${showPaymentAnimation && !isSubmitting ? 'checkout-btn-animated' : ''}`}
+            className={`w-full min-h-[72px] bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-500 text-white font-bold shadow-lg hover:shadow-xl transition-all rounded-xl ${showPaymentAnimation && !isSubmitting ? 'checkout-btn-animated' : ''}`}
           >
             {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Processing...
-              </>
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Processing...</span>
+              </div>
             ) : (
-              <>
-                Pay {formatCurrency(total)} · {isPreorder ? `Delivery ${deliveryDate}` : 'Delivery Today'} {deliveryWindow ? deliveryWindow : ''} →
-              </>
+              <div className="flex flex-col items-center gap-0.5 w-full">
+                <span className="text-xl font-extrabold">Pay {formatCurrency(total)}</span>
+                {deliveryWindow && (
+                  <span className="text-xs font-medium opacity-90">
+                    {isPreorder ? `Delivery ${deliveryDate}` : 'Delivery Today'} {deliveryWindow}
+                  </span>
+                )}
+              </div>
             )}
           </Button>
-          {/* K4: Post-payment reassurance */}
           <p className="text-xs text-center text-muted-foreground">
             After payment, you'll receive a WhatsApp confirmation with your delivery details.
           </p>

@@ -176,9 +176,9 @@ export default function DriversPage() {
 
   const getStatusBadge = (status: Driver['status']) => {
     const variants = {
-      available: 'bg-green-100 text-green-800',
-      busy: 'bg-yellow-100 text-yellow-800',
-      offline: 'bg-gray-100 text-gray-800',
+      available: 'bg-green-500/20 text-green-400',
+      busy: 'bg-yellow-500/20 text-yellow-400',
+      offline: 'bg-gray-500/20 text-gray-400',
     };
     const labels = {
       available: '🟢 Online',
@@ -326,7 +326,7 @@ export default function DriversPage() {
                 <p className="text-sm text-muted-foreground">Online Now</p>
                 <p className="text-3xl font-bold text-green-600">{stats.online}</p>
               </div>
-              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center">
                 🟢
               </div>
             </div>

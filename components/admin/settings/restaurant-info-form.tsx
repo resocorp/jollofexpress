@@ -209,8 +209,8 @@ export function RestaurantInfoForm({ data }: RestaurantInfoFormProps) {
               </button>
             </div>
           ) : (
-            <div className="h-24 w-24 border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-50">
-              <Upload className="h-6 w-6 text-gray-400" />
+            <div className="h-24 w-24 border-2 border-dashed rounded-lg flex items-center justify-center bg-[#1F2233] border-[#2D3348]">
+              <Upload className="h-6 w-6 text-gray-500" />
             </div>
           )}
           <div className="flex-1">
@@ -251,8 +251,8 @@ export function RestaurantInfoForm({ data }: RestaurantInfoFormProps) {
               </button>
             </div>
           ) : (
-            <div className="h-32 w-48 border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-50">
-              <Upload className="h-6 w-6 text-gray-400" />
+            <div className="h-32 w-48 border-2 border-dashed rounded-lg flex items-center justify-center bg-[#1F2233] border-[#2D3348]">
+              <Upload className="h-6 w-6 text-gray-500" />
             </div>
           )}
           <div className="flex-1">

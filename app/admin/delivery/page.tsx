@@ -212,14 +212,14 @@ export default function DeliveryManagementPage() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
-      preparing: 'bg-yellow-100 text-yellow-800',
-      ready: 'bg-green-100 text-green-800',
-      pending: 'bg-blue-100 text-blue-800',
-      accepted: 'bg-purple-100 text-purple-800',
-      picked_up: 'bg-orange-100 text-orange-800',
-      delivered: 'bg-green-100 text-green-800',
+      preparing: 'bg-yellow-500/20 text-yellow-400',
+      ready: 'bg-green-500/20 text-green-400',
+      pending: 'bg-blue-500/20 text-blue-400',
+      accepted: 'bg-purple-500/20 text-purple-400',
+      picked_up: 'bg-orange-500/20 text-orange-400',
+      delivered: 'bg-green-500/20 text-green-400',
     };
-    return <Badge className={variants[status] || 'bg-gray-100'}>{status}</Badge>;
+    return <Badge className={variants[status] || 'bg-gray-500/20 text-gray-400'}>{status}</Badge>;
   };
 
   const openAssignDialog = (order: Order) => {

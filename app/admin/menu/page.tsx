@@ -370,7 +370,7 @@ export default function MenuManagementPage() {
                   <TableRow key={item.id}>
                     <TableCell>
                       {item.image_url ? (
-                        <div className="relative w-16 h-16 rounded-md overflow-hidden bg-gray-100">
+                        <div className="relative w-16 h-16 rounded-md overflow-hidden bg-[#1F2233]">
                           <Image
                             src={item.image_url}
                             alt={item.name}
@@ -402,7 +402,7 @@ export default function MenuManagementPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-primary">₦{item.promo_price.toLocaleString()}</span>
                           <span className="text-sm text-muted-foreground line-through">₦{(item.price || item.base_price || 0).toLocaleString()}</span>
-                          <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                          <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-xs">
                             {Math.round(((item.base_price || item.price || 0) - item.promo_price) / (item.base_price || item.price || 1) * 100)}% OFF
                           </Badge>
                         </div>
@@ -544,7 +544,7 @@ function MenuItemCard({ item, index, onToggleAvailability, onDelete }: MenuItemC
         {/* Quick Actions Overlay */}
         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <Link href={`/admin/menu/${item.id}`}>
-            <Button size="sm" className="shadow-lg backdrop-blur-sm bg-white/90 hover:bg-white text-foreground">
+            <Button size="sm" className="shadow-lg backdrop-blur-sm bg-[#161822]/90 hover:bg-[#161822] text-gray-200 border border-[#1F2233]">
               <Edit2 className="h-3 w-3 mr-1" />
               Edit
             </Button>
@@ -581,7 +581,7 @@ function MenuItemCard({ item, index, onToggleAvailability, onDelete }: MenuItemC
                   <span className="text-sm text-muted-foreground line-through">
                     ₦{(item.price || item.base_price || 0).toLocaleString()}
                   </span>
-                  <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                  <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-xs">
                     {Math.round(((item.base_price || item.price || 0) - item.promo_price) / (item.base_price || item.price || 1) * 100)}% OFF
                   </Badge>
                 </div>

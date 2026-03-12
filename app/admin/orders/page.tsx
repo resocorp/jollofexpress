@@ -60,14 +60,14 @@ export default function AdminOrdersPage() {
 
   const getStatusBadge = (status: OrderStatus) => {
     const variants: Record<OrderStatus, { label: string; className: string }> = {
-      pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800' },
-      scheduled: { label: 'Scheduled', className: 'bg-cyan-100 text-cyan-800' },
-      confirmed: { label: 'Confirmed', className: 'bg-blue-100 text-blue-800' },
-      preparing: { label: 'Preparing', className: 'bg-purple-100 text-purple-800' },
-      ready: { label: 'Ready', className: 'bg-green-100 text-green-800' },
-      out_for_delivery: { label: 'Out for Delivery', className: 'bg-indigo-100 text-indigo-800' },
-      completed: { label: 'Completed', className: 'bg-gray-100 text-gray-800' },
-      cancelled: { label: 'Cancelled', className: 'bg-red-100 text-red-800' },
+      pending: { label: 'Pending', className: 'bg-yellow-500/20 text-yellow-400' },
+      scheduled: { label: 'Scheduled', className: 'bg-cyan-500/20 text-cyan-400' },
+      confirmed: { label: 'Confirmed', className: 'bg-blue-500/20 text-blue-400' },
+      preparing: { label: 'Preparing', className: 'bg-purple-500/20 text-purple-400' },
+      ready: { label: 'Ready', className: 'bg-green-500/20 text-green-400' },
+      out_for_delivery: { label: 'Out for Delivery', className: 'bg-indigo-500/20 text-indigo-400' },
+      completed: { label: 'Completed', className: 'bg-gray-500/20 text-gray-400' },
+      cancelled: { label: 'Cancelled', className: 'bg-red-500/20 text-red-400' },
     };
 
     const config = variants[status];
@@ -76,10 +76,10 @@ export default function AdminOrdersPage() {
 
   const getPaymentBadge = (status: PaymentStatus) => {
     const variants: Record<PaymentStatus, { label: string; className: string }> = {
-      pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800' },
-      success: { label: 'Paid', className: 'bg-green-100 text-green-800' },
-      failed: { label: 'Failed', className: 'bg-red-100 text-red-800' },
-      refunded: { label: 'Refunded', className: 'bg-gray-100 text-gray-800' },
+      pending: { label: 'Pending', className: 'bg-yellow-500/20 text-yellow-400' },
+      success: { label: 'Paid', className: 'bg-green-500/20 text-green-400' },
+      failed: { label: 'Failed', className: 'bg-red-500/20 text-red-400' },
+      refunded: { label: 'Refunded', className: 'bg-gray-500/20 text-gray-400' },
     };
 
     const config = variants[status];

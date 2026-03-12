@@ -199,8 +199,8 @@ export function PaymentSettingsForm({ data }: PaymentSettingsFormProps) {
       </div>
 
       {/* Information Box */}
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h4 className="text-sm font-medium text-blue-900 mb-2">
+      <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <h4 className="text-sm font-medium text-blue-300 mb-2">
           Payment Gateway Configuration
         </h4>
         <p className="text-xs text-blue-800">

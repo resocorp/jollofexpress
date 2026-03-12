@@ -30,8 +30,10 @@ interface Batch {
   delivery_date: string;
   window_name: string;
   status: string;
+  orders_placed: number;
   total_orders: number;
   max_capacity: number;
+  capacity_percent: number;
   delivery_window: string;
 }
 
@@ -189,6 +191,22 @@ export default function BatchesPage() {
     updateWindowMutation.mutate({ id: editingWindowId, data: editWindow });
   };
 
+  // Delete delivery window
+  const deleteWindowMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await adminFetch(`/api/admin/delivery-windows/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delivery-windows'] });
+      queryClient.invalidateQueries({ queryKey: ['today-batches'] });
+      queryClient.invalidateQueries({ queryKey: ['order-window-status'] });
+      toast.success('Delivery window deactivated');
+    },
+    onError: () => toast.error('Failed to delete delivery window'),
+  });
+
   if (windowsLoading || batchesLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -213,7 +231,8 @@ export default function BatchesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {batchesData.batches.map((batch) => {
               const sc = STATUS_COLORS[batch.status] || STATUS_COLORS.accepting;
-              const pct = batch.max_capacity > 0 ? Math.round((batch.total_orders / batch.max_capacity) * 100) : 0;
+              const orderCount = batch.orders_placed ?? batch.total_orders ?? 0;
+              const pct = batch.max_capacity > 0 ? Math.round((orderCount / batch.max_capacity) * 100) : 0;
               return (
                 <Card key={batch.batch_id} className="bg-[#161822] border-[#1F2233]">
                   <CardContent className="p-5">
@@ -228,7 +247,7 @@ export default function BatchesPage() {
                     {/* Capacity bar */}
                     <div className="mb-3">
                       <div className="flex justify-between text-xs text-gray-500 mb-1">
-                        <span>{batch.total_orders} orders</span>
+                        <span>{orderCount} orders</span>
                         <span>{pct}% / {batch.max_capacity} max</span>
                       </div>
                       <div className="w-full h-2 bg-[#1F2233] rounded-full overflow-hidden">
@@ -410,6 +429,19 @@ export default function BatchesPage() {
                     </Badge>
                     <Button onClick={() => startEdit(w)} size="sm" variant="ghost" className="text-gray-500 hover:text-white h-8 w-8 p-0">
                       <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (confirm(`Deactivate "${w.name}"? This will prevent new batches from being created for this window.`)) {
+                          deleteWindowMutation.mutate(w.id);
+                        }
+                      }}
+                      disabled={deleteWindowMutation.isPending}
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-400 hover:text-red-300 hover:bg-red-950/30 h-8 w-8 p-0"
+                    >
+                      <X className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>

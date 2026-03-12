@@ -75,7 +75,7 @@ export default function AdminLayout({
   // Show loading spinner
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-[#0F1117]">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-orange-500" />
           <p className="text-muted-foreground">Loading...</p>
