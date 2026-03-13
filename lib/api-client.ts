@@ -66,8 +66,8 @@ export async function apiRequest<T>(
     'Content-Type': 'application/json',
   };
   
-  // Automatically add auth token for admin and kitchen routes
-  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/kitchen')) {
+  // Automatically add auth token for admin, kitchen, and notifications routes
+  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/kitchen') || endpoint.startsWith('/api/notifications')) {
     const authHeaders = await buildAuthHeaders();
     Object.assign(defaultHeaders, authHeaders);
   }

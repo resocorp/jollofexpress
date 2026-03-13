@@ -17,6 +17,9 @@
  *   pm2 start scripts/baileys-server.js --name whatsapp-service
  */
 
+// Load .env.local before anything else
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env.local') });
+
 const express = require('express');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
@@ -94,7 +97,6 @@ async function initWhatsApp() {
     version,
     auth: state,
     logger: pino({ level: 'warn' }),
-    printQRInTerminal: true, // Also print for debugging
     browser: ['MyShawarma Express', 'Chrome', '120.0'],
     connectTimeoutMs: 60000,
     defaultQueryTimeoutMs: 0,
