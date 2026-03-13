@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from('delivery_windows')
       .select('*')
+      .eq('is_active', true)
       .order('display_order', { ascending: true });
 
     if (error) {

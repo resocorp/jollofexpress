@@ -177,19 +177,20 @@ export async function getOrCreateTodayBatches(): Promise<Batch[]> {
     return [];
   }
 
-  if (existingBatches && existingBatches.length > 0) {
-    return existingBatches as Batch[];
-  }
+  const existingList = (existingBatches || []) as Batch[];
 
-  // No batches exist for today — create from active windows
+  // Get active windows for today and create batches for any that are missing
   const windows = await getActiveDeliveryWindows();
   const todayWindows = windows.filter(isWindowActiveToday);
 
-  if (todayWindows.length === 0) {
-    return [];
+  const existingWindowIds = new Set(existingList.map(b => b.delivery_window_id));
+  const missingWindows = todayWindows.filter(w => !existingWindowIds.has(w.id));
+
+  if (missingWindows.length === 0) {
+    return existingList;
   }
 
-  const batchInserts = todayWindows.map(w => ({
+  const batchInserts = missingWindows.map(w => ({
     delivery_window_id: w.id,
     delivery_date: today,
     status: 'accepting' as const,
@@ -213,7 +214,7 @@ export async function getOrCreateTodayBatches(): Promise<Batch[]> {
     return (retryBatches || []) as Batch[];
   }
 
-  return (newBatches || []) as Batch[];
+  return [...existingList, ...((newBatches || []) as Batch[])];
 }
 
 /**
@@ -229,12 +230,13 @@ export async function getNextAvailableBatch(): Promise<{
   const currentMinutes = getCurrentTimeMinutes();
   const todayBatches = await getOrCreateTodayBatches();
 
-  // Find first batch that is accepting and has capacity
+  // Find first batch that is accepting, has capacity, and belongs to an active delivery window
   for (const batch of todayBatches) {
     if (
       batch.status === 'accepting' &&
       batch.total_orders < batch.max_capacity &&
-      batch.delivery_window
+      batch.delivery_window &&
+      batch.delivery_window.is_active !== false
     ) {
       const cutoffMinutes = timeToMinutes(batch.delivery_window.cutoff_time);
       // Only if we haven't passed the cutoff (cron may not have transitioned yet)
