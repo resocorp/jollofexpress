@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "postbuild": "next-sitemap",
-    "start": "next start",
+    "start": "next start -H 127.0.0.1",
     "lint": "eslint",
     "diagnose": "node scripts/diagnostics/diagnose-localhost.js",
     "diagnose:reprint": "node scripts/diagnostics/diagnose-reprint.js",

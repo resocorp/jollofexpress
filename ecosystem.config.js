@@ -24,6 +24,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
+        HOSTNAME: '127.0.0.1',
       },
       error_file: './logs/app-error.log',
       out_file: './logs/app-out.log',
@@ -45,6 +46,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
+        HOST: '127.0.0.1',
       },
       error_file: './logs/whatsapp-error.log',
       out_file: './logs/whatsapp-out.log',
