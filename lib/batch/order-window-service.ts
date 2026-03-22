@@ -10,6 +10,11 @@ import {
   type Batch,
   type DeliveryWindow,
 } from './batch-service';
+import {
+  getRestaurantOpenCloseStatus,
+  type RestaurantOpenCloseStatus,
+  type NextOpenInfo,
+} from '../operating-hours';
 
 // Restaurant timezone (Nigeria)
 const RESTAURANT_TIMEZONE = 'Africa/Lagos';
@@ -92,6 +97,10 @@ export interface OrderWindowStatusResponse {
   message: string;
   // For backward compat with existing useRestaurantStatus()
   is_open: boolean;
+  // Restaurant open/close state
+  restaurantClosed: boolean;
+  closedReason: string;
+  nextOpenInfo: NextOpenInfo | null;
 }
 
 /**
@@ -145,6 +154,32 @@ function batchToStatusInfo(batch: Batch): BatchStatusInfo {
 }
 
 /**
+ * Build a friendly closed message based on restaurant status
+ */
+function buildClosedMessage(status: RestaurantOpenCloseStatus): string {
+  // Within hours but manually closed
+  if (status.withinHours && !status.manuallyOpen) {
+    return "We're taking a short break, back soon! 🍖";
+  }
+
+  const next = status.nextOpenInfo;
+
+  if (next?.isToday) {
+    return `We open at ${next.time} today — see you soon! 🔥`;
+  }
+
+  if (next?.isTomorrow) {
+    return `We're done for today! 🌙 Back tomorrow at ${next.time}`;
+  }
+
+  if (next) {
+    return `We're closed today 😴 We'll be back on ${next.dayName} at ${next.time}!`;
+  }
+
+  return "We're closed right now. Check back soon! 🍖";
+}
+
+/**
  * Build a human-readable status message
  */
 function buildStatusMessage(
@@ -182,6 +217,26 @@ function buildStatusMessage(
  * This is the main function consumed by the frontend
  */
 export async function getOrderWindowStatus(): Promise<OrderWindowStatusResponse> {
+  const restaurantStatus = await getRestaurantOpenCloseStatus();
+  if (!restaurantStatus.effectivelyOpen) {
+    return {
+      nextBatch: null,
+      allTodayBatches: [],
+      isAccepting: false,
+      isPreorder: false,
+      deliveryDate: '',
+      deliveryDateRaw: '',
+      deliveryWindow: '',
+      secondsUntilCutoff: 0,
+      capacityPercent: 0,
+      message: buildClosedMessage(restaurantStatus),
+      is_open: false,
+      restaurantClosed: true,
+      closedReason: restaurantStatus.closedReason,
+      nextOpenInfo: restaurantStatus.nextOpenInfo,
+    };
+  }
+
   const todayBatches = await getOrCreateTodayBatches();
   const { batch: nextBatch, isPreorder, deliveryDate, deliveryWindow } =
     await getNextAvailableBatch();
@@ -225,6 +280,9 @@ export async function getOrderWindowStatus(): Promise<OrderWindowStatusResponse>
     message,
     // Backward compat: "open" means there's an accepting batch
     is_open: isAccepting,
+    restaurantClosed: false,
+    closedReason: '',
+    nextOpenInfo: null,
   };
 }
 

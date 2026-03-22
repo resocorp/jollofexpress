@@ -19,6 +19,14 @@ interface BatchStatusInfo {
   secondsUntilCutoff: number;
 }
 
+interface NextOpenInfo {
+  label: string;
+  time: string;
+  isToday: boolean;
+  isTomorrow: boolean;
+  dayName: string;
+}
+
 interface OrderWindowStatusResponse {
   nextBatch: BatchStatusInfo | null;
   allTodayBatches: BatchStatusInfo[];
@@ -31,6 +39,9 @@ interface OrderWindowStatusResponse {
   capacityPercent: number;
   message: string;
   is_open: boolean;
+  restaurantClosed: boolean;
+  closedReason: string;
+  nextOpenInfo: NextOpenInfo | null;
 }
 
 /**
@@ -94,6 +105,11 @@ export function useOrderWindow() {
 
     // Backward compat
     isOpen: data?.is_open ?? false,
+
+    // Restaurant open/close state
+    restaurantClosed: data?.restaurantClosed ?? false,
+    closedReason: data?.closedReason ?? '',
+    nextOpenInfo: data?.nextOpenInfo ?? null,
 
     // Query state
     isLoading,

@@ -1,6 +1,6 @@
 'use client';
 
-import { Timer, Flame } from 'lucide-react';
+import { Timer, Flame, Moon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useOrderWindow } from '@/hooks/use-order-window';
 
@@ -12,10 +12,30 @@ export function CountdownTimer() {
     countdownFormatted,
     deliveryDate,
     deliveryWindow,
+    message,
+    restaurantClosed,
     isLoading,
   } = useOrderWindow();
 
   if (isLoading) return null;
+
+  // Restaurant closed — show friendly closed banner
+  if (restaurantClosed) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1400px] py-2"
+      >
+        <div className="flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl border border-purple-200">
+          <Moon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
+          <span className="text-sm sm:text-base font-semibold text-purple-800">
+            {message}
+          </span>
+        </div>
+      </motion.div>
+    );
+  }
 
   // After cutoff — show cooking/preorder message
   if (!isAccepting && !isPreorder) {

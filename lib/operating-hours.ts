@@ -231,6 +231,106 @@ export async function getAllFormattedHours(): Promise<Record<DayOfWeek, string>>
   return formatted;
 }
 
+export interface NextOpenInfo {
+  label: string;       // "today" | "tomorrow" | "Saturday"
+  time: string;        // "9:00 AM"
+  isToday: boolean;
+  isTomorrow: boolean;
+  dayName: string;     // "Sunday", "Monday", etc.
+}
+
+export interface RestaurantOpenCloseStatus {
+  withinHours: boolean;
+  manuallyOpen: boolean;
+  effectivelyOpen: boolean;
+  closedReason: string;
+  nextOpenInfo: NextOpenInfo | null;
+}
+
+/**
+ * Find the next time the restaurant will open based on operating hours schedule.
+ * Returns info about when (today, tomorrow, or a specific day) and what time.
+ */
+export async function getNextOpeningInfo(): Promise<NextOpenInfo | null> {
+  const hours = await getOperatingHours();
+  if (!hours) return null;
+
+  const now = getNowInTimezone();
+  const todayDayIndex = now.getDay(); // 0=Sun, 6=Sat
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const dayKeys: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayDisplayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  // Check today first — if not closed AND still before opening time
+  const todayHours = hours[dayKeys[todayDayIndex]];
+  if (todayHours && !todayHours.closed) {
+    const openMinutes = timeToMinutes(todayHours.open);
+    if (currentMinutes < openMinutes) {
+      return {
+        label: 'today',
+        time: formatTime(openMinutes),
+        isToday: true,
+        isTomorrow: false,
+        dayName: dayDisplayNames[todayDayIndex],
+      };
+    }
+  }
+
+  // Scan next 7 days for first open day
+  for (let i = 1; i <= 7; i++) {
+    const dayIndex = (todayDayIndex + i) % 7;
+    const dayHours = hours[dayKeys[dayIndex]];
+    if (dayHours && !dayHours.closed) {
+      const isTomorrow = i === 1;
+      return {
+        label: isTomorrow ? 'tomorrow' : dayDisplayNames[dayIndex],
+        time: formatTime(timeToMinutes(dayHours.open)),
+        isToday: false,
+        isTomorrow,
+        dayName: dayDisplayNames[dayIndex],
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Single call returning combined restaurant open/close status.
+ * Checks both operating hours schedule and the manual is_open flag.
+ */
+export async function getRestaurantOpenCloseStatus(): Promise<RestaurantOpenCloseStatus> {
+  const supabase = createServiceClient();
+
+  const [settingsResult, hoursCheck, nextOpenInfo] = await Promise.all([
+    supabase.from('settings').select('value').eq('key', 'order_settings').single(),
+    shouldBeOpenNow(),
+    getNextOpeningInfo(),
+  ]);
+
+  const manuallyOpen: boolean = settingsResult.data?.value?.is_open ?? true;
+  const withinHours = hoursCheck.shouldBeOpen;
+  const effectivelyOpen = withinHours && manuallyOpen;
+
+  let closedReason = '';
+  if (!effectivelyOpen) {
+    if (!withinHours) {
+      closedReason = hoursCheck.reason;
+    } else {
+      closedReason = 'Manually closed';
+    }
+  }
+
+  return {
+    withinHours,
+    manuallyOpen,
+    effectivelyOpen,
+    closedReason,
+    nextOpenInfo,
+  };
+}
+
 /**
  * Check if restaurant should be open right now
  * Considers operating hours (does NOT check is_open flag or capacity)
