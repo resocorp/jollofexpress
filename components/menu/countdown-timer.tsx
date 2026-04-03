@@ -15,7 +15,12 @@ export function CountdownTimer() {
     message,
     restaurantClosed,
     isLoading,
+    allTodayBatches,
+    nextBatch,
   } = useOrderWindow();
+
+  // Other batches besides the current one
+  const otherBatches = allTodayBatches.filter(b => b.id !== nextBatch?.id);
 
   if (isLoading) return null;
 
@@ -45,10 +50,17 @@ export function CountdownTimer() {
         animate={{ opacity: 1, scale: 1 }}
         className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1400px] py-2"
       >
-        <div className="flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
-          <Flame className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
-          <span className="text-sm sm:text-base font-semibold text-orange-800">
-            Today&apos;s batch is cooking 🔥
+        <div className="flex flex-col items-center gap-1 py-2.5 px-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
+          <div className="flex items-center gap-2">
+            <Flame className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
+            <span className="text-sm sm:text-base font-semibold text-orange-800">
+              {allTodayBatches.length > 1
+                ? "Today\u2019s batches are being prepared 🔥"
+                : "Today\u2019s batch is cooking 🔥"}
+            </span>
+          </div>
+          <span className="text-[11px] sm:text-xs text-orange-600/70">
+            Times are a guide, not a stopwatch — we&apos;re human after all
           </span>
         </div>
       </motion.div>
@@ -103,13 +115,23 @@ export function CountdownTimer() {
       animate={{ opacity: 1, scale: 1 }}
       className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1400px] py-2"
     >
-      <div className={`flex items-center justify-center gap-2 sm:gap-3 py-2.5 px-4 rounded-xl border ${bgClass}`}>
-        <Timer className={`h-4 w-4 sm:h-5 sm:w-5 ${timerClass}`} />
-        <span className={`text-sm sm:text-base font-semibold ${textClass}`}>
-          Today&apos;s order closes in:
-        </span>
-        <span className={`text-lg sm:text-xl font-mono font-bold ${timerClass} tabular-nums`}>
-          {countdownFormatted}
+      <div className={`flex flex-col items-center gap-1 py-2.5 px-4 rounded-xl border ${bgClass}`}>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Timer className={`h-4 w-4 sm:h-5 sm:w-5 ${timerClass}`} />
+          <span className={`text-sm sm:text-base font-semibold ${textClass}`}>
+            {nextBatch?.windowName || 'Today\u2019s'} order closes in:
+          </span>
+          <span className={`text-lg sm:text-xl font-mono font-bold ${timerClass} tabular-nums`}>
+            {countdownFormatted}
+          </span>
+        </div>
+        {otherBatches.length > 0 && (
+          <span className={`text-[11px] sm:text-xs ${textClass} opacity-70`}>
+            Up next: {otherBatches[0].windowName} · delivered {otherBatches[0].deliveryWindow}
+          </span>
+        )}
+        <span className={`text-[11px] sm:text-xs ${textClass} opacity-50`}>
+          Times are a guide, not a stopwatch — we&apos;re human after all
         </span>
       </div>
     </motion.div>

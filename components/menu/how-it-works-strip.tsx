@@ -4,30 +4,55 @@ import { motion } from 'framer-motion';
 import { useOrderWindow } from '@/hooks/use-order-window';
 
 export function HowItWorksStrip() {
-  const { nextBatch, deliveryWindow, isLoading } = useOrderWindow();
+  const { nextBatch, deliveryWindow, allTodayBatches, isLoading } = useOrderWindow();
 
   if (isLoading || !nextBatch) return null;
+
+  const hasMultipleBatches = allTodayBatches.length > 1;
+
+  // Sort batches by cutoff time for display order
+  const sortedBatches = [...allTodayBatches].sort(
+    (a, b) => a.cutoffTime.localeCompare(b.cutoffTime)
+  );
 
   const cutoffTime = nextBatch.cutoffTime || '2:00 PM';
   const windowDisplay = deliveryWindow || '4:00 PM – 6:00 PM';
 
-  const steps = [
-    {
-      icon: '📱',
-      heading: `Order by ${cutoffTime}`,
-      subtext: 'Place your order before the daily cutoff',
-    },
-    {
-      icon: '🔥',
-      heading: 'We Cook It Fresh',
-      subtext: 'Your shawarma is grilled to order in today\'s batch',
-    },
-    {
-      icon: '🚗',
-      heading: `Delivered ${windowDisplay}`,
-      subtext: 'Hot shawarma arrives at your door',
-    },
-  ];
+  const steps = hasMultipleBatches
+    ? [
+        {
+          icon: '📱',
+          heading: 'Pick Your Window',
+          subtext: `Order by ${sortedBatches.map(b => b.cutoffTime).join(' or ')}`,
+        },
+        {
+          icon: '🔥',
+          heading: 'We Cook It Fresh',
+          subtext: 'Your shawarma is grilled to order in each batch',
+        },
+        {
+          icon: '🚗',
+          heading: 'Delivered Fresh',
+          subtext: sortedBatches.map(b => b.deliveryWindow).join(' or '),
+        },
+      ]
+    : [
+        {
+          icon: '📱',
+          heading: `Order by ${cutoffTime}`,
+          subtext: 'Place your order before the daily cutoff',
+        },
+        {
+          icon: '🔥',
+          heading: 'We Cook It Fresh',
+          subtext: 'Your shawarma is grilled to order in today\'s batch',
+        },
+        {
+          icon: '🚗',
+          heading: `Delivered ${windowDisplay}`,
+          subtext: 'Hot shawarma arrives at your door',
+        },
+      ];
 
   return (
     <motion.div
