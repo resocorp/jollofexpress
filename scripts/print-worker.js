@@ -44,7 +44,7 @@ const http = require('http');
 // Configuration
 // Use localhost for internal communication (faster, no proxy issues)
 const APP_URL = process.env.PRINT_WORKER_APP_URL || 'http://localhost:3000';
-const PROCESS_INTERVAL = parseInt(process.env.PRINT_PROCESS_INTERVAL || '15000'); // 15 seconds
+const PROCESS_INTERVAL = parseInt(process.env.PRINT_PROCESS_INTERVAL || '15000');
 const SECRET = process.env.PRINT_PROCESSOR_SECRET || process.env.WEBHOOK_SECRET;
 const STARTUP_DELAY = parseInt(process.env.PRINT_WORKER_STARTUP_DELAY || '10000'); // Wait 10s for app to start
 
@@ -61,7 +61,10 @@ console.log('');
 
 let isProcessing = false;
 let consecutiveErrors = 0;
-const MAX_CONSECUTIVE_ERRORS = 10;
+let backoffActive = false;
+const BACKOFF_THRESHOLD = 10;
+const BACKOFF_INTERVAL = 60000; // 1 minute between retries when in backoff
+const NORMAL_INTERVAL = PROCESS_INTERVAL;
 
 /**
  * Process print queue via API call
@@ -145,11 +148,17 @@ async function processPrintQueue() {
     }
   } finally {
     isProcessing = false;
-    
-    // If too many consecutive errors, exit and let PM2 restart
-    if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-      console.error(`💀 Too many consecutive errors (${consecutiveErrors}). Exiting...`);
-      process.exit(1);
+
+    // If too many consecutive errors, enter backoff mode instead of exiting
+    if (consecutiveErrors >= BACKOFF_THRESHOLD && !backoffActive) {
+      backoffActive = true;
+      console.warn(`⚠️  ${consecutiveErrors} consecutive errors — entering backoff mode (polling every ${BACKOFF_INTERVAL / 1000}s)`);
+    }
+
+    // If we recovered from backoff, log it
+    if (consecutiveErrors === 0 && backoffActive) {
+      backoffActive = false;
+      console.log('✅ Recovered from backoff — resuming normal polling');
     }
   }
 }
@@ -262,9 +271,16 @@ async function startWorker() {
   
   // Process immediately on start
   processPrintQueue();
-  
-  // Then process at regular intervals
-  setInterval(processPrintQueue, PROCESS_INTERVAL);
+
+  // Use dynamic interval that slows down during backoff
+  function scheduleNext() {
+    const interval = backoffActive ? BACKOFF_INTERVAL : NORMAL_INTERVAL;
+    setTimeout(() => {
+      processPrintQueue();
+      scheduleNext();
+    }, interval);
+  }
+  scheduleNext();
   
   // Health check every 5 minutes
   setInterval(healthCheck, 5 * 60 * 1000);
