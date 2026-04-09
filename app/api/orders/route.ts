@@ -275,11 +275,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Fetch item descriptions from menu_items (snapshot at order time)
+    const itemIds = orderData.items.map(i => i.item_id);
+    const { data: menuItemsData } = await supabase
+      .from('menu_items')
+      .select('id, description')
+      .in('id', itemIds);
+    const descMap = Object.fromEntries(
+      (menuItemsData || []).map(m => [m.id, m.description || ''])
+    );
+
     // Insert order items
     const orderItems = orderData.items.map(item => ({
       order_id: order.id,
       item_id: item.item_id,
-      item_name: item.item_name,
+      item_name: item.selected_variation
+        ? `${item.item_name} - ${item.selected_variation.option}`
+        : item.item_name,
+      item_description: descMap[item.item_id] || undefined,
       quantity: item.quantity,
       unit_price: item.unit_price,
       selected_variation: item.selected_variation,

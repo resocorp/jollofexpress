@@ -14,10 +14,6 @@ export async function GET(request: NextRequest) {
     const supabase = createServiceClient();
 
     // Fetch orders that are active (not completed or cancelled)
-    // Created today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     const { data: orders, error } = await supabase
       .from('orders')
       .select(`
@@ -25,7 +21,6 @@ export async function GET(request: NextRequest) {
         items:order_items(*)
       `)
       .in('status', ['confirmed', 'out_for_delivery'])
-      .gte('created_at', today.toISOString())
       .order('created_at', { ascending: true });
 
     if (error) {

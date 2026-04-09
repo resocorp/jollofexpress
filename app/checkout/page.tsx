@@ -47,7 +47,7 @@ export default function CheckoutPage() {
   // Show loading while hydrating to prevent flash of empty cart
   if (!hasHydrated) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-12">
           <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -62,7 +62,7 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-md mx-auto text-center">
@@ -80,7 +80,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
 
       <div className="container mx-auto px-4 py-6">

@@ -45,14 +45,14 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border-b border-gray-200 last:border-0">
+    <div className="border-b border-border last:border-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between py-3 sm:py-4 text-left touch-manipulation"
       >
-        <span className="font-semibold text-sm sm:text-base text-gray-900 pr-4">{question}</span>
+        <span className="font-semibold text-sm sm:text-base text-foreground pr-4">{question}</span>
         <ChevronDown
-          className={`h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
       <AnimatePresence>
@@ -64,7 +64,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <p className="pb-3 sm:pb-4 text-sm text-gray-600 leading-relaxed">{answer}</p>
+            <p className="pb-3 sm:pb-4 text-sm text-muted-foreground leading-relaxed">{answer}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -80,8 +80,8 @@ export function BatchFAQ() {
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1400px] py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
-        <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h3>
-        <div className="bg-white rounded-xl border shadow-sm px-4 sm:px-6">
+        <h3 className="text-lg sm:text-xl font-bold text-foreground mb-4">Frequently Asked Questions</h3>
+        <div className="bg-card rounded-xl border shadow-sm px-4 sm:px-6">
           {faqItems.map((item, i) => (
             <FAQItem key={i} question={item.question} answer={item.answer} />
           ))}

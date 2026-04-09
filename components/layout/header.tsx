@@ -10,6 +10,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useRestaurantInfo } from '@/hooks/use-settings';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { CartSheet } from '@/components/cart/cart-sheet';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 
 export function Header() {
   const itemCount = useCartStore((state) => state.getItemCount());
@@ -23,7 +24,7 @@ export function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4 max-w-[1400px]">
         {/* Left: Menu Icon */}
         <div className="flex items-center w-20 sm:w-24">
@@ -50,7 +51,7 @@ export function Header() {
               priority
             />
           ) : (
-            <div className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#FF4433] text-white font-bold text-sm sm:text-base">
+            <div className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary text-primary-foreground font-bold text-sm sm:text-base">
               MS
             </div>
           )}
@@ -60,7 +61,8 @@ export function Header() {
         </Link>
 
         {/* Right: Cart */}
-        <div className="flex items-center w-20 sm:w-24 justify-end">
+        <div className="flex items-center w-20 sm:w-24 justify-end gap-1">
+          <ThemeToggle />
           {/* Cart Button */}
           <Sheet>
             <SheetTrigger asChild>
@@ -85,25 +87,25 @@ export function Header() {
 
       {/* Mobile Menu Dropdown */}
       {showMobileMenu && (
-        <div className="border-t bg-white">
+        <div className="border-t bg-background">
           <div className="container mx-auto px-4 py-3 space-y-2">
-            <Link 
-              href="/menu" 
-              className="block py-2 px-3 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+            <Link
+              href="/menu"
+              className="block py-2 px-3 hover:bg-muted rounded-lg font-medium transition-colors"
               onClick={() => setShowMobileMenu(false)}
             >
               🏠 Home
             </Link>
             <Link 
               href="/menu#menu-section" 
-              className="block py-2 px-3 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+              className="block py-2 px-3 hover:bg-muted rounded-lg font-medium transition-colors"
               onClick={() => setShowMobileMenu(false)}
             >
               🍽️ Menu
             </Link>
-            <Link 
-              href="/contact" 
-              className="block py-2 px-3 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+            <Link
+              href="/contact"
+              className="block py-2 px-3 hover:bg-muted rounded-lg font-medium transition-colors"
               onClick={() => setShowMobileMenu(false)}
             >
               📞 Contact

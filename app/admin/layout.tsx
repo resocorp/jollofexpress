@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { Loader2 } from 'lucide-react';
-import { ThemeProvider } from 'next-themes';
+
 
 export default function AdminLayout({
   children,
@@ -75,7 +75,7 @@ export default function AdminLayout({
   // Show loading spinner
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0F1117]">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-orange-500" />
           <p className="text-muted-foreground">Loading...</p>
@@ -91,13 +91,11 @@ export default function AdminLayout({
 
   // Show admin layout with forced dark theme
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
-      <div className="flex min-h-screen bg-[#0F1117] text-gray-200 dark">
-        <AdminSidebar />
-        <main className="flex-1 p-8 overflow-auto">
-          {children}
-        </main>
-      </div>
-    </ThemeProvider>
+    <div className="flex min-h-screen bg-background text-foreground">
+      <AdminSidebar />
+      <main className="flex-1 p-8 overflow-auto">
+        {children}
+      </main>
+    </div>
   );
 }

@@ -58,7 +58,7 @@ export function CartArrowIndicator() {
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute inset-0 bg-[#FF4433] rounded-full blur-xl"
+            className="absolute inset-0 bg-primary rounded-full blur-xl"
           />
 
           {/* Main Arrow */}
@@ -117,9 +117,9 @@ export function CartArrowIndicator() {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
-              className="absolute -left-24 top-4 bg-white rounded-lg px-3 py-1.5 shadow-lg border border-gray-100"
+              className="absolute -left-24 top-4 bg-card rounded-lg px-3 py-1.5 shadow-lg border border-border"
             >
-              <span className="text-sm font-bold text-[#FF4433] whitespace-nowrap">
+              <span className="text-sm font-bold text-primary whitespace-nowrap">
                 View Cart!
               </span>
               {/* Speech bubble pointer */}

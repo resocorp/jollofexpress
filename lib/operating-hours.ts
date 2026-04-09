@@ -13,12 +13,12 @@ export interface DayHours {
   closed: boolean;
 }
 
-type OperatingHours = Record<DayOfWeek, DayHours>;
+export type OperatingHours = Record<DayOfWeek, DayHours>;
 
 /**
  * Get operating hours from database
  */
-async function getOperatingHours(): Promise<OperatingHours | null> {
+export async function getOperatingHours(): Promise<OperatingHours | null> {
   const supabase = createServiceClient();
 
   const { data, error } = await supabase

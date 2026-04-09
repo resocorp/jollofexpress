@@ -18,10 +18,27 @@ interface RevenueTrendData {
   orders: number;
 }
 
+interface VariationBreakdown {
+  option: string;
+  quantity: number;
+  revenue: number;
+}
+
 interface TopItemData {
   itemName: string;
   quantity: number;
   revenue: number;
+  variations?: VariationBreakdown[];
+}
+
+interface TopAddonData {
+  addonName: string;
+  quantity: number;
+}
+
+interface TopItemsResponse {
+  topItems: TopItemData[];
+  topAddons: TopAddonData[];
 }
 
 interface CategoryPerformance {
@@ -59,7 +76,7 @@ export function useRevenueTrend(period: string = '30') {
 export function useTopItems(period: string = '30', limit: number = 10) {
   return useQuery({
     queryKey: ['analytics', 'top-items', period, limit],
-    queryFn: () => get<TopItemData[]>(`/api/admin/analytics/top-items?period=${period}&limit=${limit}`),
+    queryFn: () => get<TopItemsResponse>(`/api/admin/analytics/top-items?period=${period}&limit=${limit}`),
     refetchInterval: 60000,
   });
 }

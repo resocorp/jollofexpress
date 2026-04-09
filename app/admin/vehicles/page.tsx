@@ -24,6 +24,7 @@ import {
   XCircle,
   Wrench
 } from 'lucide-react';
+import { adminFetch } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 interface Vehicle {
@@ -57,7 +58,7 @@ export default function VehiclesPage() {
   const { data: vehicles = [], isLoading, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['vehicles'],
     queryFn: async () => {
-      const res = await fetch('/api/vehicles');
+      const res = await adminFetch('/api/vehicles');
       if (!res.ok) throw new Error('Failed to fetch vehicles');
       return res.json() as Promise<Vehicle[]>;
     },
@@ -72,7 +73,7 @@ export default function VehiclesPage() {
   // Sync from Traccar mutation
   const syncFromTraccar = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/vehicles', { method: 'POST' });
+      const res = await adminFetch('/api/vehicles', { method: 'POST' });
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.error || 'Sync failed');

@@ -468,7 +468,7 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Dates */}
-                <div className="grid grid-cols-2 gap-4 p-3 bg-[#1F2233] rounded-lg">
+                <div className="grid grid-cols-2 gap-4 p-3 bg-muted rounded-lg">
                   <div>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
@@ -491,7 +491,7 @@ export default function CustomersPage() {
 
                 {/* Last Delivery Address */}
                 {selectedCustomer.delivery_address && (
-                  <div className="p-3 bg-[#1F2233] rounded-lg">
+                  <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">Last Delivery Address</p>
                     <p className="font-medium text-sm">
                       {selectedCustomer.delivery_address}
@@ -502,7 +502,7 @@ export default function CustomersPage() {
 
                 {/* Promo Codes Used */}
                 {selectedCustomer.promo_codes_used.length > 0 && (
-                  <div className="p-3 bg-[#1F2233] rounded-lg">
+                  <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
                       <Tag className="h-3 w-3" />
                       Promo Codes Used
@@ -601,7 +601,7 @@ export default function CustomersPage() {
                             Attributed on {format(new Date(selectedCustomer.attribution_date), 'PPP')}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground mt-3 p-2 bg-[#1F2233] rounded border border-[#2D3348]">
+                        <p className="text-xs text-muted-foreground mt-3 p-2 bg-muted rounded border border-border">
                           💡 This customer was attributed to {selectedCustomer.influencer_name} when they first used the promo code <strong>{selectedCustomer.first_promo_code}</strong>. 
                           All subsequent orders from this customer will generate commission for this influencer.
                         </p>

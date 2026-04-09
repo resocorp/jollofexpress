@@ -1,5 +1,6 @@
 // Batch delivery management service
 import { createServiceClient } from '@/lib/supabase/service';
+import { getOperatingHours, type DayOfWeek } from '@/lib/operating-hours';
 
 // Restaurant timezone (Nigeria)
 const RESTAURANT_TIMEZONE = 'Africa/Lagos';
@@ -165,12 +166,21 @@ export async function getOrCreateTodayBatches(): Promise<Batch[]> {
   const supabase = createServiceClient();
   const today = getTodayDateString();
 
-  // Get existing batches for today
+  // Get existing batches for today, ordered by delivery window's display_order
   const { data: existingBatches, error: fetchError } = await supabase
     .from('batches')
     .select('*, delivery_window:delivery_windows(*)')
     .eq('delivery_date', today)
     .order('created_at', { ascending: true });
+
+  // Sort by delivery window display_order so earliest window comes first
+  if (existingBatches) {
+    existingBatches.sort((a: any, b: any) => {
+      const aOrder = a.delivery_window?.display_order ?? 999;
+      const bOrder = b.delivery_window?.display_order ?? 999;
+      return aOrder - bOrder;
+    });
+  }
 
   if (fetchError) {
     console.error('Error fetching today batches:', fetchError);
@@ -254,72 +264,97 @@ export async function getNextAvailableBatch(): Promise<{
     }
   }
 
-  // No accepting batch today — check for preorder mode
-  const tomorrow = getTomorrowDateString();
+  // No accepting batch today — find the next operating day (up to 7 days ahead)
   const supabase = createServiceClient();
-
-  // Try to get tomorrow's batches (create if needed)
-  const { data: tomorrowBatches } = await supabase
-    .from('batches')
-    .select('*, delivery_window:delivery_windows(*)')
-    .eq('delivery_date', tomorrow)
-    .order('created_at', { ascending: true });
-
-  if (tomorrowBatches && tomorrowBatches.length > 0) {
-    const firstBatch = tomorrowBatches[0] as Batch;
-    if (firstBatch.delivery_window) {
-      return {
-        batch: firstBatch,
-        isPreorder: true,
-        deliveryDate: tomorrow,
-        deliveryWindow: formatDeliveryWindow(
-          firstBatch.delivery_window.delivery_start,
-          firstBatch.delivery_window.delivery_end
-        ),
-      };
-    }
-  }
-
-  // Create tomorrow's batches from windows
   const windows = await getActiveDeliveryWindows();
-  if (windows.length > 0) {
-    // Check which windows are active for tomorrow's day of week
-    const tomorrowDate = getNowInNigeria();
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    const tomorrowDow = tomorrowDate.getDay();
+  const operatingHours = await getOperatingHours();
+  const dayKeys: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-    const tomorrowWindows = windows.filter(w => {
+  for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
+    const futureDate = getNowInNigeria();
+    futureDate.setDate(futureDate.getDate() + daysAhead);
+    const futureDow = futureDate.getDay();
+
+    // Skip days the restaurant is closed per operating hours
+    if (operatingHours) {
+      const dayHours = operatingHours[dayKeys[futureDow]];
+      if (dayHours?.closed) continue;
+    }
+
+    const y = futureDate.getFullYear();
+    const m = String(futureDate.getMonth() + 1).padStart(2, '0');
+    const d = String(futureDate.getDate()).padStart(2, '0');
+    const futureDateStr = `${y}-${m}-${d}`;
+
+    // Filter windows active on this day of week
+    const dayWindows = windows.filter(w => {
       if (!w.days_of_week) return true;
-      return w.days_of_week.includes(tomorrowDow);
+      return w.days_of_week.includes(futureDow);
     });
 
-    if (tomorrowWindows.length > 0) {
-      const batchInserts = tomorrowWindows.map(w => ({
-        delivery_window_id: w.id,
-        delivery_date: tomorrow,
-        status: 'accepting' as const,
-        total_orders: 0,
-        max_capacity: w.max_capacity,
-      }));
+    if (dayWindows.length === 0) continue;
 
-      const { data: newBatches } = await supabase
-        .from('batches')
-        .upsert(batchInserts, { onConflict: 'delivery_window_id,delivery_date' })
-        .select('*, delivery_window:delivery_windows(*)');
+    // Check for existing batches on this date
+    const { data: existingBatches } = await supabase
+      .from('batches')
+      .select('*, delivery_window:delivery_windows(*)')
+      .eq('delivery_date', futureDateStr)
+      .order('created_at', { ascending: true });
 
-      if (newBatches && newBatches.length > 0) {
-        const firstBatch = newBatches[0] as Batch;
-        if (firstBatch.delivery_window) {
-          return {
-            batch: firstBatch,
-            isPreorder: true,
-            deliveryDate: tomorrow,
-            deliveryWindow: formatDeliveryWindow(
-              firstBatch.delivery_window.delivery_start,
-              firstBatch.delivery_window.delivery_end
-            ),
-          };
-        }
+    if (existingBatches && existingBatches.length > 0) {
+      // Sort by delivery window display_order so earliest window is picked first
+      const sorted = [...existingBatches].sort((a: any, b: any) => {
+        const aOrder = a.delivery_window?.display_order ?? 999;
+        const bOrder = b.delivery_window?.display_order ?? 999;
+        return aOrder - bOrder;
+      });
+      const firstBatch = sorted[0] as Batch;
+      if (firstBatch.delivery_window) {
+        return {
+          batch: firstBatch,
+          isPreorder: true,
+          deliveryDate: futureDateStr,
+          deliveryWindow: formatDeliveryWindow(
+            firstBatch.delivery_window.delivery_start,
+            firstBatch.delivery_window.delivery_end
+          ),
+        };
+      }
+    }
+
+    // Create batches for this future date (sorted by display_order)
+    const sortedDayWindows = [...dayWindows].sort((a, b) => a.display_order - b.display_order);
+    const batchInserts = sortedDayWindows.map(w => ({
+      delivery_window_id: w.id,
+      delivery_date: futureDateStr,
+      status: 'accepting' as const,
+      total_orders: 0,
+      max_capacity: w.max_capacity,
+    }));
+
+    const { data: newBatches } = await supabase
+      .from('batches')
+      .upsert(batchInserts, { onConflict: 'delivery_window_id,delivery_date' })
+      .select('*, delivery_window:delivery_windows(*)');
+
+    if (newBatches && newBatches.length > 0) {
+      // Sort by display_order to pick the earliest window
+      const sorted = [...newBatches].sort((a: any, b: any) => {
+        const aOrder = a.delivery_window?.display_order ?? 999;
+        const bOrder = b.delivery_window?.display_order ?? 999;
+        return aOrder - bOrder;
+      });
+      const firstBatch = sorted[0] as Batch;
+      if (firstBatch.delivery_window) {
+        return {
+          batch: firstBatch,
+          isPreorder: true,
+          deliveryDate: futureDateStr,
+          deliveryWindow: formatDeliveryWindow(
+            firstBatch.delivery_window.delivery_start,
+            firstBatch.delivery_window.delivery_end
+          ),
+        };
       }
     }
   }
@@ -497,15 +532,20 @@ export async function getBatchesForRange(startDate: string, endDate: string): Pr
 
   const { data, error } = await supabase
     .from('batches')
-    .select('*, delivery_window:delivery_windows(*)')
+    .select('*, delivery_window:delivery_windows(*), orders(count)')
     .gte('delivery_date', startDate)
     .lte('delivery_date', endDate)
-    .order('delivery_date', { ascending: true });
+    .order('delivery_date', { ascending: false })
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching batch range:', error);
     return [];
   }
 
-  return (data || []) as Batch[];
+  // Attach live order count to each batch
+  return (data || []).map((b: any) => ({
+    ...b,
+    total_orders: b.orders?.[0]?.count ?? b.total_orders,
+  })) as Batch[];
 }

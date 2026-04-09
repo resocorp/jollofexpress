@@ -47,8 +47,8 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
         whileHover="hover"
         className="h-full"
       >
-        <Card className="overflow-hidden h-full flex flex-col group border-0 shadow-md hover:shadow-2xl transition-all duration-300 bg-white">
-          <div className="relative h-56 bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+        <Card className="overflow-hidden h-full flex flex-col group border-0 shadow-md hover:shadow-2xl transition-all duration-300 bg-card">
+          <div className="relative h-56 bg-gradient-to-br from-muted to-muted overflow-hidden">
           {item.image_url ? (
             <Image
               src={item.image_url}

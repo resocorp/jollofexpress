@@ -12,12 +12,17 @@ function formatOrderItems(items: OrderWithItems['items']): string {
   return items
     .map((item) => {
       let itemText = `• ${item.quantity}x ${item.item_name}`;
-      
+
       // Add variation if present
       if (item.selected_variation) {
         itemText += ` (${item.selected_variation.option})`;
       }
-      
+
+      // Add description if present
+      if (item.item_description) {
+        itemText += `\n  _${item.item_description}_`;
+      }
+
       return itemText;
     })
     .join('\n');

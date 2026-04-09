@@ -56,7 +56,7 @@ export async function getSession(): Promise<TraccarSession> {
 
 // ============ DEVICES ============
 export async function getDevices(): Promise<TraccarDevice[]> {
-  return traccarFetch<TraccarDevice[]>('/devices');
+  return traccarFetch<TraccarDevice[]>('/devices?all=true');
 }
 
 export async function getDevice(id: number): Promise<TraccarDevice> {
@@ -83,7 +83,7 @@ export async function deleteDevice(id: number): Promise<void> {
 
 // ============ POSITIONS ============
 export async function getPositions(deviceId?: number): Promise<TraccarPosition[]> {
-  const params = deviceId ? `?deviceId=${deviceId}` : '';
+  const params = deviceId ? `?deviceId=${deviceId}&all=true` : '?all=true';
   return traccarFetch<TraccarPosition[]>(`/positions${params}`);
 }
 

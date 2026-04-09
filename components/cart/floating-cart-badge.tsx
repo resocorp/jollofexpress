@@ -36,7 +36,7 @@ export function FloatingCartBadge() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="group bg-[#FF4433] hover:bg-[#E63320] text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 overflow-hidden touch-manipulation"
+              className="group bg-primary hover:bg-primary/90 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 overflow-hidden touch-manipulation"
               aria-label="View Cart"
             >
               <div className="flex items-center gap-3 py-3 px-4 sm:py-4 sm:px-5">
@@ -46,7 +46,7 @@ export function FloatingCartBadge() {
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-2 -right-2 bg-white text-[#FF4433] rounded-full h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center text-xs font-bold shadow-md"
+                    className="absolute -top-2 -right-2 bg-white text-primary rounded-full h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center text-xs font-bold shadow-md"
                   >
                     {itemCount}
                   </motion.div>

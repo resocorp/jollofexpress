@@ -64,6 +64,21 @@ export async function PATCH(
       }
     }
 
+    // Auto-assign driver when order is set to out_for_delivery
+    if (status === 'out_for_delivery' && !order.assigned_driver_id) {
+      try {
+        const { autoAssignOrder } = await import('@/lib/delivery/auto-assign');
+        const assignResult = await autoAssignOrder(id);
+        if (assignResult.success) {
+          console.log(`✅ Auto-assigned order ${order.order_number} to ${assignResult.driver?.name}`);
+        } else {
+          console.log(`⚠️ Auto-assign skipped for ${order.order_number}: ${assignResult.error}`);
+        }
+      } catch (assignError) {
+        console.error('Auto-assign failed:', assignError);
+      }
+    }
+
     // Send WhatsApp status update notification
     try {
       const { sendOrderStatusUpdate } = await import('@/lib/notifications/notification-service');

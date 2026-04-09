@@ -47,10 +47,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Driver not found' }, { status: 404 });
     }
 
-    // Check driver availability
-    if (driver.status !== 'available') {
+    // Check driver availability (allow busy drivers for multi-order batch delivery)
+    if (driver.status === 'offline') {
       return NextResponse.json(
-        { error: 'Driver is not available' },
+        { error: 'Driver is offline' },
         { status: 400 }
       );
     }

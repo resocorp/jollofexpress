@@ -7,7 +7,7 @@ Disallow: /kitchen
 Disallow: /checkout
 
 # Host
-Host: https://0086543e5457.ngrok-free.app
+Host: https://myshawarma.express
 
 # Sitemaps
-Sitemap: https://0086543e5457.ngrok-free.app/sitemap.xml
+Sitemap: https://myshawarma.express/sitemap.xml

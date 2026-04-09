@@ -64,7 +64,7 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
         className="h-full"
         onClick={handleCardClick}
       >
-        <Card className="overflow-hidden h-full flex flex-col group border-0 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.12)] active:shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-all duration-300 bg-white rounded-xl cursor-pointer touch-manipulation">
+        <Card className="overflow-hidden h-full flex flex-col group border-0 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.12)] active:shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-all duration-300 bg-card rounded-xl cursor-pointer touch-manipulation">
           {/* Image Section */}
           <div className="relative aspect-[4/3] bg-gradient-to-br from-orange-50 via-white to-red-50 overflow-hidden rounded-t-xl">
             {item.image_url ? (
@@ -91,7 +91,7 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
             {/* Discount Badge - Top Left */}
             {discountPercentage > 0 && (
               <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
-                <Badge className="bg-[#FF4433] hover:bg-[#FF4433] text-white border-0 shadow-lg text-xs sm:text-sm font-bold px-2 py-1">
+                <Badge className="bg-primary hover:bg-primary text-white border-0 shadow-lg text-xs sm:text-sm font-bold px-2 py-1">
                   {discountPercentage}% OFF
                 </Badge>
               </div>
@@ -111,7 +111,7 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
                   "p-2 sm:p-2.5 rounded-full backdrop-blur-sm shadow-lg transition-all duration-300 touch-manipulation",
                   isFavorite 
                     ? "bg-red-500 text-white" 
-                    : "bg-white/90 text-gray-700 hover:bg-white active:bg-white"
+                    : "bg-white/90 text-muted-foreground hover:bg-white active:bg-white"
                 )}
               >
                 <Heart className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", isFavorite && "fill-white")} />
@@ -119,7 +119,7 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
 
               {/* Dietary Tag Badge */}
               {item.dietary_tag && item.dietary_tag !== 'none' && (
-                <Badge className="backdrop-blur-sm bg-white/90 text-gray-900 border-0 shadow-lg text-xs">
+                <Badge className="backdrop-blur-sm bg-white/90 text-foreground border-0 shadow-lg text-xs">
                   {getDietaryTagIcon(item.dietary_tag)} {item.dietary_tag.replace('_', ' ')}
                 </Badge>
               )}
@@ -145,7 +145,7 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
             
             {/* Description */}
             {item.description && (
-              <p className="text-xs sm:text-sm leading-relaxed text-[#666] line-clamp-2 flex-grow">
+              <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground line-clamp-2 flex-grow">
                 {item.description}
               </p>
             )}
@@ -155,25 +155,25 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
               <div className="flex flex-col gap-0.5 sm:gap-1">
                 <div className="flex items-baseline gap-1 flex-wrap">
                   {hasCustomizations && (
-                    <span className="text-[10px] sm:text-sm text-[#666] font-medium">From</span>
+                    <span className="text-[10px] sm:text-sm text-muted-foreground font-medium">From</span>
                   )}
                   {item.promo_price ? (
                     <>
-                      <span className="text-lg sm:text-[22px] font-bold text-[#D32F2F]">
+                      <span className="text-lg sm:text-[22px] font-bold text-primary">
                         {formatCurrency(item.promo_price)}
                       </span>
-                      <span className="text-xs sm:text-sm text-gray-500 line-through">
+                      <span className="text-xs sm:text-sm text-muted-foreground line-through">
                         {formatCurrency(item.base_price)}
                       </span>
                     </>
                   ) : (
-                    <span className="text-lg sm:text-[22px] font-bold text-[#D32F2F]">
+                    <span className="text-lg sm:text-[22px] font-bold text-primary">
                       {formatCurrency(item.base_price)}
                     </span>
                   )}
                 </div>
                 {hasCustomizations && (
-                  <span className="text-[9px] sm:text-xs text-[#666] hidden sm:block">Customizable options available</span>
+                  <span className="text-[9px] sm:text-xs text-muted-foreground hidden sm:block">Customizable options available</span>
                 )}
               </div>
             </div>

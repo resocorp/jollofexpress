@@ -444,7 +444,7 @@ export function CheckoutForm({
               variant="outline"
               size="sm"
               onClick={() => router.push('/menu')}
-              className="whitespace-nowrap bg-white hover:bg-gray-50 text-red-600 border-red-600 font-semibold flex-shrink-0"
+              className="whitespace-nowrap bg-card hover:bg-muted text-red-600 border-red-600 font-semibold flex-shrink-0"
             >
               Add More Items
             </Button>

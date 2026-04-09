@@ -86,24 +86,24 @@ export function OrderCard({ order }: OrderCardProps) {
   return (
     <>
       <Card 
-        className={`border-l-4 ${borderColor} bg-white cursor-pointer hover:shadow-lg transition-shadow`}
+        className={`border-l-4 ${borderColor} bg-card cursor-pointer hover:shadow-lg transition-shadow`}
         onClick={() => setShowDetails(true)}
       >
         <CardContent className="p-4">
           {/* Order Header */}
           <div className="flex items-start justify-between mb-3">
             <div>
-              <h3 className="text-2xl font-bold text-gray-900">{order.order_number}</h3>
+              <h3 className="text-2xl font-bold text-foreground">{order.order_number}</h3>
               <div className="flex items-center gap-2 mt-1">
-                <Clock className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-600">{formatKitchenTime(order.created_at)}</span>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{formatKitchenTime(order.created_at)}</span>
                 <Badge variant={ageInMinutes > 20 ? 'destructive' : ageInMinutes > 10 ? 'secondary' : 'default'}>
                   {ageInMinutes} min
                 </Badge>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(order.total)}</p>
+              <p className="text-xl font-bold text-foreground">{formatCurrency(order.total)}</p>
               <Badge variant="outline" className="mt-1">
                 {order.order_type}
               </Badge>
@@ -113,14 +113,24 @@ export function OrderCard({ order }: OrderCardProps) {
           {/* Order Items (Summary) */}
           <div className="space-y-1 mb-3">
             {order.items?.slice(0, 3).map((item, index) => (
-              <div key={index} className="flex justify-between text-sm">
-                <span className="font-medium text-gray-700">
+              <div key={index} className="text-sm">
+                <span className="font-medium text-muted-foreground">
                   {item.quantity}x {item.item_name}
                 </span>
+                {item.selected_addons && item.selected_addons.length > 0 && (
+                  <span className="text-xs text-muted-foreground ml-1">
+                    + {item.selected_addons.map(a => a.name).join(', ')}
+                  </span>
+                )}
+                {item.special_instructions && (
+                  <p className="text-xs text-amber-600 font-medium">
+                    Note: {item.special_instructions}
+                  </p>
+                )}
               </div>
             ))}
             {order.items && order.items.length > 3 && (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 +{order.items.length - 3} more items
               </p>
             )}
@@ -128,16 +138,16 @@ export function OrderCard({ order }: OrderCardProps) {
 
           {/* Customer Info */}
           <div className="space-y-1 mb-3">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <User className="h-4 w-4" />
               <span className="font-medium">{order.customer_name}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Phone className="h-4 w-4" />
               <span>{formatPhoneNumber(order.customer_phone)}</span>
             </div>
             {order.order_type === 'delivery' && order.delivery_address && (
-              <div className="flex items-start gap-2 text-sm text-gray-600">
+              <div className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <span className="line-clamp-2">{order.delivery_address}</span>
               </div>
@@ -247,7 +257,7 @@ export function OrderCard({ order }: OrderCardProps) {
                     <p className="text-sm mt-1">Unit: {order.unit_number}</p>
                   )}
                   {order.delivery_instructions && (
-                    <div className="mt-3 p-2 bg-white rounded border">
+                    <div className="mt-3 p-2 bg-card rounded border">
                       <p className="text-xs font-semibold mb-1">Landmark:</p>
                       <p className="text-sm">{order.delivery_instructions}</p>
                     </div>
@@ -266,15 +276,23 @@ export function OrderCard({ order }: OrderCardProps) {
                       <span className="font-medium">{item.quantity}x {item.item_name}</span>
                       <span>{formatCurrency(item.subtotal)}</span>
                     </div>
-                    {item.selected_variation && (
-                      <p className="text-sm text-muted-foreground">
-                        • {item.selected_variation.option}
-                      </p>
+                    {item.item_description && (
+                      <p className="text-xs text-muted-foreground italic mt-0.5">{item.item_description}</p>
                     )}
                     {item.selected_addons && item.selected_addons.length > 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        • Add-ons: {item.selected_addons.map(a => a.name).join(', ')}
-                      </p>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {item.selected_addons.map((a, i) => (
+                          <span key={i}>
+                            {i > 0 && ', '}
+                            {a.name}{a.price > 0 && ` (+${formatCurrency(a.price)})`}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {item.special_instructions && (
+                      <div className="mt-1.5 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+                        <span className="font-semibold">Note:</span> {item.special_instructions}
+                      </div>
                     )}
                   </div>
                 ))}

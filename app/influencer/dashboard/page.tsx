@@ -48,7 +48,7 @@ const PERIOD_OPTIONS = [
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
         <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
         <p className="mt-4 text-muted-foreground">Loading your dashboard...</p>
@@ -84,7 +84,7 @@ function InfluencerDashboardContent() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-600">
@@ -104,7 +104,7 @@ function InfluencerDashboardContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-600">
@@ -124,7 +124,7 @@ function InfluencerDashboardContent() {
 
   if (isLoading || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
           <p className="mt-4 text-muted-foreground">Loading your dashboard...</p>
@@ -134,9 +134,9 @@ function InfluencerDashboardContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-card border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -255,22 +255,22 @@ function InfluencerDashboardContent() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-4 mb-8">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-center p-4 bg-background rounded-lg">
                 <ShoppingBag className="h-6 w-6 mx-auto text-blue-500 mb-2" />
                 <p className="text-2xl font-bold">{data.period_stats.total_orders}</p>
                 <p className="text-sm text-muted-foreground">Orders</p>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-center p-4 bg-background rounded-lg">
                 <DollarSign className="h-6 w-6 mx-auto text-green-500 mb-2" />
                 <p className="text-2xl font-bold">{formatCurrency(data.period_stats.total_revenue)}</p>
                 <p className="text-sm text-muted-foreground">Revenue Generated</p>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-center p-4 bg-background rounded-lg">
                 <Wallet className="h-6 w-6 mx-auto text-purple-500 mb-2" />
                 <p className="text-2xl font-bold">{formatCurrency(data.period_stats.total_commission)}</p>
                 <p className="text-sm text-muted-foreground">Commission Earned</p>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-center p-4 bg-background rounded-lg">
                 <Users className="h-6 w-6 mx-auto text-orange-500 mb-2" />
                 <p className="text-2xl font-bold">{data.period_stats.new_customers}</p>
                 <p className="text-sm text-muted-foreground">New Customers</p>

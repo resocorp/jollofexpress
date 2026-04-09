@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
+import { ThemeProvider } from "@/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "@/lib/env-validator"; // Validate environment on startup
 import { GoogleAnalytics } from "@/components/analytics";
@@ -120,12 +121,14 @@ export default function RootLayout({
         className="font-sans antialiased"
         suppressHydrationWarning
       >
-        <QueryProvider>
-          <ChunkErrorHandler />
-          {children}
-          <Toaster />
-          <GoogleAnalytics />
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            <ChunkErrorHandler />
+            {children}
+            <Toaster />
+            <GoogleAnalytics />
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

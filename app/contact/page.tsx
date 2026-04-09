@@ -39,7 +39,7 @@ export default function ContactPage() {
   const { data: status, isLoading: statusLoading } = useRestaurantStatus();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
       
       {/* Hero Section */}
@@ -166,7 +166,7 @@ export default function ContactPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
+          <Card className="bg-gradient-to-br from-muted to-muted border-border">
             <CardContent className="p-8 text-center">
               <h3 className="text-2xl font-bold mb-4">Follow Us on TikTok</h3>
               <p className="text-muted-foreground mb-6">
@@ -177,7 +177,7 @@ export default function ContactPage() {
                   href="https://tiktok.com/@myshawarmaexpress" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="p-4 rounded-full bg-white border-2 border-gray-200 hover:border-black hover:scale-110 transition-all duration-200"
+                  className="p-4 rounded-full bg-card border-2 border-border hover:border-foreground hover:scale-110 transition-all duration-200"
                 >
                   <TikTokIcon className="h-8 w-8" />
                 </a>

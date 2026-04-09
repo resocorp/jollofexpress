@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Receipt, ArrowLeft, User } from 'lucide-react';
+import { Home, Receipt, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -24,12 +24,6 @@ export function BottomNav() {
       active: pathname === '/orders',
     },
     {
-      icon: User,
-      label: 'Account',
-      href: '/orders',
-      active: false,
-    },
-    {
       icon: ArrowLeft,
       label: 'Back',
       action: () => router.back(),
@@ -42,9 +36,9 @@ export function BottomNav() {
       initial={{ y: 100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white border-t border-gray-200 shadow-lg pb-safe"
+      className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background border-t border-border shadow-lg pb-safe"
     >
-      <div className="grid grid-cols-4 h-16">
+      <div className="grid grid-cols-3 h-16">
         {navItems.map((item, index) => {
           const Icon = item.icon;
           const isActive = item.active;
@@ -55,8 +49,8 @@ export function BottomNav() {
                 key={item.label}
                 onClick={item.action}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 transition-all duration-200 touch-manipulation active:bg-gray-100",
-                  isActive ? "text-[#D32F2F]" : "text-gray-600"
+                  "flex flex-col items-center justify-center gap-1 transition-all duration-200 touch-manipulation active:bg-muted",
+                  isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 <motion.div
@@ -67,7 +61,7 @@ export function BottomNav() {
                   {isActive && (
                     <motion.div
                       layoutId="activeIndicator"
-                      className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#D32F2F] rounded-full"
+                      className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full"
                     />
                   )}
                 </motion.div>
@@ -86,8 +80,8 @@ export function BottomNav() {
               key={item.label}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 transition-all duration-200 touch-manipulation active:bg-gray-100",
-                isActive ? "text-[#D32F2F]" : "text-gray-600"
+                "flex flex-col items-center justify-center gap-1 transition-all duration-200 touch-manipulation active:bg-muted",
+                isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
               <motion.div
@@ -98,7 +92,7 @@ export function BottomNav() {
                 {isActive && (
                   <motion.div
                     layoutId="activeIndicator"
-                    className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#D32F2F] rounded-full"
+                    className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full"
                   />
                 )}
               </motion.div>
@@ -120,7 +114,7 @@ export function BottomNav() {
             <motion.div
               key={`bar-${item.label}`}
               layoutId="bottomNavBar"
-              className="absolute top-0 h-0.5 bg-[#D32F2F] rounded-full"
+              className="absolute top-0 h-0.5 bg-primary rounded-full"
               style={{
                 left: `${(index / navItems.length) * 100}%`,
                 width: `${100 / navItems.length}%`,

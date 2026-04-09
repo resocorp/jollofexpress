@@ -404,6 +404,36 @@ export async function sendSystemAlert(title: string, alertMessage: string): Prom
 }
 
 // ============================================
+// DELIVERY TRACKING NOTIFICATIONS
+// ============================================
+
+/**
+ * Send rider nearby notification to customer
+ */
+export async function sendRiderNearbyNotification(
+  phone: string,
+  customerName: string,
+  orderNumber: string,
+  deliveryAddress: string,
+  orderId: string
+): Promise<boolean> {
+  const message =
+    `🏍️ *Your rider is nearby!*\n\n` +
+    `Hi ${customerName}, your MyShawarma delivery (Order #${orderNumber}) ` +
+    `is almost at your location. Please be ready to receive your order!\n\n` +
+    `📍 Delivering to: ${deliveryAddress}\n\n` +
+    `Thank you for ordering from MyShawarma! 🌯`;
+
+  return sendNotification({
+    phone,
+    message,
+    notificationType: 'customer',
+    eventType: 'rider_nearby',
+    orderId,
+  });
+}
+
+// ============================================
 // UTILITY FUNCTIONS
 // ============================================
 

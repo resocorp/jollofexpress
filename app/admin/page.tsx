@@ -132,15 +132,15 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-white">Dashboard</h1>
-        <p className="text-gray-500 text-sm mt-0.5">
+        <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
 
       {/* Batch Status Hero */}
       {activeBatch && (
-        <div className="bg-[#161822] rounded-2xl p-6 border border-[#1F2233]">
+        <div className="bg-card rounded-2xl p-6 border border-border">
           <div className="flex items-start justify-between mb-5">
             <div>
               <div className="flex items-center gap-2.5 mb-1.5">
@@ -151,12 +151,12 @@ export default function AdminDashboard() {
                     boxShadow: `0 0 12px ${BATCH_STATE_COLORS[activeBatch.status] || '#6B7280'}88`,
                   }}
                 />
-                <span className="text-lg font-bold text-white uppercase tracking-wide">
+                <span className="text-lg font-bold text-foreground uppercase tracking-wide">
                   {activeBatch.status}
                 </span>
-                <span className="text-sm text-gray-500">— {activeBatch.window_name}</span>
+                <span className="text-sm text-muted-foreground">— {activeBatch.window_name}</span>
               </div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 {activeBatch.status === 'accepting' && secondsUntilCutoff > 0
                   ? `Receiving orders — cutoff in ${countdownFormatted}`
                   : activeBatch.status === 'cutoff' ? 'Orders closed — kitchen preparing'
@@ -173,7 +173,7 @@ export default function AdminDashboard() {
                 disabled={activeBatch.status === 'accepting' || revertMutation.isPending}
                 size="sm"
                 variant="outline"
-                className="text-gray-400 border-[#1F2233] hover:bg-[#1F2233] hover:text-white bg-transparent text-xs disabled:opacity-30"
+                className="text-muted-foreground border-border hover:bg-muted hover:text-foreground bg-transparent text-xs disabled:opacity-30"
               >
                 <ChevronLeft className="h-3 w-3 mr-1" /> Revert
               </Button>
@@ -214,10 +214,10 @@ export default function AdminDashboard() {
           { label: 'Batches', value: String(todayBatches.length), sub: `${todayBatches.filter(b => b.status === 'completed').length} completed`, color: '#6366F1' },
           { label: 'Cutoff In', value: secondsUntilCutoff > 0 ? countdownFormatted : '—', sub: 'next cutoff', color: '#F59E0B' },
         ].map((card, i) => (
-          <div key={i} className="bg-[#161822] rounded-xl p-5 border border-[#1F2233]">
-            <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-2">{card.label}</div>
+          <div key={i} className="bg-card rounded-xl p-5 border border-border">
+            <div className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">{card.label}</div>
             <div className="text-2xl font-extrabold tabular-nums" style={{ color: card.color }}>{card.value}</div>
-            <div className="text-[11px] text-gray-600 mt-1">{card.sub}</div>
+            <div className="text-[11px] text-muted-foreground mt-1">{card.sub}</div>
           </div>
         ))}
       </div>
@@ -225,8 +225,8 @@ export default function AdminDashboard() {
       {/* Capacity + Recent Orders */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Capacity Ring */}
-        <div className="bg-[#161822] rounded-xl p-6 border border-[#1F2233] flex flex-col items-center">
-          <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-4">Batch Capacity</div>
+        <div className="bg-card rounded-xl p-6 border border-border flex flex-col items-center">
+          <div className="text-[11px] text-muted-foreground uppercase tracking-wider mb-4">Batch Capacity</div>
           <svg width="120" height="120" viewBox="0 0 120 120">
             <circle cx="60" cy="60" r="50" fill="none" stroke="#1F2233" strokeWidth="10" />
             <circle
@@ -239,24 +239,24 @@ export default function AdminDashboard() {
             <text x="60" y="56" textAnchor="middle" fill="#fff" fontSize="24" fontWeight="800">{totalOrders}</text>
             <text x="60" y="74" textAnchor="middle" fill="#6B7280" fontSize="11">of {totalCapacity}</text>
           </svg>
-          <div className="mt-3 text-xs text-gray-500">
+          <div className="mt-3 text-xs text-muted-foreground">
             {totalOrders >= totalCapacity * 0.8 ? '⚠ Nearing capacity' : `${totalCapacity - totalOrders} slots remaining`}
           </div>
         </div>
 
         {/* Recent Orders */}
-        <div className="lg:col-span-2 bg-[#161822] rounded-xl border border-[#1F2233] overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#1F2233] flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">Recent Orders</h3>
-            <Link href="/admin/orders" className="text-xs text-gray-500 hover:text-gray-300">View all →</Link>
+        <div className="lg:col-span-2 bg-card rounded-xl border border-border overflow-hidden">
+          <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground">Recent Orders</h3>
+            <Link href="/admin/orders" className="text-xs text-muted-foreground hover:text-foreground">View all →</Link>
           </div>
-          <div className="divide-y divide-[#1F2233]/50">
+          <div className="divide-y divide-border/50">
             {isLoading ? (
-              <div className="py-8 text-center text-gray-500">
+              <div className="py-8 text-center text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin mx-auto" />
               </div>
             ) : !data?.recentOrders || data.recentOrders.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">
+              <div className="py-8 text-center text-muted-foreground">
                 <ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-30" />
                 <p className="text-xs">No orders yet</p>
               </div>
@@ -265,16 +265,16 @@ export default function AdminDashboard() {
                 <div key={order.id} className="flex items-center justify-between px-5 py-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-white">{order.order_number}</span>
+                      <span className="text-sm font-medium text-foreground">{order.order_number}</span>
                       <Badge className={`text-[10px] border ${STATUS_BADGE_CLASSES[order.status] || 'bg-gray-500/20 text-gray-400'}`}>
                         {order.status}
                       </Badge>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">{order.customer_name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{order.customer_name}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold text-green-400">{formatCurrency(order.total)}</p>
-                    <p className="text-[10px] text-gray-600">
+                    <p className="text-[10px] text-muted-foreground">
                       {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
@@ -293,9 +293,9 @@ export default function AdminDashboard() {
           { title: 'Settings', desc: 'Configure hours, fees, notifications', href: '/admin/settings' },
         ].map((action) => (
           <Link key={action.href} href={action.href}>
-            <div className="bg-[#161822] rounded-xl p-5 border border-[#1F2233] hover:border-[#2D3348] transition-colors cursor-pointer">
-              <h3 className="text-sm font-semibold text-white mb-1">{action.title}</h3>
-              <p className="text-xs text-gray-500">{action.desc}</p>
+            <div className="bg-card rounded-xl p-5 border border-border hover:border-border transition-colors cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-1">{action.title}</h3>
+              <p className="text-xs text-muted-foreground">{action.desc}</p>
             </div>
           </Link>
         ))}

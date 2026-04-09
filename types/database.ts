@@ -213,6 +213,7 @@ export interface OrderItem {
   order_id: string;
   item_id?: string;
   item_name: string;
+  item_description?: string;
   quantity: number;
   unit_price: number;
   selected_variation?: SelectedVariation;

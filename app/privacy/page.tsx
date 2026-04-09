@@ -104,7 +104,7 @@ If you are not satisfied with our response, you can lodge a complaint with the N
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
       
       {/* Hero Section */}

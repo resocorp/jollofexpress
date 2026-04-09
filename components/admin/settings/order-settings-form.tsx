@@ -253,7 +253,7 @@ export function OrderSettingsForm({ data }: OrderSettingsFormProps) {
       )}
 
       {/* Information Box */}
-      <div className="p-4 bg-[#1F2233] border border-[#2D3348] rounded-lg">
+      <div className="p-4 bg-muted border border-border rounded-lg">
         <h4 className="text-sm font-medium mb-2">Quick Tips</h4>
         <ul className="text-xs text-muted-foreground space-y-1">
           <li>

@@ -46,16 +46,16 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-[#161822] border-r border-[#1F2233] flex flex-col flex-shrink-0">
+    <aside className="w-64 bg-card border-r border-border flex flex-col flex-shrink-0">
       {/* Logo */}
-      <div className="p-5 border-b border-[#1F2233]">
+      <div className="p-5 border-b border-border">
         <Link href="/admin" className="flex items-center space-x-3">
           <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-gradient-to-br from-red-600 to-orange-500 text-white font-bold text-sm">
             MS
           </div>
           <div>
-            <h1 className="font-bold text-sm text-white">Shawarma Admin</h1>
-            <p className="text-[11px] text-gray-500">myshawarma.express</p>
+            <h1 className="font-bold text-sm text-foreground">Shawarma Admin</h1>
+            <p className="text-[11px] text-muted-foreground">myshawarma.express</p>
           </div>
         </Link>
       </div>
@@ -71,8 +71,8 @@ export function AdminSidebar() {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-[#1F2233] text-white'
-                  : 'text-gray-500 hover:bg-[#1F2233]/50 hover:text-gray-300'
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               )}
             >
               <item.icon className="h-4 w-4" />
@@ -83,15 +83,15 @@ export function AdminSidebar() {
       </nav>
 
       {/* Kitchen & Logout */}
-      <div className="p-3 border-t border-[#1F2233] space-y-1.5">
+      <div className="p-3 border-t border-border space-y-1.5">
         <Link href="/kitchen">
-          <Button variant="outline" className="w-full justify-start text-gray-400 border-[#1F2233] hover:bg-[#1F2233] hover:text-white bg-transparent text-xs h-9">
+          <Button variant="outline" className="w-full justify-start text-muted-foreground border-border hover:bg-muted hover:text-foreground bg-transparent text-xs h-9">
             <LayoutDashboard className="h-3.5 w-3.5 mr-2" />
             Kitchen Display
           </Button>
         </Link>
         <Link href="/menu">
-          <Button variant="outline" className="w-full justify-start text-gray-400 border-[#1F2233] hover:bg-[#1F2233] hover:text-white bg-transparent text-xs h-9">
+          <Button variant="outline" className="w-full justify-start text-muted-foreground border-border hover:bg-muted hover:text-foreground bg-transparent text-xs h-9">
             <UtensilsCrossed className="h-3.5 w-3.5 mr-2" />
             View Menu
           </Button>

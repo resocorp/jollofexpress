@@ -370,7 +370,7 @@ export default function MenuManagementPage() {
                   <TableRow key={item.id}>
                     <TableCell>
                       {item.image_url ? (
-                        <div className="relative w-16 h-16 rounded-md overflow-hidden bg-[#1F2233]">
+                        <div className="relative w-16 h-16 rounded-md overflow-hidden bg-muted">
                           <Image
                             src={item.image_url}
                             alt={item.name}
@@ -544,7 +544,7 @@ function MenuItemCard({ item, index, onToggleAvailability, onDelete }: MenuItemC
         {/* Quick Actions Overlay */}
         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <Link href={`/admin/menu/${item.id}`}>
-            <Button size="sm" className="shadow-lg backdrop-blur-sm bg-[#161822]/90 hover:bg-[#161822] text-gray-200 border border-[#1F2233]">
+            <Button size="sm" className="shadow-lg backdrop-blur-sm bg-card/90 hover:bg-card text-foreground border border-border">
               <Edit2 className="h-3 w-3 mr-1" />
               Edit
             </Button>

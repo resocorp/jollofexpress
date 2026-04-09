@@ -23,7 +23,7 @@ export function HowItWorksStrip() {
         {
           icon: '📱',
           heading: 'Pick Your Window',
-          subtext: `Order by ${sortedBatches.map(b => b.cutoffTime).join(' or ')}`,
+          subtext: `Order before ${sortedBatches.map(b => b.cutoffTime).join(' or ')}`,
         },
         {
           icon: '🔥',
@@ -39,7 +39,7 @@ export function HowItWorksStrip() {
     : [
         {
           icon: '📱',
-          heading: `Order by ${cutoffTime}`,
+          heading: `Order before ${cutoffTime}`,
           subtext: 'Place your order before the daily cutoff',
         },
         {
@@ -61,12 +61,12 @@ export function HowItWorksStrip() {
       transition={{ delay: 0.1 }}
       className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1400px] py-3"
     >
-      <div className="grid grid-cols-3 gap-2 sm:gap-4 bg-white rounded-xl shadow-sm border p-3 sm:p-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 bg-card rounded-xl shadow-sm border p-3 sm:p-4">
         {steps.map((step, i) => (
           <div key={i} className="text-center">
             <div className="text-2xl sm:text-3xl mb-1">{step.icon}</div>
-            <p className="font-bold text-xs sm:text-sm text-gray-900 leading-tight">{step.heading}</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 leading-tight hidden sm:block">{step.subtext}</p>
+            <p className="font-bold text-xs sm:text-sm text-foreground leading-tight">{step.heading}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-tight hidden sm:block">{step.subtext}</p>
           </div>
         ))}
       </div>

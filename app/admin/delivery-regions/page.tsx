@@ -227,15 +227,15 @@ export default function DeliveryRegionsPage() {
                     {group.regions.map((region) => (
                       <div 
                         key={region.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border border-[#1F2233] ${
-                          region.is_active ? 'bg-[#161822]' : 'bg-[#0F1117] opacity-60'
+                        className={`flex items-center justify-between p-3 rounded-lg border border-border ${
+                          region.is_active ? 'bg-card' : 'bg-background opacity-60'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                           <div>
-                            <p className="font-medium text-gray-200">{region.name}</p>
-                            <div className="flex items-center gap-3 text-sm text-gray-400">
+                            <p className="font-medium text-foreground">{region.name}</p>
+                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <DollarSign className="h-3 w-3" />
                                 {formatCurrency(region.delivery_fee)}
@@ -293,15 +293,15 @@ export default function DeliveryRegionsPage() {
                   {data.ungrouped.map((region) => (
                     <div 
                       key={region.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border border-[#1F2233] ${
-                        region.is_active ? 'bg-[#161822]' : 'bg-[#0F1117] opacity-60'
+                      className={`flex items-center justify-between p-3 rounded-lg border border-border ${
+                        region.is_active ? 'bg-card' : 'bg-background opacity-60'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                         <div>
-                          <p className="font-medium text-gray-200">{region.name}</p>
-                          <div className="flex items-center gap-3 text-sm text-gray-400">
+                          <p className="font-medium text-foreground">{region.name}</p>
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <DollarSign className="h-3 w-3" />
                               {formatCurrency(region.delivery_fee)}

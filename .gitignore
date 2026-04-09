@@ -91,3 +91,8 @@ MIGRATE_*.md
 # Keep these docs
 !README.md
 !PRINTER_SETUP.md
+
+# Runtime / auth data
+/auth_store/
+/logs/
+/plans/

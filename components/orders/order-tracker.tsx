@@ -48,7 +48,7 @@ export function OrderTracker({ order }: OrderTrackerProps) {
                 {index < ORDER_STAGES.length - 1 && (
                   <div
                     className={`absolute left-5 top-10 w-0.5 h-full -ml-px ${
-                      isCompleted ? 'bg-primary' : 'bg-gray-200'
+                      isCompleted ? 'bg-primary' : 'bg-border'
                     }`}
                   />
                 )}
@@ -60,7 +60,7 @@ export function OrderTracker({ order }: OrderTrackerProps) {
                     className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
                       isCompleted
                         ? 'bg-primary border-primary text-white'
-                        : 'bg-white border-gray-300 text-gray-400'
+                        : 'bg-background border-border text-muted-foreground'
                     } ${isCurrent ? 'ring-4 ring-primary/20' : ''}`}
                   >
                     {isCurrent && order.status !== 'completed' ? (

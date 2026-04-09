@@ -281,7 +281,7 @@ export function InfluencerDialog({ open, onOpenChange, influencer }: InfluencerD
           <div className="space-y-4 py-4">
             <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
               <p className="text-sm text-green-800 mb-2 font-medium">Dashboard URL:</p>
-              <code className="text-xs bg-[#0F1117] p-2 rounded block break-all text-green-300">
+              <code className="text-xs bg-background p-2 rounded block break-all text-green-300">
                 {dashboardUrl}
               </code>
             </div>

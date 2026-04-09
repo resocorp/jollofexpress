@@ -77,12 +77,8 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Enable standalone output for Docker deployment
-  output: 'standalone',
   // Experimental features
   experimental: {},
-  // Server-side configuration
-  serverExternalPackages: [],
 };
 
 export default nextConfig;

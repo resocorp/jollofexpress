@@ -219,14 +219,19 @@ function buildStatusMessage(
 export async function getOrderWindowStatus(): Promise<OrderWindowStatusResponse> {
   const restaurantStatus = await getRestaurantOpenCloseStatus();
   if (!restaurantStatus.effectivelyOpen) {
+    // Still fetch next available batch so frontend can show upcoming delivery info
+    const { batch: upcomingBatch, deliveryDate: upcomingDate, deliveryWindow: upcomingWindow } =
+      await getNextAvailableBatch();
+    const upcomingBatchInfo = upcomingBatch ? batchToStatusInfo(upcomingBatch) : null;
+
     return {
-      nextBatch: null,
+      nextBatch: upcomingBatchInfo,
       allTodayBatches: [],
       isAccepting: false,
       isPreorder: false,
-      deliveryDate: '',
-      deliveryDateRaw: '',
-      deliveryWindow: '',
+      deliveryDate: upcomingDate ? formatDeliveryDate(upcomingDate) : '',
+      deliveryDateRaw: upcomingDate,
+      deliveryWindow: upcomingWindow,
       secondsUntilCutoff: 0,
       capacityPercent: 0,
       message: buildClosedMessage(restaurantStatus),

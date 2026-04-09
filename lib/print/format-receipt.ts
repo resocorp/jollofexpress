@@ -51,6 +51,7 @@ export interface ReceiptData {
 export interface ReceiptItem {
   quantity: number;
   name: string;
+  description?: string;
   variation?: string;
   addons: string[];
   specialInstructions?: string;
@@ -86,8 +87,11 @@ export function formatReceipt(order: OrderWithItems): ReceiptData {
   const items: ReceiptItem[] = order.items?.filter(item => item != null).map(item => ({
     quantity: item.quantity,
     name: item.item_name,
-    variation: item.selected_variation?.option,
-    addons: item.selected_addons?.map(a => a.name) || [],
+    description: item.item_description || undefined,
+    variation: item.selected_variation?.option || undefined,
+    addons: item.selected_addons?.map(a =>
+      a.price > 0 ? `${a.name} (+NGN${a.price.toFixed(0)})` : a.name
+    ) || [],
     specialInstructions: item.special_instructions || undefined,
     price: item.subtotal,
   })) || [];
@@ -212,19 +216,28 @@ export function formatReceiptText(receipt: ReceiptData): string {
     const itemLine = `${item.quantity}  ${item.name}`;
     const priceStr = formatCurrency(item.price);
     lines.push(leftRight(itemLine, priceStr));
-    
+
+    // Description (truncated to fit 48-char width with 4-char indent)
+    if (item.description) {
+      const maxDescLen = width - 4;
+      const desc = item.description.length > maxDescLen
+        ? item.description.slice(0, maxDescLen - 1) + '…'
+        : item.description;
+      lines.push(`    ${desc}`);
+    }
+
     // Show variation as a bullet point
     if (item.variation) {
       lines.push(`    • ${item.variation}`);
     }
-    
+
     // Show addons as bullet points
     if (item.addons.length > 0) {
       item.addons.forEach(addon => {
         lines.push(`    • ${addon}`);
       });
     }
-    
+
     lines.push('');
   });
   

@@ -2,13 +2,14 @@
 
 export type NotificationType = 'customer' | 'admin';
 
-export type CustomerEventType = 
+export type CustomerEventType =
   | 'order_confirmed'
   | 'order_preparing'
   | 'order_ready'
   | 'order_out_for_delivery'
   | 'order_completed'
-  | 'payment_failed';
+  | 'payment_failed'
+  | 'rider_nearby';
 
 export type AdminEventType = 
   | 'kitchen_closed'

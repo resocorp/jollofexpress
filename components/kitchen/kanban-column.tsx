@@ -30,7 +30,7 @@ export function KanbanColumn({ status, title, color, orders, hasNewOrders }: Kan
       <div className="flex-1 bg-gray-800 rounded-b-lg p-4 min-h-[500px] max-h-[calc(100vh-250px)] overflow-y-auto">
         <div className="space-y-4">
           {orders.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm">No orders</p>
             </div>
           ) : (

@@ -42,7 +42,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="bg-gradient-to-b from-white to-gray-50 border-t mt-12 sm:mt-16">
+    <footer className="bg-gradient-to-b from-background to-muted border-t mt-12 sm:mt-16">
       <div className="container mx-auto px-4 py-8 sm:py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
           {/* Brand Section */}
@@ -133,7 +133,7 @@ export function Footer() {
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`p-2 sm:p-2.5 rounded-full bg-white border border-gray-200 shadow-sm transition-all duration-200 hover:shadow-md hover:scale-110 active:scale-95 touch-manipulation ${social.color}`}
+                    className={`p-2 sm:p-2.5 rounded-full bg-card border border-border shadow-sm transition-all duration-200 hover:shadow-md hover:scale-110 active:scale-95 touch-manipulation ${social.color}`}
                     aria-label={social.name}
                   >
                     <Icon className="h-4 w-4 sm:h-5 sm:w-5" />

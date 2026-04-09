@@ -18,6 +18,7 @@ import {
   useKitchenPerformance,
 } from '@/hooks/use-analytics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ChartContainer,
@@ -189,33 +190,76 @@ export default function AnalyticsPage() {
               <div className="h-[300px] flex items-center justify-center">
                 <p className="text-muted-foreground">Loading...</p>
               </div>
-            ) : topItems && topItems.length > 0 ? (
-              <ChartContainer
-                config={{
-                  quantity: {
-                    label: 'Quantity Sold',
-                    color: 'hsl(var(--chart-3))',
-                  },
-                }}
-                className="h-[300px]"
-              >
-                <BarChart data={topItems} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="itemName" type="category" width={120} />
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent
-                        formatter={(value, name, props) => {
-                          const content = `Quantity: ${value} | Revenue: ${formatCurrency(props.payload.revenue)}`;
-                          return [content, props.payload.itemName];
-                        }}
-                      />
-                    }
-                  />
-                  <Bar dataKey="quantity" fill="var(--color-quantity)" radius={4} />
-                </BarChart>
-              </ChartContainer>
+            ) : topItems?.topItems && topItems.topItems.length > 0 ? (
+              <>
+                <ChartContainer
+                  config={{
+                    quantity: {
+                      label: 'Quantity Sold',
+                      color: 'hsl(var(--chart-3))',
+                    },
+                  }}
+                  className="h-[300px]"
+                >
+                  <BarChart data={topItems.topItems} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="itemName" type="category" width={120} />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          formatter={(value, name, props) => {
+                            const content = `Quantity: ${value} | Revenue: ${formatCurrency(props.payload.revenue)}`;
+                            return [content, props.payload.itemName];
+                          }}
+                        />
+                      }
+                    />
+                    <Bar dataKey="quantity" fill="var(--color-quantity)" radius={4} />
+                  </BarChart>
+                </ChartContainer>
+
+                {/* Variation Breakdown */}
+                {topItems.topItems.some(item => item.variations && item.variations.length > 0) && (
+                  <div className="mt-6 border-t pt-4">
+                    <h4 className="text-sm font-medium mb-3">Variation Breakdown</h4>
+                    <div className="space-y-3">
+                      {topItems.topItems
+                        .filter(item => item.variations && item.variations.length > 0)
+                        .map((item) => (
+                          <div key={item.itemName}>
+                            <p className="text-sm font-medium">{item.itemName}</p>
+                            <div className="ml-4 mt-1 space-y-1">
+                              {item.variations!.map((v) => (
+                                <div key={v.option} className="flex items-center justify-between text-sm">
+                                  <span className="text-muted-foreground">{v.option}</span>
+                                  <span className="text-muted-foreground">
+                                    {v.quantity} sold &middot; {formatCurrency(v.revenue)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top Addons */}
+                {topItems.topAddons && topItems.topAddons.length > 0 && (
+                  <div className="mt-6 border-t pt-4">
+                    <h4 className="text-sm font-medium mb-3">Popular Add-ons</h4>
+                    <div className="space-y-2">
+                      {topItems.topAddons.map((addon) => (
+                        <div key={addon.addonName} className="flex items-center justify-between text-sm">
+                          <span>{addon.addonName}</span>
+                          <Badge variant="secondary">{addon.quantity}x</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="h-[300px] flex items-center justify-center">
                 <p className="text-muted-foreground">No items sold in this period</p>

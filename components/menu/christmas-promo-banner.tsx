@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, Phone, Timer } from 'lucide-react';
+import { Phone, Timer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRestaurantInfo, useDeliverySettings } from '@/hooks/use-settings';
 import { useOrderWindow } from '@/hooks/use-order-window';
@@ -12,18 +12,23 @@ export function PromoBanner() {
   const {
     isAccepting,
     isPreorder,
+    nextBatch,
     deliveryDate,
     deliveryWindow,
     countdownFormatted,
     secondsUntilCutoff,
     message,
     isLoading,
+    restaurantClosed,
   } = useOrderWindow();
 
   // Determine status indicator color and label
   const getStatusIndicator = () => {
+    if (restaurantClosed) {
+      return { color: 'bg-red-400', pulse: false, label: 'Closed' };
+    }
     if (isAccepting) {
-      return { color: 'bg-green-400', pulse: true, label: 'Ordering Open' };
+      return { color: 'bg-green-400', pulse: true, label: 'Order Now' };
     }
     if (isPreorder) {
       return { color: 'bg-yellow-400', pulse: false, label: 'Pre-ordering' };
@@ -51,14 +56,22 @@ export function PromoBanner() {
             {/* Batch delivery info line */}
             {deliveryWindow ? (
               <p className="text-xs sm:text-sm font-semibold text-white/95 drop-shadow">
-                <span className="font-bold">Fresh batch daily</span> · Delivered hot between {deliveryWindow}
+                {restaurantClosed ? (
+                  <>
+                    <span className="font-bold">We&apos;re closed</span> · Next delivery: {deliveryDate} {deliveryWindow}
+                  </>
+                ) : (
+                  <>
+                    <span className="font-bold">Fresh batch daily</span> · Delivered hot between {deliveryWindow}
+                  </>
+                )}
               </p>
             ) : null}
 
             {deliverySettings?.free_delivery_threshold && (
               <p className="text-[10px] sm:text-xs text-white/90 font-medium">
                 <span className="text-[#FFD700] font-black">FREE DELIVERY</span> on orders above {formatCurrency(deliverySettings.free_delivery_threshold)}
-                {isAccepting && deliveryWindow ? ` · Order by cutoff today!` : ''}
+                {isAccepting && deliveryWindow ? ` · Order before cutoff today!` : ''}
               </p>
             )}
           </div>
@@ -79,23 +92,23 @@ export function PromoBanner() {
                 </span>
               )}
 
-              {/* Delivery Window Info */}
+              {/* Delivery Window */}
               {deliveryWindow && (
                 <>
                   <span className="text-white/40">•</span>
                   <span className="font-medium">
-                    {deliveryDate} {deliveryWindow}
+                    {restaurantClosed ? 'Next' : ''} Delivery: {deliveryDate} {deliveryWindow}
                   </span>
                 </>
               )}
 
-              {/* Countdown Timer */}
+              {/* Order Cutoff Countdown */}
               {isAccepting && secondsUntilCutoff > 0 && (
                 <>
                   <span className="text-white/40">•</span>
                   <span className="flex items-center gap-1 text-[#FFD700] font-bold">
                     <Timer className="h-3 w-3" />
-                    Closes in {countdownFormatted}
+                    Order before {nextBatch?.cutoffTime || countdownFormatted} ({countdownFormatted} left)
                   </span>
                 </>
               )}

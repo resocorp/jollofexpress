@@ -39,7 +39,7 @@ export default function MenuPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <Header />
         <div className="flex items-center justify-center h-[60vh]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -49,7 +49,7 @@ export default function MenuPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Header />
       
       {/* Promo & Restaurant Info Banner */}
@@ -73,7 +73,7 @@ export default function MenuPage() {
           {/* Category Tabs */}
           <div className="overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
             <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-              <TabsList className="inline-flex w-auto bg-white shadow-sm rounded-lg p-1 border min-h-[40px]">
+              <TabsList className="inline-flex w-auto bg-card shadow-sm rounded-lg p-1 border min-h-[40px]">
                 <TabsTrigger 
                   value="all" 
                   className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-md px-3 sm:px-4 py-2 font-semibold transition-all text-xs sm:text-sm"

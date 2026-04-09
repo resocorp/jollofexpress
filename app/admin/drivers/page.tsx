@@ -51,6 +51,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatCurrency } from '@/lib/formatters';
+import { adminFetch } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 interface Driver {
@@ -85,7 +86,7 @@ export default function DriversPage() {
   const { data: drivers = [], isLoading } = useQuery({
     queryKey: ['admin-drivers'],
     queryFn: async () => {
-      const res = await fetch('/api/drivers');
+      const res = await adminFetch('/api/drivers');
       if (!res.ok) throw new Error('Failed to fetch drivers');
       return res.json() as Promise<Driver[]>;
     },
@@ -94,7 +95,7 @@ export default function DriversPage() {
   // Create driver mutation
   const createDriver = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const res = await fetch('/api/drivers', {
+      const res = await adminFetch('/api/drivers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -122,7 +123,7 @@ export default function DriversPage() {
   // Update driver mutation
   const updateDriver = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Driver> }) => {
-      const res = await fetch(`/api/drivers/${id}`, {
+      const res = await adminFetch(`/api/drivers/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -140,7 +141,7 @@ export default function DriversPage() {
   // Delete driver mutation
   const deleteDriver = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/drivers/${id}`, {
+      const res = await adminFetch(`/api/drivers/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: false }),
@@ -428,7 +429,7 @@ export default function DriversPage() {
                           Linked
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-gray-400">
+                        <Badge variant="outline" className="text-muted-foreground">
                           Not linked
                         </Badge>
                       )}
@@ -468,6 +469,136 @@ export default function DriversPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Driver Dialog */}
+      <Dialog open={!!editingDriver} onOpenChange={(open) => !open && setEditingDriver(null)}>
+        <DialogContent>
+          {editingDriver && (
+            <EditDriverForm
+              driver={editingDriver}
+              onSave={(data) => {
+                updateDriver.mutate({ id: editingDriver.id, data });
+              }}
+              onCancel={() => setEditingDriver(null)}
+              isPending={updateDriver.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function EditDriverForm({
+  driver,
+  onSave,
+  onCancel,
+  isPending,
+}: {
+  driver: Driver;
+  onSave: (data: Partial<Driver>) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  const [name, setName] = useState(driver.name);
+  const [phone, setPhone] = useState(driver.phone);
+  const [email, setEmail] = useState(driver.email || '');
+  const [vehicleType, setVehicleType] = useState(driver.vehicle_type || 'motorcycle');
+  const [vehiclePlate, setVehiclePlate] = useState(driver.vehicle_plate || '');
+  const [traccarDeviceId, setTraccarDeviceId] = useState(
+    driver.traccar_device_id?.toString() || ''
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      name,
+      phone,
+      email: email || undefined,
+      vehicle_type: vehicleType,
+      vehicle_plate: vehiclePlate || undefined,
+      traccar_device_id: traccarDeviceId ? parseInt(traccarDeviceId) : undefined,
+    } as Partial<Driver>);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <DialogHeader>
+        <DialogTitle>Edit Driver</DialogTitle>
+        <DialogDescription>Update driver details</DialogDescription>
+      </DialogHeader>
+      <div className="space-y-4 py-4">
+        <div className="space-y-2">
+          <Label htmlFor="edit-name">Full Name *</Label>
+          <Input
+            id="edit-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="edit-phone">Phone Number *</Label>
+          <Input
+            id="edit-phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="edit-email">Email (Optional)</Label>
+          <Input
+            id="edit-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-vehicle-type">Vehicle Type</Label>
+            <Select value={vehicleType} onValueChange={setVehicleType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="motorcycle">Motorcycle</SelectItem>
+                <SelectItem value="bicycle">Bicycle</SelectItem>
+                <SelectItem value="car">Car</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-plate">Plate Number</Label>
+            <Input
+              id="edit-plate"
+              value={vehiclePlate}
+              onChange={(e) => setVehiclePlate(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="edit-traccar">Traccar Device ID</Label>
+          <Input
+            id="edit-traccar"
+            type="number"
+            value={traccarDeviceId}
+            onChange={(e) => setTraccarDeviceId(e.target.value)}
+            placeholder="Enter Traccar device ID"
+          />
+          <p className="text-xs text-muted-foreground">
+            Link to a GPS tracker device in Traccar for real-time location
+          </p>
+        </div>
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isPending}>
+          {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Save Changes
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

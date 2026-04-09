@@ -43,6 +43,7 @@ import {
   Banknote
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
+import { adminFetch } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 interface Order {
@@ -92,10 +93,10 @@ export default function DeliveryManagementPage() {
   const { data: pendingOrders = [], isLoading: ordersLoading, refetch: refetchOrders } = useQuery({
     queryKey: ['delivery-orders'],
     queryFn: async () => {
-      const res = await fetch('/api/orders?status=ready,preparing&type=delivery');
+      const res = await adminFetch('/api/orders?status=ready,preparing,out_for_delivery&type=delivery');
       if (!res.ok) throw new Error('Failed to fetch orders');
       const data = await res.json();
-      return (data.orders || []).filter((o: Order) => 
+      return (data.orders || []).filter((o: Order) =>
         !o.assigned_driver_id && o.status !== 'completed'
       ) as Order[];
     },
@@ -106,7 +107,7 @@ export default function DeliveryManagementPage() {
   const { data: activeDeliveries = [], isLoading: deliveriesLoading } = useQuery({
     queryKey: ['active-deliveries'],
     queryFn: async () => {
-      const res = await fetch('/api/delivery/assignments?status=pending,accepted,picked_up');
+      const res = await adminFetch('/api/delivery/assignments?status=pending,accepted,picked_up');
       if (!res.ok) return [];
       return res.json() as Promise<Assignment[]>;
     },
@@ -117,7 +118,7 @@ export default function DeliveryManagementPage() {
   const { data: drivers = [] } = useQuery({
     queryKey: ['available-drivers'],
     queryFn: async () => {
-      const res = await fetch('/api/drivers?status=available');
+      const res = await adminFetch('/api/drivers?status=available');
       if (!res.ok) throw new Error('Failed to fetch drivers');
       return res.json() as Promise<Driver[]>;
     },
@@ -126,7 +127,7 @@ export default function DeliveryManagementPage() {
   // Auto-assign mutation
   const autoAssign = useMutation({
     mutationFn: async (orderId: string) => {
-      const res = await fetch('/api/delivery/auto-assign', {
+      const res = await adminFetch('/api/delivery/auto-assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId }),
@@ -153,7 +154,7 @@ export default function DeliveryManagementPage() {
   // Manual assign mutation
   const manualAssign = useMutation({
     mutationFn: async ({ orderId, driverId }: { orderId: string; driverId: string }) => {
-      const res = await fetch('/api/delivery/assign', {
+      const res = await adminFetch('/api/delivery/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId, driver_id: driverId }),
@@ -184,7 +185,7 @@ export default function DeliveryManagementPage() {
       const results = [];
       for (const order of pendingOrders) {
         try {
-          const res = await fetch('/api/delivery/auto-assign', {
+          const res = await adminFetch('/api/delivery/auto-assign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ order_id: order.id }),
@@ -323,7 +324,7 @@ export default function DeliveryManagementPage() {
             Orders Awaiting Driver Assignment
           </CardTitle>
           <CardDescription>
-            Orders that are ready or preparing and need a driver assigned
+            Orders awaiting driver assignment
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -475,9 +476,9 @@ export default function DeliveryManagementPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <div className={`h-2 w-8 rounded ${delivery.status !== 'pending' ? 'bg-green-500' : 'bg-gray-200'}`} title="Accepted" />
-                        <div className={`h-2 w-8 rounded ${delivery.picked_up_at ? 'bg-green-500' : 'bg-gray-200'}`} title="Picked Up" />
-                        <div className={`h-2 w-8 rounded ${delivery.delivered_at ? 'bg-green-500' : 'bg-gray-200'}`} title="Delivered" />
+                        <div className={`h-2 w-8 rounded ${delivery.status !== 'pending' ? 'bg-green-500' : 'bg-muted'}`} title="Accepted" />
+                        <div className={`h-2 w-8 rounded ${delivery.picked_up_at ? 'bg-green-500' : 'bg-muted'}`} title="Picked Up" />
+                        <div className={`h-2 w-8 rounded ${delivery.delivered_at ? 'bg-green-500' : 'bg-muted'}`} title="Delivered" />
                       </div>
                     </TableCell>
                   </TableRow>

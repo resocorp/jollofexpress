@@ -293,7 +293,7 @@ export default function DriverDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -302,7 +302,7 @@ export default function DriverDashboard() {
   // Login screen
   if (!driver) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
@@ -338,7 +338,7 @@ export default function DriverDashboard() {
 
   // Driver dashboard
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-primary text-white p-4">
         <div className="flex items-center justify-between">
@@ -457,7 +457,7 @@ export default function DriverDashboard() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span className="font-medium">Amount Due:</span>
                 <span className="text-lg font-bold">
                   {activeDelivery.payment_method_type === 'cod' 

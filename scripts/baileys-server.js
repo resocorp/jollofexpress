@@ -34,6 +34,12 @@ const PORT = process.env.PORT || 3001;
 const API_SECRET = process.env.BAILEYS_API_SECRET || 'dev-secret-change-me';
 const AUTH_STORE_PATH = path.join(__dirname, '..', 'auth_store', 'whatsapp');
 
+// AI Chat: forward incoming messages to the AI handler
+const AI_CHAT_ENABLED = process.env.AI_CHAT_ENABLED === 'true';
+const AI_CHAT_PROCESS_URL = process.env.AI_CHAT_URL || 'http://localhost:3000/api/whatsapp/ai';
+// Phones that should NOT trigger AI (e.g., admin numbers)
+const AI_CHAT_IGNORE_PHONES = (process.env.AI_CHAT_IGNORE_PHONES || '').split(',').filter(Boolean);
+
 // Rate limiting: max messages per minute
 const RATE_LIMIT_PER_MINUTE = 30;
 const STAGGER_DELAY_MS = 2000; // 2 seconds between bulk messages
@@ -102,72 +108,153 @@ async function initWhatsApp() {
     defaultQueryTimeoutMs: 0,
     keepAliveIntervalMs: 30000,
     retryRequestDelayMs: 500,
+    // Skip history sync so messages arrive immediately via messages.upsert
+    shouldSyncHistoryMessage: () => false,
+    markOnlineOnConnect: true,
   });
 
-  // Save credentials on update
-  sock.ev.on('creds.update', saveCreds);
-
-  // Handle connection events
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update;
-
-    if (qr) {
-      try {
-        currentQR = await QRCode.toDataURL(qr);
-        connectionStatus = 'awaiting_scan';
-        console.log('📱 QR Code generated — scan from admin panel or terminal');
-      } catch (err) {
-        console.error('Error generating QR code:', err);
-        currentQR = null;
-      }
+  // Use Baileys v7 ev.process() for reliable buffered event handling
+  sock.ev.process(async (events) => {
+    // Save credentials on update
+    if (events['creds.update']) {
+      await saveCreds();
     }
 
-    if (connection === 'close') {
-      const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-      connectionStatus = 'disconnected';
-      currentQR = null;
+    // Handle connection events
+    if (events['connection.update']) {
+      const update = events['connection.update'];
+      const { connection, lastDisconnect, qr } = update;
 
-      console.log(`⚠️ WhatsApp disconnected (code: ${statusCode})`);
-
-      if (shouldReconnect) {
-        console.log('🔄 Reconnecting in 5 seconds...');
-        setTimeout(initWhatsApp, 5000);
-      } else {
-        console.log('❌ WhatsApp logged out. Re-scan needed from admin panel.');
-        // Clear auth state so QR is shown on next init
+      if (qr) {
         try {
-          fs.rmSync(AUTH_STORE_PATH, { recursive: true, force: true });
-          fs.mkdirSync(AUTH_STORE_PATH, { recursive: true });
-        } catch (e) {
-          console.error('Error clearing auth state:', e);
+          currentQR = await QRCode.toDataURL(qr);
+          connectionStatus = 'awaiting_scan';
+          console.log('📱 QR Code generated — scan from admin panel or terminal');
+        } catch (err) {
+          console.error('Error generating QR code:', err);
+          currentQR = null;
         }
       }
-    }
 
-    if (connection === 'open') {
-      connectionStatus = 'connected';
-      currentQR = null;
-      console.log('✅ WhatsApp connected successfully');
-    }
-  });
+      if (connection === 'close') {
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        connectionStatus = 'disconnected';
+        currentQR = null;
 
-  // Handle incoming messages
-  sock.ev.on('messages.upsert', async ({ messages }) => {
-    for (const msg of messages) {
-      if (!msg.key.fromMe && msg.message) {
-        const from = msg.key.remoteJid?.replace('@s.whatsapp.net', '') || '';
-        const text = msg.message?.conversation || 
-                     msg.message?.extendedTextMessage?.text || '';
-        
-        console.log(`📩 Incoming message from ${from}: ${text.substring(0, 100)}`);
-        
-        // TODO: Log to database and process keywords (CANCEL, STATUS)
+        console.log(`⚠️ WhatsApp disconnected (code: ${statusCode})`);
+
+        if (shouldReconnect) {
+          console.log('🔄 Reconnecting in 5 seconds...');
+          setTimeout(initWhatsApp, 5000);
+        } else {
+          console.log('❌ WhatsApp logged out. Re-scan needed from admin panel.');
+          try {
+            fs.rmSync(AUTH_STORE_PATH, { recursive: true, force: true });
+            fs.mkdirSync(AUTH_STORE_PATH, { recursive: true });
+          } catch (e) {
+            console.error('Error clearing auth state:', e);
+          }
+        }
+      }
+
+      if (connection === 'open') {
+        connectionStatus = 'connected';
+        currentQR = null;
+        console.log('✅ WhatsApp connected successfully');
       }
     }
-  });
+
+    // Handle incoming messages — forward to AI handler
+    if (events['messages.upsert']) {
+      const { messages, type } = events['messages.upsert'];
+      console.log(`[DEBUG] messages.upsert: type=${type}, count=${messages.length}`);
+      // Only process real-time notifications, not historical sync
+      if (type !== 'notify') return;
+
+    for (const msg of messages) {
+      if (msg.key.fromMe || !msg.message) continue;
+
+      const remoteJid = msg.key.remoteJid || '';
+      // Skip group messages, broadcasts, and status updates
+      if (remoteJid.endsWith('@g.us') || remoteJid === 'status@broadcast') continue;
+      // Only handle direct chats (@s.whatsapp.net or @lid)
+      if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) continue;
+
+      // Extract identifier for logging/session (phone or lid)
+      const from = remoteJid.replace(/@s\.whatsapp\.net$/, '').replace(/@lid$/, '');
+
+      const text = msg.message?.conversation ||
+                   msg.message?.extendedTextMessage?.text || '';
+
+      if (!text.trim()) {
+        const msgType = Object.keys(msg.message || {}).join(', ');
+        console.log(`📩 Incoming non-text message from ${from} (type: ${msgType}) — skipping`);
+        continue;
+      }
+
+      console.log(`📩 Incoming message from ${from}: ${text.substring(0, 100)}`);
+
+      // Forward to AI handler and reply directly using the original JID
+      if (AI_CHAT_ENABLED) {
+        handleAIChat(remoteJid, from, text).catch(err => {
+          console.error(`❌ AI handler error for ${from}:`, err.message);
+        });
+      }
+    }
+    } // end messages.upsert
+  }); // end sock.ev.process
 
   return sock;
+}
+
+/**
+ * Handle AI chat: get response from AI endpoint, then reply directly via sock
+ * Uses the original JID (remoteJid) to reply, avoiding phone number lookup issues with @lid format
+ */
+async function handleAIChat(remoteJid, phone, text) {
+  // Skip ignored phones (admin numbers etc.)
+  if (AI_CHAT_IGNORE_PHONES.some(p => phone.includes(p.replace(/[^\d]/g, '')))) {
+    console.log(`🤖 AI: skipping ignored phone ${phone}`);
+    return;
+  }
+
+  try {
+    // Call the AI endpoint to get the response text (don't let it send the reply)
+    const response = await fetch(AI_CHAT_PROCESS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Secret': API_SECRET,
+      },
+      body: JSON.stringify({ phone, message: text }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`🤖 AI: error response (${response.status}):`, errorData);
+      return;
+    }
+
+    const data = await response.json();
+    const aiReply = data.reply;
+
+    if (!aiReply) {
+      console.log(`🤖 AI: no reply for ${phone}`);
+      return;
+    }
+
+    // Send reply directly using the original JID (works for both @s.whatsapp.net and @lid)
+    if (sock && connectionStatus === 'connected') {
+      await sock.sendMessage(remoteJid, { text: aiReply });
+      messagesSentLastMinute++;
+      console.log(`🤖 AI: replied to ${phone}: ${aiReply.substring(0, 80)}...`);
+    } else {
+      console.error(`🤖 AI: cannot send reply — WhatsApp not connected`);
+    }
+  } catch (err) {
+    console.error(`🤖 AI: failed:`, err.message);
+  }
 }
 
 // ============================================

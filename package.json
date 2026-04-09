@@ -23,6 +23,7 @@
     "pm2:monit": "pm2 monit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.81.0",
     "@hookform/resolvers": "^5.2.2",
     "@mapbox/mapbox-gl-draw": "^1.5.1",
     "@next/third-parties": "^16.1.2",
@@ -53,6 +54,7 @@
     "framer-motion": "^12.23.24",
     "ioredis": "^5.8.2",
     "isomorphic-dompurify": "^2.34.0",
+    "jose": "^6.2.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.546.0",
     "mapbox-gl": "^3.17.0",

@@ -49,7 +49,7 @@ export default function FeatureFlagsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -57,21 +57,21 @@ export default function FeatureFlagsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Feature Flags</h1>
-        <p className="text-gray-500 mt-1 text-sm">Toggle features on and off instantly. Changes take effect immediately.</p>
+        <h1 className="text-2xl font-bold text-foreground">Feature Flags</h1>
+        <p className="text-muted-foreground mt-1 text-sm">Toggle features on and off instantly. Changes take effect immediately.</p>
       </div>
 
       <div className="space-y-3">
         {data?.flags.map((flag) => (
           <div
             key={flag.key}
-            className="flex items-center justify-between p-4 bg-[#161822] rounded-xl border border-[#1F2233]"
+            className="flex items-center justify-between p-4 bg-card rounded-xl border border-border"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-200">{flag.label}</p>
-              <p className="text-xs text-gray-500 font-mono mt-0.5">{flag.key}</p>
+              <p className="text-sm font-medium text-foreground">{flag.label}</p>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5">{flag.key}</p>
               {flag.description && (
-                <p className="text-xs text-gray-500 mt-1">{flag.description}</p>
+                <p className="text-xs text-muted-foreground mt-1">{flag.description}</p>
               )}
             </div>
             <button

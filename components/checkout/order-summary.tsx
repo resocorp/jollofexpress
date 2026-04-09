@@ -188,7 +188,7 @@ export function OrderSummaryWithButton({
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="flex gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+              className="flex gap-3 p-3 rounded-xl bg-muted hover:bg-muted transition-colors"
             >
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex-shrink-0">
                 {cartItem.quantity}
