@@ -219,9 +219,11 @@ function buildStatusMessage(
 export async function getOrderWindowStatus(): Promise<OrderWindowStatusResponse> {
   const restaurantStatus = await getRestaurantOpenCloseStatus();
   if (!restaurantStatus.effectivelyOpen) {
+    // When closed and not reopening today, skip today's batches so we don't show "Today" delivery
+    const skipToday = !restaurantStatus.nextOpenInfo?.isToday;
     // Still fetch next available batch so frontend can show upcoming delivery info
     const { batch: upcomingBatch, deliveryDate: upcomingDate, deliveryWindow: upcomingWindow } =
-      await getNextAvailableBatch();
+      await getNextAvailableBatch(skipToday);
     const upcomingBatchInfo = upcomingBatch ? batchToStatusInfo(upcomingBatch) : null;
 
     return {

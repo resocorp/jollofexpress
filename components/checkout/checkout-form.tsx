@@ -35,7 +35,7 @@ export function CheckoutForm({
   const createOrder = useCreateOrder();
   const { data: deliverySettings, isLoading: isLoadingSettings } = useDeliverySettings();
   const { data: paymentSettings } = usePaymentSettings();
-  const { isAccepting, isPreorder, deliveryDate, deliveryWindow } = useOrderWindow();
+  const { isAccepting, isPreorder, deliveryDate, deliveryWindow, restaurantClosed } = useOrderWindow();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerLocation, setCustomerLocation] = useState<{ latitude: number; longitude: number; address?: string } | null>(null);
   const [highlightedField, setHighlightedField] = useState<string | null>(null);
@@ -312,7 +312,18 @@ export function CheckoutForm({
   return (
     <form onSubmit={handleSubmit(onSubmit, handleFormError)} className="space-y-6">
       {/* Batch Delivery Confirmation */}
-      {deliveryWindow && (
+      {deliveryWindow && restaurantClosed && (
+        <Alert className="border-2 border-purple-400 bg-purple-50 dark:border-purple-500/40 dark:bg-purple-500/10">
+          <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <AlertTitle className="text-lg font-bold text-purple-900 dark:text-purple-200">
+            {`📅 We're closed right now · Delivery ${deliveryDate} between ${deliveryWindow}`}
+          </AlertTitle>
+          <AlertDescription className="mt-2 text-purple-800 dark:text-purple-300">
+            Your shawarma will be grilled fresh for the next delivery window.
+          </AlertDescription>
+        </Alert>
+      )}
+      {deliveryWindow && !restaurantClosed && (
         <Alert className={`border-2 ${isPreorder ? 'border-blue-400 bg-blue-50' : 'border-green-400 bg-green-50'}`}>
           <Clock className={`h-5 w-5 ${isPreorder ? 'text-blue-600' : 'text-green-600'}`} />
           <AlertTitle className={`text-lg font-bold ${isPreorder ? 'text-blue-900' : 'text-green-900'}`}>

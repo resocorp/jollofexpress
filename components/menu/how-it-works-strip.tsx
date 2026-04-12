@@ -4,9 +4,10 @@ import { motion } from 'framer-motion';
 import { useOrderWindow } from '@/hooks/use-order-window';
 
 export function HowItWorksStrip() {
-  const { nextBatch, deliveryWindow, allTodayBatches, isLoading } = useOrderWindow();
+  const { nextBatch, deliveryDate, deliveryWindow, allTodayBatches, isLoading, restaurantClosed } = useOrderWindow();
 
-  if (isLoading || !nextBatch) return null;
+  // Hide when loading, no batch info, or restaurant is closed
+  if (isLoading || !nextBatch || restaurantClosed) return null;
 
   const hasMultipleBatches = allTodayBatches.length > 1;
 

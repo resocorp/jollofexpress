@@ -37,7 +37,7 @@ export function OrderSummaryWithButton({
   const { data: deliverySettings } = useDeliverySettings();
   const { data: paymentSettings } = usePaymentSettings();
   const validatePromo = useValidatePromo();
-  const { deliveryDate, deliveryWindow, isPreorder } = useOrderWindow();
+  const { deliveryDate, deliveryWindow, isPreorder, restaurantClosed } = useOrderWindow();
   const [promoInput, setPromoInput] = useState(promoCode || '');
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -272,11 +272,15 @@ export function OrderSummaryWithButton({
 
         {/* K2: Delivery Date/Time in Sidebar */}
         {deliveryWindow && (
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
-            <CalendarDays className="h-5 w-5 text-primary flex-shrink-0" />
+          <div className={`flex items-center gap-3 p-3 rounded-lg ${
+            restaurantClosed
+              ? 'bg-purple-50 border border-purple-200 dark:bg-purple-500/10 dark:border-purple-500/30'
+              : 'bg-primary/5 border border-primary/10'
+          }`}>
+            <CalendarDays className={`h-5 w-5 flex-shrink-0 ${restaurantClosed ? 'text-purple-600 dark:text-purple-400' : 'text-primary'}`} />
             <div>
-              <p className="font-semibold text-sm">
-                {isPreorder ? `Delivery ${deliveryDate}` : 'Delivery Today'}
+              <p className={`font-semibold text-sm ${restaurantClosed ? 'text-purple-900 dark:text-purple-200' : ''}`}>
+                {restaurantClosed ? `Closed · Delivery ${deliveryDate}` : isPreorder ? `Delivery ${deliveryDate}` : 'Delivery Today'}
               </p>
               <p className="text-xs text-muted-foreground">{deliveryWindow}</p>
             </div>
@@ -355,7 +359,7 @@ export function OrderSummaryWithButton({
                 <span className="text-xl font-extrabold">Pay {formatCurrency(total)}</span>
                 {deliveryWindow && (
                   <span className="text-xs font-medium opacity-90">
-                    {isPreorder ? `Delivery ${deliveryDate}` : 'Delivery Today'} {deliveryWindow}
+                    {restaurantClosed ? `Delivery ${deliveryDate}` : isPreorder ? `Delivery ${deliveryDate}` : 'Delivery Today'} {deliveryWindow}
                   </span>
                 )}
               </div>

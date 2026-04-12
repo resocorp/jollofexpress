@@ -17,7 +17,7 @@ const MAX_ANIMATION_VIEWS = 5;
 export function CartSheet() {
   const { items, removeItem, updateItemQuantity, clearCart, getSubtotal } = useCartStore();
   const { data: deliverySettings } = useDeliverySettings();
-  const { deliveryDate, deliveryWindow, isPreorder, countdownFormatted, isAccepting, secondsUntilCutoff } = useOrderWindow();
+  const { deliveryDate, deliveryWindow, isPreorder, countdownFormatted, isAccepting, secondsUntilCutoff, restaurantClosed } = useOrderWindow();
   const [showAnimation, setShowAnimation] = useState(false);
 
   useEffect(() => {
@@ -78,16 +78,20 @@ export function CartSheet() {
       {/* C1: Delivery Window Confirmation Banner */}
       {deliveryWindow && (
         <div className={`mx-0 mt-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
-          isPreorder
-            ? 'bg-blue-50 border border-blue-200 text-blue-800'
-            : 'bg-green-50 border border-green-200 text-green-800'
+          restaurantClosed
+            ? 'bg-purple-50 border border-purple-200 text-purple-800 dark:bg-purple-500/10 dark:border-purple-500/30 dark:text-purple-200'
+            : isPreorder
+              ? 'bg-blue-50 border border-blue-200 text-blue-800'
+              : 'bg-green-50 border border-green-200 text-green-800'
         }`}>
           <div className="flex items-center gap-2">
             <Package className="h-4 w-4 flex-shrink-0" />
             <span>
-              {isPreorder
-                ? `Delivery ${deliveryDate}, ${deliveryWindow}`
-                : `Delivery today, ${deliveryWindow}`
+              {restaurantClosed
+                ? `Closed · Next delivery ${deliveryDate}, ${deliveryWindow}`
+                : isPreorder
+                  ? `Delivery ${deliveryDate}, ${deliveryWindow}`
+                  : `Delivery today, ${deliveryWindow}`
               }
               {isAccepting && secondsUntilCutoff > 0 && (
                 <span className="text-xs opacity-75"> · Closes in {countdownFormatted}</span>

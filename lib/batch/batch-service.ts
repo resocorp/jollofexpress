@@ -230,41 +230,46 @@ export async function getOrCreateTodayBatches(): Promise<Batch[]> {
 /**
  * Get the next available batch that is still ACCEPTING orders with capacity.
  * If none today, returns tomorrow's first batch.
+ * @param skipToday - When true, skip today's batches entirely (e.g. restaurant closed for the day)
  */
-export async function getNextAvailableBatch(): Promise<{
+export async function getNextAvailableBatch(skipToday = false): Promise<{
   batch: Batch | null;
   isPreorder: boolean;
   deliveryDate: string;
   deliveryWindow: string;
 }> {
   const currentMinutes = getCurrentTimeMinutes();
-  const todayBatches = await getOrCreateTodayBatches();
 
-  // Find first batch that is accepting, has capacity, and belongs to an active delivery window
-  for (const batch of todayBatches) {
-    if (
-      batch.status === 'accepting' &&
-      batch.total_orders < batch.max_capacity &&
-      batch.delivery_window &&
-      batch.delivery_window.is_active !== false
-    ) {
-      const cutoffMinutes = timeToMinutes(batch.delivery_window.cutoff_time);
-      // Only if we haven't passed the cutoff (cron may not have transitioned yet)
-      if (currentMinutes < cutoffMinutes) {
-        return {
-          batch,
-          isPreorder: false,
-          deliveryDate: batch.delivery_date,
-          deliveryWindow: formatDeliveryWindow(
-            batch.delivery_window.delivery_start,
-            batch.delivery_window.delivery_end
-          ),
-        };
+  // Skip today's batches when the restaurant is closed for the day
+  if (!skipToday) {
+    const todayBatches = await getOrCreateTodayBatches();
+
+    // Find first batch that is accepting, has capacity, and belongs to an active delivery window
+    for (const batch of todayBatches) {
+      if (
+        batch.status === 'accepting' &&
+        batch.total_orders < batch.max_capacity &&
+        batch.delivery_window &&
+        batch.delivery_window.is_active !== false
+      ) {
+        const cutoffMinutes = timeToMinutes(batch.delivery_window.cutoff_time);
+        // Only if we haven't passed the cutoff (cron may not have transitioned yet)
+        if (currentMinutes < cutoffMinutes) {
+          return {
+            batch,
+            isPreorder: false,
+            deliveryDate: batch.delivery_date,
+            deliveryWindow: formatDeliveryWindow(
+              batch.delivery_window.delivery_start,
+              batch.delivery_window.delivery_end
+            ),
+          };
+        }
       }
     }
   }
 
-  // No accepting batch today — find the next operating day (up to 7 days ahead)
+  // No accepting batch today (or skipped) — find the next operating day (up to 7 days ahead)
   const supabase = createServiceClient();
   const windows = await getActiveDeliveryWindows();
   const operatingHours = await getOperatingHours();

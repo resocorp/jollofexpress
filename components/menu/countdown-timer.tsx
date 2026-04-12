@@ -44,7 +44,7 @@ export function CountdownTimer() {
           <div className="flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 rounded-xl border border-blue-200 dark:border-blue-500/30">
             <Timer className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 dark:text-blue-400" />
             <span className="text-sm sm:text-base font-semibold text-blue-800 dark:text-blue-200">
-              Order now — delivered {deliveryDate} between {deliveryWindow}
+              Next delivery: {deliveryDate} between {deliveryWindow}
             </span>
           </div>
         )}
