@@ -4,6 +4,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createServiceClient } from '@/lib/supabase/service';
 import { tools, handleToolCall } from './tools';
+import { appendAssistantMessage, type SessionMessage } from './session-log';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -12,9 +13,13 @@ const anthropic = new Anthropic({
 const MODEL = process.env.AI_CHAT_MODEL || 'claude-sonnet-4-6';
 const MAX_TOKENS = 1024;
 const SESSION_TTL_MINUTES = 30;
-const MAX_HISTORY_MESSAGES = 40; // Keep conversation manageable
+// History trimming lives in session-log.ts (MAX_HISTORY_MESSAGES) now.
 
 const SYSTEM_PROMPT = `You are the MyShawarma.express customer support assistant on WhatsApp. You help customers with enquiries and direct them to order via the website.
+
+FIRST REPLY IN A CONVERSATION:
+- If this is the first assistant turn in the session (no prior assistant messages in the history), include the ordering link in your greeting. Example: "Hi! You can browse the menu and order at *myshawarma.express*. What can I help you with?"
+- On follow-up turns, don't repeat the link unless it's directly relevant to the answer.
 
 WHAT YOU DO:
 - Answer questions about the menu, prices, ingredients, and recommendations
@@ -37,24 +42,48 @@ ESCALATION:
 
 GUIDELINES:
 - Be friendly, warm, and concise. Use a conversational Nigerian English tone.
-- Keep responses SHORT — WhatsApp messages should be brief. No walls of text.
+- Keep responses SHORT — aim for 1–2 sentences. Treat 3 sentences as the hard ceiling unless the customer asked for a list (menu, hours, delivery zones).
+- Do NOT sign off with "— Ada, your friendly AI customer support 🤖" or any signature. WhatsApp shows the sender already.
+- Do NOT add filler closers like "Is there anything else I can help you with?", "Let me know if…", or repeated calls to visit the website. Only mention the website when it actually answers what they asked.
+- Don't restate or paraphrase the customer's message back to them before answering.
 - Format menu items clearly with prices in Naira (NGN).
 - You can use WhatsApp formatting: *bold*, _italic_, ~strikethrough~
-- Don't use emojis excessively — one or two per message is fine.
-- Prices are in Nigerian Naira (NGN). The restaurant is located in Awka, Anambra State, Nigeria.`;
+- At most one emoji per message, and only when it adds something. Often zero is better.
+- Prices are in Nigerian Naira (NGN). The restaurant is located in Awka, Anambra State, Nigeria.
 
-interface ConversationMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
+CONVERSATION HISTORY CONVENTION:
+Prior assistant turns in the history may be prefixed to tell you who sent them:
+- "[Human agent]: ..." is a reply from a real staff member — NOT you. Do not repeat it, contradict it, or claim you said it. Treat it as authoritative context from a teammate.
+- "[System notification]: ..." is an automated order-status message the system sent. The customer may be replying to it.
+- Lines with no prefix are your own prior replies.
+
+FEEDBACK REQUESTS:
+If the most recent [System notification] in the conversation is a feedback request (starts with "How was your order"), or the customer's message looks like a rating (e.g. "5 stars", "great, loved it", "terrible, cold food", "4/5", "2 — food was late"), treat it as feedback:
+  1. Call find_recent_pending_feedback_order with the customer's phone to resolve which order it refers to.
+  2. Call submit_feedback with that order_id, a rating (1–5), and the customer's comment verbatim (if any).
+  3. Thank them in ONE short sentence (no sign-off, no "let us know if…"). If the rating is 1 or 2, also call escalate_to_manager with the comment so the team can follow up.`;
 
 // ============================================
 // SESSION MANAGEMENT
 // ============================================
 
+function renderForClaude(
+  messages: SessionMessage[]
+): Anthropic.Messages.MessageParam[] {
+  // Source prefixes let the model distinguish its own turns from staff
+  // replies and system notifications. Anthropic roles stay user|assistant;
+  // the prefix is appended to the text content.
+  return messages.map((m) => {
+    let content = m.content;
+    if (m.source === 'staff') content = `[Human agent]: ${content}`;
+    else if (m.source === 'system') content = `[System notification]: ${content}`;
+    return { role: m.role, content };
+  });
+}
+
 async function getOrCreateSession(phone: string): Promise<{
   id: string;
-  messages: ConversationMessage[];
+  messages: SessionMessage[];
 }> {
   const supabase = createServiceClient();
 
@@ -88,7 +117,7 @@ async function getOrCreateSession(phone: string): Promise<{
 
     return {
       id: session.id,
-      messages: (session.messages as ConversationMessage[]) || [],
+      messages: (session.messages as SessionMessage[]) || [],
     };
   }
 
@@ -102,28 +131,6 @@ async function getOrCreateSession(phone: string): Promise<{
   if (error) throw new Error(`Failed to create session: ${error.message}`);
 
   return { id: newSession.id, messages: [] };
-}
-
-async function saveSession(
-  sessionId: string,
-  messages: ConversationMessage[]
-): Promise<void> {
-  const supabase = createServiceClient();
-
-  // Trim history if too long (keep recent messages)
-  const trimmed =
-    messages.length > MAX_HISTORY_MESSAGES
-      ? messages.slice(messages.length - MAX_HISTORY_MESSAGES)
-      : messages;
-
-  await supabase
-    .from('whatsapp_ai_sessions')
-    .update({
-      messages: trimmed,
-      is_processing: false,
-      last_activity: new Date().toISOString(),
-    })
-    .eq('id', sessionId);
 }
 
 async function releaseSession(sessionId: string): Promise<void> {
@@ -148,14 +155,21 @@ export async function handleWhatsAppMessage(
     const session = await getOrCreateSession(phone);
     sessionId = session.id;
 
-    // Add customer's phone context and their message
-    const messages: Anthropic.Messages.MessageParam[] = session.messages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    // Session may or may not already contain the inbound turn — the route
+    // persists it via appendUserMessage before calling us. Detect the tail
+    // to avoid double-adding.
+    const tail = session.messages[session.messages.length - 1];
+    const inboundAlreadyPersisted =
+      tail?.role === 'user' && tail.content === incomingMessage;
 
-    // Add the new user message
-    messages.push({ role: 'user', content: incomingMessage });
+    const effectiveHistory: SessionMessage[] = inboundAlreadyPersisted
+      ? session.messages
+      : [
+          ...session.messages,
+          { role: 'user', content: incomingMessage, source: 'user' },
+        ];
+
+    const messages = renderForClaude(effectiveHistory);
 
     // Build the system prompt with phone context
     const systemWithContext =
@@ -209,19 +223,11 @@ export async function handleWhatsAppMessage(
     );
     const responseText = textBlocks.map((b) => b.text).join('\n') || "I'm sorry, I couldn't process that. Could you try again?";
 
-    // Sign every AI message
-    const signedResponse = responseText + '\n\n— _Ada, your friendly AI customer support_ 🤖';
+    // Persist the assistant turn via the central helper.
+    await appendAssistantMessage(phone, responseText, 'ai');
+    if (sessionId) await releaseSession(sessionId);
 
-    // Save conversation history (simplified — just user text and assistant text)
-    const updatedHistory: ConversationMessage[] = [
-      ...session.messages,
-      { role: 'user', content: incomingMessage },
-      { role: 'assistant', content: responseText },
-    ];
-
-    await saveSession(sessionId, updatedHistory);
-
-    return signedResponse;
+    return responseText;
   } catch (error) {
     console.error('[AI] Error handling WhatsApp message:', error);
 

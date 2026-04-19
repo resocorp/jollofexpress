@@ -68,6 +68,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               .eq('id', activeShift.vehicle.id);
           }
 
+          // Evaluate geofence (arrival + auto-complete on exit) against this
+          // driver's active deliveries. Non-blocking — failures must not
+          // interfere with returning the position to the caller.
+          try {
+            const { evaluateGeofenceForDriver } = await import('@/lib/delivery/geofence');
+            await evaluateGeofenceForDriver(id, position.latitude, position.longitude);
+          } catch (geoErr) {
+            console.error('Geofence evaluation failed:', geoErr);
+          }
+
           return NextResponse.json({
             latitude: position.latitude,
             longitude: position.longitude,

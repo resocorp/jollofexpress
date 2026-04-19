@@ -6,10 +6,9 @@ import { Button } from '@/components/ui/button';
 import { MapPin, Check, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Dynamic import for map component (Leaflet requires client-side only)
 const LocationMap = dynamic(
   () => import('./location-map').then((mod) => mod.LocationMap),
-  { 
+  {
     ssr: false,
     loading: () => (
       <div className="w-full h-[250px] rounded-lg bg-gray-100 animate-pulse flex items-center justify-center">
@@ -28,18 +27,29 @@ interface LocationData {
 interface LocationShareButtonProps {
   onLocationCaptured: (location: LocationData | null) => void;
   className?: string;
+  required?: boolean;
+  highlight?: boolean;
 }
+
+// Restaurant coords — sensible default when GPS is denied / desktop users
+const DEFAULT_LAT = 7.0707;
+const DEFAULT_LNG = 6.2103;
 
 const LOCATION_ANIMATION_KEY = 'jollof_location_animation_count';
 const MAX_ANIMATION_VIEWS = 5;
 
-export function LocationShareButton({ onLocationCaptured, className }: LocationShareButtonProps) {
+export function LocationShareButton({
+  onLocationCaptured,
+  className,
+  required = false,
+  highlight = false,
+}: LocationShareButtonProps) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [location, setLocation] = useState<LocationData | null>(null);
   const [showAnimation, setShowAnimation] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
-  // Check if should show animation (localStorage persistence)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -56,7 +66,8 @@ export function LocationShareButton({ onLocationCaptured, className }: LocationS
   const handleGetLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setStatus('error');
-      setErrorMessage('Location not supported by your browser');
+      setErrorMessage('Location not supported by your browser. Drop a pin on the map instead.');
+      setShowMapPicker(true);
       return;
     }
 
@@ -70,7 +81,6 @@ export function LocationShareButton({ onLocationCaptured, className }: LocationS
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
         };
-        console.log('[LOCATION] Captured:', locationData);
         setLocation(locationData);
         setStatus('success');
         onLocationCaptured(locationData);
@@ -79,17 +89,18 @@ export function LocationShareButton({ onLocationCaptured, className }: LocationS
         setStatus('error');
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setErrorMessage('Location access denied. Please enable location in your browser settings.');
+            setErrorMessage('Location permission denied. Drop a pin on the map instead.');
             break;
           case error.POSITION_UNAVAILABLE:
-            setErrorMessage('Location unavailable. Please try again.');
+            setErrorMessage('Location unavailable. Drop a pin on the map instead.');
             break;
           case error.TIMEOUT:
-            setErrorMessage('Location request timed out. Please try again.');
+            setErrorMessage('Location request timed out. Drop a pin on the map instead.');
             break;
           default:
-            setErrorMessage('Unable to get location. Please try again.');
+            setErrorMessage('Unable to get location. Drop a pin on the map instead.');
         }
+        setShowMapPicker(true);
         onLocationCaptured(null);
       },
       {
@@ -104,29 +115,41 @@ export function LocationShareButton({ onLocationCaptured, className }: LocationS
     setLocation(null);
     setStatus('idle');
     setErrorMessage('');
+    setShowMapPicker(false);
     onLocationCaptured(null);
   }, [onLocationCaptured]);
 
-  const handleLocationChange = useCallback((lat: number, lng: number) => {
-    const updatedLocation: LocationData = {
-      latitude: lat,
-      longitude: lng,
-    };
-    setLocation(updatedLocation);
-    onLocationCaptured(updatedLocation);
-  }, [onLocationCaptured]);
+  const handleLocationChange = useCallback(
+    (lat: number, lng: number) => {
+      const updatedLocation: LocationData = { latitude: lat, longitude: lng };
+      setLocation(updatedLocation);
+      setStatus('success');
+      onLocationCaptured(updatedLocation);
+    },
+    [onLocationCaptured]
+  );
+
+  const handleShowMapPicker = useCallback(() => {
+    setShowMapPicker(true);
+    setErrorMessage('');
+  }, []);
+
+  const hasLocation = status === 'success' && location;
+  const mapVisible = hasLocation || showMapPicker;
+  const mapLat = location?.latitude ?? DEFAULT_LAT;
+  const mapLng = location?.longitude ?? DEFAULT_LNG;
+  const missing = required && !hasLocation;
 
   return (
     <div className={cn('space-y-3', className)}>
-      {/* Location button or status */}
       <div className="flex items-center gap-2">
-        {status === 'success' && location ? (
+        {hasLocation ? (
           <>
             <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-md flex-1">
               <Check className="h-4 w-4 text-green-600" />
-              <span className="text-sm text-green-700 font-medium">Location shared</span>
+              <span className="text-sm text-green-700 font-medium">Location set</span>
               <span className="text-xs text-green-600 ml-auto">
-                {location.accuracy ? `±${Math.round(location.accuracy)}m` : ''}
+                {location?.accuracy ? `±${Math.round(location.accuracy)}m` : 'pinned'}
               </span>
             </div>
             <Button
@@ -140,50 +163,59 @@ export function LocationShareButton({ onLocationCaptured, className }: LocationS
             </Button>
           </>
         ) : (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleGetLocation}
-            disabled={status === 'loading'}
-            className={cn(
-              'w-full justify-start gap-2 border-dashed',
-              status === 'error' && 'border-red-300 text-red-600',
-              showAnimation && status === 'idle' && 'location-btn-animated'
+          <div className="w-full space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGetLocation}
+              disabled={status === 'loading'}
+              className={cn(
+                'w-full justify-start gap-2',
+                missing && highlight && 'border-red-500 text-red-700 ring-2 ring-red-200',
+                missing && !highlight && 'border-red-300',
+                showAnimation && status === 'idle' && 'location-btn-animated'
+              )}
+            >
+              {status === 'loading' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Getting location...</span>
+                </>
+              ) : (
+                <>
+                  <MapPin className="h-4 w-4" />
+                  <span>Share my location</span>
+                </>
+              )}
+            </Button>
+            {!showMapPicker && status !== 'loading' && (
+              <button
+                type="button"
+                onClick={handleShowMapPicker}
+                className="text-xs text-primary underline hover:no-underline"
+              >
+                or drop a pin on the map
+              </button>
             )}
-          >
-            {status === 'loading' ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Getting location...</span>
-              </>
-            ) : (
-              <>
-                <MapPin className="h-4 w-4" />
-                <span>Share my location</span>
-              </>
-            )}
-          </Button>
+          </div>
         )}
       </div>
 
-      {/* Error message */}
       {status === 'error' && errorMessage && (
         <p className="text-xs text-red-600">{errorMessage}</p>
       )}
 
-      {/* Map display when location is captured */}
-      {status === 'success' && location && (
+      {mapVisible && (
         <LocationMap
-          latitude={location.latitude}
-          longitude={location.longitude}
+          latitude={mapLat}
+          longitude={mapLng}
           onLocationChange={handleLocationChange}
         />
       )}
 
-      {/* Helper text */}
-      {status !== 'success' && (
-        <p className="text-xs text-muted-foreground">
-          📍 Optional: Share your precise location to help us deliver faster
+      {!hasLocation && (
+        <p className={cn('text-xs', missing ? 'text-red-600' : 'text-muted-foreground')}>
+          📍 {required ? 'Required: ' : ''}Share your GPS location or tap the map to drop a pin.
         </p>
       )}
     </div>

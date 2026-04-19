@@ -132,6 +132,15 @@ export function orderCompletedMessage(order: OrderWithItems): string {
   const appUrl = getAppUrl();
   const menuUrl = `${appUrl}/menu`;
 
+  // Auto-completed (geofence exit) deliveries get a disclaimer inviting the
+  // customer to flag issues, since no one physically confirmed hand-off.
+  const isAutoCompleted = Boolean(
+    (order as { auto_completed_at?: string | null }).auto_completed_at
+  );
+  const autoDisclaimer = isAutoCompleted
+    ? `\n\n_This is an automated message. If there's any issue with your order, please reply to this message and we'll sort it out._`
+    : '';
+
   return `🎊 *Order Delivered!*
 
 Thank you for choosing myshawarma.express!
@@ -140,7 +149,25 @@ Thank you for choosing myshawarma.express!
 
 We hope you enjoyed your meal! 🍽️
 
-Order again: ${menuUrl}
+Order again: ${menuUrl}${autoDisclaimer}
+
+_- myshawarma.express 🌯_`;
+}
+
+/**
+ * Feedback Request Message (sent 30–60 min after order completion)
+ * The AI handler picks up customer replies and records them via the
+ * submit_feedback tool — customers just text their rating inline.
+ */
+export function feedbackRequestMessage(order: OrderWithItems): string {
+  const name = order.customer_name?.split(' ')[0] || 'there';
+
+  return `🌯 *How was your order, ${name}?*
+
+Order #${order.order_number}
+
+Reply with a rating *1–5* (5 = best) and a quick comment if you'd like.
+_Example:_ "5 — was amazing, thanks!"
 
 _- myshawarma.express 🌯_`;
 }

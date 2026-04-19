@@ -5,6 +5,7 @@ import { isRestaurantOpen, checkAndManageCapacity } from '@/lib/kitchen-capacity
 import { shouldBeOpenNow } from '@/lib/operating-hours';
 import { assignOrderToBatch, getNextAvailableBatch } from '@/lib/batch/batch-service';
 import { verifyAdminAuth } from '@/lib/auth/admin-auth';
+import { signOrderToken } from '@/lib/qr/sign';
 import { z } from 'zod';
 
 // Validation schema for order creation
@@ -69,6 +70,19 @@ const orderSchema = z.object({
         code: z.ZodIssueCode.custom,
         message: 'Delivery address must be at least 4 characters',
         path: ['delivery_address'],
+      });
+    }
+
+    // Mandatory GPS/pin coordinates for delivery — required for proximity alerts
+    // and auto-complete geofence.
+    if (
+      typeof data.customer_latitude !== 'number' ||
+      typeof data.customer_longitude !== 'number'
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Delivery location (GPS or map pin) is required',
+        path: ['customer_latitude'],
       });
     }
   }
@@ -273,6 +287,17 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to create order' },
         { status: 500 }
       );
+    }
+
+    // Generate & persist QR signing token for rider scan-to-dispatch.
+    // Printed on the receipt; rider scans to advance status to out_for_delivery.
+    try {
+      const qrToken = signOrderToken(order.id);
+      await supabase.from('orders').update({ qr_token: qrToken }).eq('id', order.id);
+      (order as { qr_token?: string }).qr_token = qrToken;
+    } catch (qrError) {
+      // Non-fatal: order can still proceed without QR; receipt will fall back to text.
+      console.error('Failed to generate QR token for order', order.id, qrError);
     }
 
     // Fetch item descriptions from menu_items (snapshot at order time)

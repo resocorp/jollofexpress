@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  UtensilsCrossed, 
-  ShoppingBag, 
-  Settings, 
+import {
+  LayoutDashboard,
+  UtensilsCrossed,
+  ShoppingBag,
+  Settings,
   Tag,
   LogOut,
   BarChart3,
@@ -17,7 +17,9 @@ import {
   Car,
   Users,
   MapPin,
-  UserRound
+  UserRound,
+  Star,
+  Navigation
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -32,10 +34,12 @@ const navigation = [
   { name: 'Customers', href: '/admin/customers', icon: UserRound },
   { name: 'Delivery Regions', href: '/admin/delivery-regions', icon: MapPin },
   { name: 'Delivery', href: '/admin/delivery', icon: Truck },
+  { name: 'In-Flight', href: '/admin/in-flight', icon: Navigation },
   { name: 'Drivers', href: '/admin/drivers', icon: Bike },
   { name: 'Vehicles', href: '/admin/vehicles', icon: Car },
   { name: 'Influencers', href: '/admin/promos', icon: Users },
   { name: 'Notifications', href: '/admin/notifications', icon: Bell },
+  { name: 'Feedback', href: '/admin/feedback', icon: Star },
   { name: 'Feature Flags', href: '/admin/feature-flags', icon: Settings },
   { name: 'Testing', href: '/admin/testing', icon: BarChart3 },
   { name: 'Printer Status', href: '/admin/printer', icon: Printer },

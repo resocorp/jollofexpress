@@ -38,10 +38,13 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      max_memory_restart: '300M',
+      max_memory_restart: '600M',
       restart_delay: 5000,
       max_restarts: 10,
       min_uptime: 10000,
+      // Give the graceful-shutdown handler time to flush the Signal auth
+      // store before SIGKILL — interrupted writes desync the ratchet.
+      kill_timeout: 10000,
       env_file: './.env.local',
       env: {
         NODE_ENV: 'production',
@@ -69,6 +72,26 @@ module.exports = {
       },
       error_file: './logs/print-worker-error.log',
       out_file: './logs/print-worker-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    },
+    {
+      // Feedback Request Worker — prompts customers for a rating 45+ min
+      // after order completion; AI records replies via submit_feedback tool.
+      name: 'feedback-worker',
+      script: './scripts/feedback-worker.js',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '200M',
+      restart_delay: 10000,
+      max_restarts: 0,
+      min_uptime: 10000,
+      env_file: './.env.local',
+      env: {
+        NODE_ENV: 'production',
+      },
+      error_file: './logs/feedback-worker-error.log',
+      out_file: './logs/feedback-worker-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     },
   ],

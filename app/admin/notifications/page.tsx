@@ -19,10 +19,15 @@ import {
   RefreshCw,
   MessageSquare,
 } from 'lucide-react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNotificationStats } from '@/hooks/use-notifications';
 import { adminFetch } from '@/lib/api-client';
 import { toast } from 'sonner';
+
+interface MutedPhone {
+  phone: string;
+  ai_muted_until: string;
+}
 
 interface WhatsAppStatus {
   status: string;
@@ -42,6 +47,9 @@ export default function NotificationCenterPage() {
   const { data: stats, isLoading } = useNotificationStats();
   const [manualPhone, setManualPhone] = useState('');
   const [manualMessage, setManualMessage] = useState('');
+  const [mutePhoneInput, setMutePhoneInput] = useState('');
+  const [muteMinutesInput, setMuteMinutesInput] = useState('120');
+  const queryClient = useQueryClient();
 
   // WhatsApp status
   const { data: waStatus, refetch: refetchStatus } = useQuery({
@@ -76,6 +84,51 @@ export default function NotificationCenterPage() {
       refetchQR();
     },
     onError: () => toast.error('Failed to reconnect'),
+  });
+
+  // AI mute state — list + mutate
+  const { data: muteData } = useQuery({
+    queryKey: ['whatsapp-ai-mutes'],
+    queryFn: async (): Promise<{ muted: MutedPhone[] }> => {
+      const res = await adminFetch('/api/admin/whatsapp/mute');
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const addMuteMutation = useMutation({
+    mutationFn: async (payload: { phone: string; minutes: number }) => {
+      const res = await adminFetch('/api/admin/whatsapp/mute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('AI muted');
+      setMutePhoneInput('');
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-ai-mutes'] });
+    },
+    onError: () => toast.error('Failed to mute'),
+  });
+
+  const removeMuteMutation = useMutation({
+    mutationFn: async (phone: string) => {
+      const res = await adminFetch('/api/admin/whatsapp/mute', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('AI unmuted');
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-ai-mutes'] });
+    },
+    onError: () => toast.error('Failed to unmute'),
   });
 
   // Send test message
@@ -232,6 +285,77 @@ export default function NotificationCenterPage() {
             Send Test
           </Button>
         </div>
+      </div>
+
+      {/* AI Mute Management */}
+      <div className="bg-card rounded-xl p-5 border border-border">
+        <h3 className="text-sm font-semibold text-foreground mb-3">AI Mute</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          Suppress AI replies for a phone while a human agent is handling the conversation.
+          Staff replies sent from the business WhatsApp phone auto-mute for 2 hours.
+        </p>
+
+        <div className="flex gap-2 mb-4">
+          <Input
+            value={mutePhoneInput}
+            onChange={(e) => setMutePhoneInput(e.target.value)}
+            placeholder="Phone (e.g., 2348099988875)"
+            className="bg-background border-border text-foreground text-sm h-9 flex-1"
+          />
+          <Input
+            value={muteMinutesInput}
+            onChange={(e) => setMuteMinutesInput(e.target.value)}
+            placeholder="Minutes"
+            className="bg-background border-border text-foreground text-sm h-9 w-28"
+          />
+          <Button
+            onClick={() =>
+              addMuteMutation.mutate({
+                phone: mutePhoneInput.trim(),
+                minutes: parseInt(muteMinutesInput, 10) || 120,
+              })
+            }
+            disabled={addMuteMutation.isPending || !mutePhoneInput.trim()}
+            size="sm"
+            className="bg-gradient-to-r from-red-600 to-orange-500 text-white text-xs h-9"
+          >
+            {addMuteMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+            Mute
+          </Button>
+        </div>
+
+        {muteData?.muted?.length ? (
+          <div className="space-y-1.5">
+            {muteData.muted.map((m) => {
+              const until = new Date(m.ai_muted_until);
+              const minsLeft = Math.max(0, Math.round((until.getTime() - Date.now()) / 60000));
+              return (
+                <div
+                  key={m.phone}
+                  className="flex items-center justify-between p-2.5 bg-background rounded-lg border border-border text-xs"
+                >
+                  <div>
+                    <span className="font-mono text-foreground">{m.phone}</span>
+                    <span className="text-muted-foreground ml-3">
+                      unmutes in {minsLeft}m ({until.toLocaleTimeString()})
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => removeMuteMutation.mutate(m.phone)}
+                    disabled={removeMuteMutation.isPending}
+                    size="sm"
+                    variant="outline"
+                    className="text-muted-foreground border-border hover:bg-muted hover:text-foreground bg-transparent text-xs h-7"
+                  >
+                    Unmute
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground italic">No phones currently muted.</p>
+        )}
       </div>
 
       {/* Info */}

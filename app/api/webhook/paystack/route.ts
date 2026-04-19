@@ -330,14 +330,21 @@ export async function POST(request: NextRequest) {
         //   }
         // }
 
-        // Send new order alert to admins
+        // Send customer order confirmation + admin new-order alert
         if (completeOrder) {
           try {
-            const { sendNewOrderAlert } = await import('@/lib/notifications/notification-service');
-            await sendNewOrderAlert(completeOrder);
-            console.log(`New order alert sent for order ${orderId}`);
-          } catch (alertError) {
-            console.error('Failed to send new order alert:', alertError);
+            const { sendOrderConfirmation, sendNewOrderAlert } = await import('@/lib/notifications/notification-service');
+            await Promise.all([
+              sendOrderConfirmation(completeOrder).catch((err) => {
+                console.error('Failed to send customer order confirmation:', err);
+              }),
+              sendNewOrderAlert(completeOrder).catch((err) => {
+                console.error('Failed to send new order alert:', err);
+              }),
+            ]);
+            console.log(`Notifications dispatched for order ${orderId}`);
+          } catch (notifyError) {
+            console.error('Failed to load notification service:', notifyError);
           }
         }
 

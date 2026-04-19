@@ -4,6 +4,7 @@
  */
 
 import type { ReceiptData } from './format-receipt';
+import QRCode from 'qrcode';
 
 // ESC/POS Command Constants (Tested with printer at 192.168.100.160)
 const ESC = '\x1B';
@@ -167,16 +168,81 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   commands.push(line('=', 48) + LF);
   commands.push(LF);
   
+  // Rider dispatch QR (native ESC/POS GS ( k) — rider scans to advance status
+  if (receipt.qrToken) {
+    commands.push(LF);
+    commands.push(ALIGN_CENTER);
+    commands.push('RIDER: SCAN TO DISPATCH' + LF);
+    commands.push(buildQRCode(receipt.qrToken));
+    commands.push(LF);
+  }
+
   // Compact footer: Thank you + phone on one line
   commands.push(ALIGN_CENTER);
   commands.push('Thank You! +2348106828147' + LF);
-  
+
   // Feed and cut
   commands.push(LF + LF + LF);
   commands.push(CUT);
-  
+
   // Convert to buffer
   return Buffer.from(commands.join(''), 'binary');
+}
+
+/**
+ * Build a QR code as an ESC/POS raster bit image (GS v 0).
+ * We render the QR matrix with the `qrcode` library, scale each module up to
+ * `scale` dots, pad with a quiet zone, then pack into row-major bytes.
+ *
+ * Raster bit image format: GS v 0 m xL xH yL yH d1..dk
+ *   m=0 (normal), width in bytes = ceil(dots/8), rows = number of dot rows.
+ *
+ * This works on any thermal printer that supports the raster bit image
+ * command — unlike the native GS ( k QR command which many low-cost clones
+ * ignore silently.
+ */
+function buildQRCode(data: string): string {
+  const scale = 6;       // module size in printer dots
+  const quiet = 2;       // modules of white border (QR spec recommends 4)
+
+  const qr = QRCode.create(data, { errorCorrectionLevel: 'M' });
+  const modules = qr.modules;
+  const size = modules.size;
+
+  const dotsPerSide = (size + quiet * 2) * scale;
+  const bytesPerRow = Math.ceil(dotsPerSide / 8);
+  const totalRows = dotsPerSide;
+
+  const raster = Buffer.alloc(bytesPerRow * totalRows, 0);
+
+  for (let y = 0; y < dotsPerSide; y++) {
+    const moduleY = Math.floor(y / scale) - quiet;
+    for (let x = 0; x < dotsPerSide; x++) {
+      const moduleX = Math.floor(x / scale) - quiet;
+      let on = false;
+      if (
+        moduleY >= 0 && moduleY < size &&
+        moduleX >= 0 && moduleX < size
+      ) {
+        on = modules.get(moduleX, moduleY) === 1;
+      }
+      if (on) {
+        const byteIdx = y * bytesPerRow + (x >> 3);
+        raster[byteIdx] |= 0x80 >> (x & 7);
+      }
+    }
+  }
+
+  const xL = bytesPerRow & 0xff;
+  const xH = (bytesPerRow >> 8) & 0xff;
+  const yL = totalRows & 0xff;
+  const yH = (totalRows >> 8) & 0xff;
+
+  const header = GS + 'v0' + '\x00' +
+    String.fromCharCode(xL) + String.fromCharCode(xH) +
+    String.fromCharCode(yL) + String.fromCharCode(yH);
+
+  return header + raster.toString('binary');
 }
 
 /**

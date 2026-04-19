@@ -7,7 +7,7 @@ import { sendRiderNearbyNotification } from '@/lib/notifications/notification-se
 export const dynamic = 'force-dynamic';
 
 // Proximity threshold in meters
-const PROXIMITY_RADIUS_M = 200;
+const PROXIMITY_RADIUS_M = 300;
 
 // Haversine distance between two points in meters
 function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {

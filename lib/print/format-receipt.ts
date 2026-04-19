@@ -42,10 +42,13 @@ export interface ReceiptData {
   // Payment
   paymentStatus: string;
   paymentMethod: string;
-  
+
   // Kitchen info
   estimatedPrepTime?: number;
   specialInstructions: string[];
+
+  // Rider dispatch QR (HMAC-signed token)
+  qrToken?: string;
 }
 
 export interface ReceiptItem {
@@ -146,6 +149,7 @@ export function formatReceipt(order: OrderWithItems): ReceiptData {
     
     estimatedPrepTime: order.estimated_prep_time || 25,
     specialInstructions,
+    qrToken: (order as { qr_token?: string | null }).qr_token || undefined,
   };
 }
 

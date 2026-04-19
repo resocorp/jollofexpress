@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { handleWhatsAppMessage } from '@/lib/ai/whatsapp-ai';
+import { appendUserMessage, getMuteUntil } from '@/lib/ai/session-log';
 
 const API_SECRET = process.env.BAILEYS_API_SECRET || 'dev-secret-change-me';
 
@@ -30,6 +31,20 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[WhatsApp AI] Incoming from ${phone}: ${trimmed.substring(0, 100)}`);
+
+    // Persist the inbound turn regardless of mute state so the AI has the
+    // full customer-side transcript when it resumes.
+    await appendUserMessage(phone, trimmed);
+
+    // If a human agent is currently engaged, short-circuit without calling
+    // Claude. Baileys treats an absent `reply` as "no send".
+    const mutedUntil = await getMuteUntil(phone);
+    if (mutedUntil) {
+      console.log(
+        `[WhatsApp AI] Muted for ${phone} until ${mutedUntil.toISOString()} — skipping AI reply`
+      );
+      return NextResponse.json({ success: true, muted: true, reply: null });
+    }
 
     // Process via AI — returns the text reply
     const aiResponse = await handleWhatsAppMessage(phone, trimmed);

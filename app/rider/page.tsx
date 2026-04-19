@@ -26,7 +26,9 @@ import {
   RefreshCw,
   Hand,
   Clock,
+  QrCode,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/formatters';
 import { toast } from 'sonner';
 
@@ -54,6 +56,7 @@ interface DriverInfo {
 }
 
 export default function RiderChecklist() {
+  const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [driver, setDriver] = useState<DriverInfo | null>(null);
   const [orders, setOrders] = useState<RiderOrder[]>([]);
@@ -324,6 +327,15 @@ export default function RiderChecklist() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push('/rider/scan')}
+              className="text-white hover:bg-white/20"
+              title="Scan order QR"
+            >
+              <QrCode className="h-5 w-5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"

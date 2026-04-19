@@ -51,6 +51,55 @@ let currentQR = null;
 let startTime = Date.now();
 let messagesSentLastMinute = 0;
 let rateLimitResetTime = Date.now();
+// Reference to the auth store's saveCreds, exposed so the graceful-shutdown
+// handler can flush pending Signal ratchet state before exit. Without this,
+// PM2 restarts can interrupt a session advance mid-write and leave the
+// on-disk ratchet out of sync with WhatsApp's server view, causing Bad MAC
+// decrypt failures and eventual device logout.
+let currentSaveCreds = null;
+let shuttingDown = false;
+// Track when connection was last established — used to process offline messages
+// that arrived between disconnection and reconnection
+let lastConnectionOpenTime = 0;
+// Track processed message IDs to avoid duplicate AI replies during reconnection
+const processedMessageIds = new Set();
+const MAX_PROCESSED_IDS = 500;
+// Track IDs of messages we (the sidecar) sent — AI replies, /send, /send-bulk.
+// Used to distinguish "our own outbound" (skip) from "staff typed on the phone"
+// (capture as source=staff) when fromMe events come back from Baileys.
+const ourSentMessageIds = new Set();
+const MAX_OUR_SENT_IDS = 2000;
+function rememberOurSentId(id) {
+  if (!id) return;
+  ourSentMessageIds.add(id);
+  if (ourSentMessageIds.size > MAX_OUR_SENT_IDS) {
+    const firstId = ourSentMessageIds.values().next().value;
+    ourSentMessageIds.delete(firstId);
+  }
+}
+
+// Where to POST staff-typed fromMe messages so the Next.js app can log them
+// into the AI session.
+const LOG_OUTBOUND_URL =
+  process.env.LOG_OUTBOUND_URL ||
+  (process.env.AI_CHAT_URL
+    ? process.env.AI_CHAT_URL.replace(/\/api\/whatsapp\/ai\/?$/, '/api/whatsapp/log-outbound')
+    : 'http://localhost:3000/api/whatsapp/log-outbound');
+
+async function logOutbound(phone, message, source) {
+  try {
+    await fetch(LOG_OUTBOUND_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Secret': API_SECRET,
+      },
+      body: JSON.stringify({ phone, message, source }),
+    });
+  } catch (err) {
+    console.error(`[log-outbound] failed for ${phone}:`, err.message);
+  }
+}
 
 // Reset rate limit counter every minute
 setInterval(() => {
@@ -97,6 +146,7 @@ async function initWhatsApp() {
   }
 
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_STORE_PATH);
+  currentSaveCreds = saveCreds;
   const { version } = await fetchLatestBaileysVersion();
 
   sock = makeWASocket({
@@ -161,6 +211,7 @@ async function initWhatsApp() {
       if (connection === 'open') {
         connectionStatus = 'connected';
         currentQR = null;
+        lastConnectionOpenTime = Math.floor(Date.now() / 1000);
         console.log('✅ WhatsApp connected successfully');
       }
     }
@@ -169,11 +220,68 @@ async function initWhatsApp() {
     if (events['messages.upsert']) {
       const { messages, type } = events['messages.upsert'];
       console.log(`[DEBUG] messages.upsert: type=${type}, count=${messages.length}`);
-      // Only process real-time notifications, not historical sync
-      if (type !== 'notify') return;
 
     for (const msg of messages) {
-      if (msg.key.fromMe || !msg.message) continue;
+
+      if (!msg.message) continue;
+
+      // fromMe can be: (a) a reply we sent from this process (AI / /send /
+      // /send-bulk) or (b) a manual reply typed by staff on the business
+      // phone. We log (b) to the AI session so the bot sees the exchange.
+      if (msg.key.fromMe) {
+        const msgId = msg.key.id;
+        if (msgId && ourSentMessageIds.has(msgId)) {
+          // Our own outbound echoing back — ignore.
+          continue;
+        }
+        const remoteJid = msg.key.remoteJid || '';
+        if (remoteJid.endsWith('@g.us') || remoteJid === 'status@broadcast') continue;
+        if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) continue;
+
+        const staffText =
+          msg.message?.conversation ||
+          msg.message?.extendedTextMessage?.text ||
+          '';
+        if (!staffText.trim()) continue;
+
+        const staffPhone = remoteJid
+          .replace(/@s\.whatsapp\.net$/, '')
+          .replace(/@lid$/, '');
+
+        console.log(
+          `👤 Staff manual reply to ${staffPhone}: ${staffText.substring(0, 80)}`
+        );
+        logOutbound(staffPhone, staffText, 'staff').catch(() => {});
+        continue;
+      }
+
+      // Determine message age
+      const msgTimestamp = typeof msg.messageTimestamp === 'number'
+        ? msg.messageTimestamp
+        : (msg.messageTimestamp?.low || 0);
+      const nowSec = Math.floor(Date.now() / 1000);
+      const msgAge = nowSec - msgTimestamp;
+
+      // For real-time messages (notify), accept if within 2 minutes
+      // For offline batch messages (append), accept if newer than last connection open
+      // This catches DMs that arrived while we were disconnected
+      const maxAge = type === 'notify' ? 120 : 300; // 2 min for live, 5 min for offline
+      if (msgAge > maxAge) {
+        continue;
+      }
+
+      // Deduplicate — avoid replying twice if the same message arrives in both
+      // an offline batch and a real-time notification
+      const msgId = msg.key.id;
+      if (processedMessageIds.has(msgId)) {
+        continue;
+      }
+      processedMessageIds.add(msgId);
+      // Keep the set bounded
+      if (processedMessageIds.size > MAX_PROCESSED_IDS) {
+        const firstId = processedMessageIds.values().next().value;
+        processedMessageIds.delete(firstId);
+      }
 
       const remoteJid = msg.key.remoteJid || '';
       // Skip group messages, broadcasts, and status updates
@@ -246,7 +354,8 @@ async function handleAIChat(remoteJid, phone, text) {
 
     // Send reply directly using the original JID (works for both @s.whatsapp.net and @lid)
     if (sock && connectionStatus === 'connected') {
-      await sock.sendMessage(remoteJid, { text: aiReply });
+      const sent = await sock.sendMessage(remoteJid, { text: aiReply });
+      rememberOurSentId(sent?.key?.id);
       messagesSentLastMinute++;
       console.log(`🤖 AI: replied to ${phone}: ${aiReply.substring(0, 80)}...`);
     } else {
@@ -302,6 +411,7 @@ app.post('/send', async (req, res) => {
     }
 
     const sent = await sock.sendMessage(jid, { text: message });
+    rememberOurSentId(sent?.key?.id);
     messagesSentLastMinute++;
 
     console.log(`📤 Message sent to ${formattedPhone}: ${message.substring(0, 50)}...`);
@@ -358,7 +468,8 @@ app.post('/send-bulk', async (req, res) => {
 
           const [onWA] = await sock.onWhatsApp(jid);
           if (onWA?.exists) {
-            await sock.sendMessage(jid, { text: msg.message });
+            const sent = await sock.sendMessage(jid, { text: msg.message });
+            rememberOurSentId(sent?.key?.id);
             messagesSentLastMinute++;
             results.sent++;
             console.log(`📤 Bulk: sent to ${formattedPhone}`);
@@ -483,27 +594,42 @@ app.listen(PORT, '127.0.0.1', () => {
   });
 });
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('Shutting down Baileys server...');
-  if (sock) {
-    try {
-      sock.end();
-    } catch (e) {
-      // ignore
-    }
-  }
-  process.exit(0);
-});
+/**
+ * Graceful shutdown — flush Signal ratchet state before exit.
+ *
+ * Racing PM2 SIGTERM against a pending `saveCreds()` is how sessions get
+ * desynced: we ack an inbound message to WhatsApp (advancing their ratchet)
+ * but die before the matching file write lands on disk. The next start then
+ * decrypts with a stale key, hits Bad MAC on every message from that contact,
+ * and WhatsApp eventually drops the device (code 401).
+ *
+ * Must finish before PM2's `kill_timeout` fires — we set that to 10s in
+ * ecosystem.config.js, which leaves comfortable headroom for the 2s drain.
+ */
+async function gracefulShutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`🛑 ${signal} received — flushing session state before exit`);
 
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down...');
-  if (sock) {
-    try {
-      sock.end();
-    } catch (e) {
-      // ignore
-    }
+  try {
+    if (sock) sock.end();
+  } catch (_) {
+    // ignore
   }
+
+  try {
+    if (currentSaveCreds) {
+      await currentSaveCreds();
+      console.log('💾 Creds flushed to disk');
+    }
+  } catch (err) {
+    console.error('saveCreds on shutdown failed:', err.message);
+  }
+
+  // Let any in-flight session-key file writes triggered by sock.end() settle.
+  await new Promise(resolve => setTimeout(resolve, 2000));
   process.exit(0);
-});
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

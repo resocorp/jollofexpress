@@ -79,6 +79,33 @@ export const tools: Anthropic.Messages.Tool[] = [
       required: ['customer_phone', 'issue_summary'],
     },
   },
+  {
+    name: 'find_recent_pending_feedback_order',
+    description:
+      'Find the most recent completed order for this customer that has had a feedback request sent but no rating submitted yet. ' +
+      'Use this to resolve which order a customer is rating when they reply with something like "5 stars" or "was great".',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        phone: { type: 'string', description: 'Customer WhatsApp phone number' },
+      },
+      required: ['phone'],
+    },
+  },
+  {
+    name: 'submit_feedback',
+    description:
+      'Record a customer rating + optional comment for a completed order. Use after resolving the target order via find_recent_pending_feedback_order.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        order_id: { type: 'string', description: 'UUID of the order being rated' },
+        rating: { type: 'integer', description: '1–5 star rating', minimum: 1, maximum: 5 },
+        comment: { type: 'string', description: 'Optional free-text comment from the customer' },
+      },
+      required: ['order_id', 'rating'],
+    },
+  },
 ];
 
 // ============================================
@@ -107,6 +134,14 @@ export async function handleToolCall(
         toolInput.issue_summary as string,
         toolInput.customer_name as string | undefined,
         toolInput.order_number as string | undefined
+      );
+    case 'find_recent_pending_feedback_order':
+      return findRecentPendingFeedbackOrder(toolInput.phone as string);
+    case 'submit_feedback':
+      return submitFeedback(
+        toolInput.order_id as string,
+        toolInput.rating as number,
+        toolInput.comment as string | undefined
       );
     default:
       return `Unknown tool: ${toolName}`;
@@ -548,4 +583,103 @@ async function escalateToManager(
   return sentCount > 0
     ? `Issue escalated to ${sentCount} manager(s). They have been notified via WhatsApp.`
     : 'Failed to reach managers via WhatsApp, but the issue has been logged.';
+}
+
+// ---- find_recent_pending_feedback_order ----
+// The feedback-worker sets orders.feedback_requested_at when it sends the
+// prompt. We look up the most recent such order with no feedback row yet
+// (completed within the last 48h) — that's what the customer's rating refers to.
+async function findRecentPendingFeedbackOrder(phone: string): Promise<string> {
+  if (!phone) return 'Phone number is required.';
+
+  const supabase = createServiceClient();
+
+  // Normalize phone to match stored format variants
+  let normalized = phone.replace(/[^\d]/g, '');
+  if (normalized.startsWith('234')) normalized = '0' + normalized.substring(3);
+  if (!normalized.startsWith('0')) normalized = '0' + normalized;
+
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('id, order_number, customer_name, completed_at, feedback_requested_at, total')
+    .or(
+      `customer_phone.eq.${normalized},customer_phone.eq.+234${normalized.substring(1)}`
+    )
+    .eq('status', 'completed')
+    .not('feedback_requested_at', 'is', null)
+    .gte('feedback_requested_at', cutoff)
+    .order('feedback_requested_at', { ascending: false })
+    .limit(5);
+
+  if (!orders?.length) {
+    return 'No recent pending-feedback order found for this phone. Do not submit feedback — thank the customer for the message and move on.';
+  }
+
+  // Exclude orders that already have a feedback row.
+  const ids = orders.map((o) => o.id);
+  const { data: existing } = await supabase
+    .from('order_feedback')
+    .select('order_id')
+    .in('order_id', ids);
+
+  const ratedIds = new Set((existing || []).map((r) => r.order_id));
+  const pending = orders.find((o) => !ratedIds.has(o.id));
+
+  if (!pending) {
+    return 'All recent orders for this customer already have feedback recorded.';
+  }
+
+  return (
+    `Order ${pending.order_number} (id: ${pending.id}), completed ${new Date(
+      pending.completed_at
+    ).toLocaleString('en-NG', { timeZone: 'Africa/Lagos' })}. ` +
+    `Call submit_feedback with order_id="${pending.id}".`
+  );
+}
+
+// ---- submit_feedback ----
+async function submitFeedback(
+  orderId: string,
+  rating: number,
+  comment?: string
+): Promise<string> {
+  if (!orderId) return 'order_id is required.';
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return 'rating must be an integer between 1 and 5.';
+  }
+
+  const supabase = createServiceClient();
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, order_number, customer_phone')
+    .eq('id', orderId)
+    .single();
+
+  if (!order) {
+    return `Order ${orderId} not found.`;
+  }
+
+  const { error } = await supabase.from('order_feedback').insert({
+    order_id: order.id,
+    customer_phone: order.customer_phone,
+    rating,
+    comment: comment?.trim() || null,
+    source: 'whatsapp_inline',
+  });
+
+  if (error) {
+    // Duplicate order_id (unique constraint) — graceful dedupe.
+    if (error.code === '23505') {
+      return `Feedback for order ${order.order_number} was already recorded. Thank the customer and note the rating was already received.`;
+    }
+    console.error('[AI] submit_feedback insert failed:', error);
+    return `Failed to record feedback: ${error.message}`;
+  }
+
+  return `Feedback recorded for order ${order.order_number}: rating=${rating}${
+    comment ? `, comment="${comment}"` : ''
+  }. Thank the customer briefly.`;
 }

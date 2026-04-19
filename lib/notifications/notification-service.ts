@@ -1,5 +1,6 @@
 // Main Notification Service - Orchestrates WhatsApp notifications via Baileys sidecar
 import { createServiceClient } from '@/lib/supabase/service';
+import { appendAssistantMessage } from '@/lib/ai/session-log';
 import * as templates from './message-templates';
 import type { 
   NotificationSettings,
@@ -153,6 +154,17 @@ async function sendNotification(options: SendNotificationOptions): Promise<boole
         options.orderId,
         result.messageId
       );
+
+      // Mirror customer-facing notifications into the AI session so the AI
+      // has context when the customer replies ("when will it arrive?").
+      // Admin notifications go to staff phones, not customer threads.
+      if (options.notificationType === 'customer') {
+        try {
+          await appendAssistantMessage(options.phone, options.message, 'system');
+        } catch (err) {
+          console.error('[notify] appendAssistantMessage failed:', err);
+        }
+      }
 
       console.log(`✅ Notification sent: ${options.eventType} to ${options.phone}`);
       return true;
@@ -417,11 +429,14 @@ export async function sendRiderNearbyNotification(
   deliveryAddress: string,
   orderId: string
 ): Promise<boolean> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://myshawarma.express';
+  const trackingUrl = `${appUrl}/orders/${orderId}`;
   const message =
     `🏍️ *Your rider is nearby!*\n\n` +
     `Hi ${customerName}, your MyShawarma delivery (Order #${orderNumber}) ` +
     `is almost at your location. Please be ready to receive your order!\n\n` +
     `📍 Delivering to: ${deliveryAddress}\n\n` +
+    `🔗 Track your rider live: ${trackingUrl}\n\n` +
     `Thank you for ordering from MyShawarma! 🌯`;
 
   return sendNotification({
