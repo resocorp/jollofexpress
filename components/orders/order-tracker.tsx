@@ -116,7 +116,7 @@ export function OrderTracker({ order }: OrderTrackerProps) {
         {order.status === 'completed' && (
           <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-sm text-green-900">
-              <strong>Order completed!</strong> Thank you for choosing JollofExpress.
+              <strong>Order completed!</strong> Thank you for choosing MyShawarma Express.
             </p>
             {order.completed_at && (
               <p className="text-sm text-green-800 mt-1">
