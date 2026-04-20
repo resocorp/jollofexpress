@@ -27,6 +27,7 @@ import {
   Hand,
   Clock,
   QrCode,
+  Navigation,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/formatters';
@@ -414,8 +415,23 @@ export default function RiderChecklist() {
                   onClick={() => {
                     window.location.href = `tel:${order.customer_phone}`;
                   }}
+                  title="Call customer"
                 >
                   <Phone className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-none"
+                  onClick={() => {
+                    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                      order.delivery_address
+                    )}&travelmode=driving`;
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  }}
+                  title="Directions in Google Maps"
+                >
+                  <Navigation className="h-4 w-4" />
                 </Button>
                 {!order.assigned_driver_id ? (
                   <Button
