@@ -135,11 +135,25 @@ export default function RiderScanPage() {
 
     return () => {
       cancelled = true;
-      const s = scanner as { stop?: () => Promise<void>; clear?: () => void } | null;
-      if (s?.stop) {
-        s.stop()
-          .then(() => s.clear?.())
-          .catch(() => {});
+      const s = scanner as {
+        stop?: () => Promise<void>;
+        clear?: () => void;
+        isScanning?: boolean;
+      } | null;
+      if (!s) return;
+      try {
+        if (s.isScanning && s.stop) {
+          Promise.resolve(s.stop())
+            .then(() => {
+              try { s.clear?.(); } catch {}
+            })
+            .catch(() => {});
+        } else {
+          try { s.clear?.(); } catch {}
+        }
+      } catch {
+        // html5-qrcode can throw synchronously if stop() is called
+        // before the camera actually started — safe to ignore.
       }
     };
   }, [scanning, token, submitToken]);
