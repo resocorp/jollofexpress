@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Clock, Settings, Power, PowerOff, Loader2 } from 'lucide-react';
+import { Clock, Settings, Power, PowerOff, Loader2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { KanbanBoard } from '@/components/kitchen/kanban-board';
 import { KitchenControls } from '@/components/kitchen/kitchen-controls';
@@ -100,6 +101,18 @@ export default function KitchenPage() {
                   <span>{status.estimated_prep_time} min</span>
                 </div>
               )}
+
+              {/* Procurement (kitchen-staff entry point) */}
+              <Link href="/kitchen/procurement">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-gray-500"
+                >
+                  <Receipt className="h-4 w-4 mr-2" />
+                  Procurement
+                </Button>
+              </Link>
 
               {/* Controls Button */}
               <Dialog open={showControls} onOpenChange={setShowControls}>

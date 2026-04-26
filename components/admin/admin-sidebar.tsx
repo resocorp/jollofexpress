@@ -19,7 +19,8 @@ import {
   MapPin,
   UserRound,
   Star,
-  Navigation
+  Navigation,
+  Receipt
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Batches', href: '/admin/batches', icon: Tag },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
+  { name: 'Expenses', href: '/admin/expenses', icon: Receipt },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Menu Items', href: '/admin/menu', icon: UtensilsCrossed },
   { name: 'Categories', href: '/admin/menu/categories', icon: Tag },

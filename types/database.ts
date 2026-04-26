@@ -572,3 +572,69 @@ export interface NotificationSettingsRow {
   value: Record<string, unknown>;
   updated_at: string;
 }
+
+// Procurement / Expenses
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  description?: string | null;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Expense {
+  id: string;
+  category_id: string;
+  item_name: string;
+  item_name_normalized: string;
+  quantity: number;
+  unit?: string | null;
+  unit_cost: number;
+  total_cost: number;
+  vendor?: string | null;
+  purchase_date: string; // YYYY-MM-DD
+  notes?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExpenseWithCategory extends Expense {
+  category: Pick<ExpenseCategory, 'id' | 'name'>;
+}
+
+export interface ExpenseCyclePurchase {
+  id: string;
+  purchase_date: string;
+  quantity: number;
+  unit?: string | null;
+  unit_cost: number;
+  total_cost: number;
+  vendor?: string | null;
+  orders_since_previous: number | null;
+  days_since_previous: number | null;
+}
+
+export interface ExpenseCycleItem {
+  itemName: string;
+  itemNameNormalized: string;
+  category: string;
+  totalSpend: number;
+  purchaseCount: number;
+  lastPurchaseDate: string;
+  averageOrdersPerCycle: number | null;
+  averageDaysPerCycle: number | null;
+  ordersSinceLastPurchase: number;
+  daysSinceLastPurchase: number;
+  purchases: ExpenseCyclePurchase[];
+}
+
+export interface ExpenseAnalyticsResponse {
+  periodDays: number;
+  totalSpend: number;
+  spendByCategory: { category: string; total: number }[];
+  topItemsBySpend: { itemName: string; total: number }[];
+  cycleItems: ExpenseCycleItem[];
+}

@@ -66,8 +66,15 @@ export async function apiRequest<T>(
     'Content-Type': 'application/json',
   };
   
-  // Automatically add auth token for admin, kitchen, notifications, and tracking routes
-  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/kitchen') || endpoint.startsWith('/api/notifications') || endpoint.startsWith('/api/tracking')) {
+  // Automatically add auth token for admin, kitchen, notifications, tracking, and expense routes
+  if (
+    endpoint.startsWith('/api/admin') ||
+    endpoint.startsWith('/api/kitchen') ||
+    endpoint.startsWith('/api/notifications') ||
+    endpoint.startsWith('/api/tracking') ||
+    endpoint.startsWith('/api/expenses') ||
+    endpoint.startsWith('/api/expense-categories')
+  ) {
     const authHeaders = await buildAuthHeaders();
     Object.assign(defaultHeaders, authHeaders);
   }
