@@ -21,7 +21,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env.local') });
 
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, downloadMediaMessage } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const QRCode = require('qrcode');
 const path = require('path');
@@ -37,8 +37,49 @@ const AUTH_STORE_PATH = path.join(__dirname, '..', 'auth_store', 'whatsapp');
 // AI Chat: forward incoming messages to the AI handler
 const AI_CHAT_ENABLED = process.env.AI_CHAT_ENABLED === 'true';
 const AI_CHAT_PROCESS_URL = process.env.AI_CHAT_URL || 'http://localhost:3000/api/whatsapp/ai';
+const APP_URL = process.env.APP_URL || 'http://localhost:3000';
+const IDENTITY_RESOLVE_URL = `${APP_URL}/api/whatsapp/identity/resolve`;
 // Phones that should NOT trigger AI (e.g., admin numbers)
 const AI_CHAT_IGNORE_PHONES = (process.env.AI_CHAT_IGNORE_PHONES || '').split(',').filter(Boolean);
+
+// Verbose-drop toggle. Set DEBUG_DROPS=1 in env to log every dropped message
+// with its reason. Off by default to keep production logs quiet.
+const DEBUG_DROPS = process.env.DEBUG_DROPS === '1';
+function logDrop(msg, reason) {
+  if (!DEBUG_DROPS) return;
+  const jid = msg?.key?.remoteJid || '?';
+  const id = msg?.key?.id || '?';
+  console.log(`🗑️  drop ${reason} jid=${jid} id=${id}`);
+}
+
+/**
+ * Ask the Next.js app to resolve a remoteJid (and optional senderPn) to the
+ * canonical phone we use as the AI session key. The endpoint also persists
+ * any new lid → phone mapping it learns.
+ *
+ * Returns null on failure so the caller can fall back to the bare-strip
+ * behaviour without breaking the AI flow.
+ */
+async function resolveCanonicalPhone(remoteJid, msg) {
+  try {
+    const senderPn = msg?.key?.senderPn || msg?.key?.participantPn || null;
+    const pushName = msg?.pushName || null;
+    const res = await fetch(IDENTITY_RESOLVE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Secret': API_SECRET,
+      },
+      body: JSON.stringify({ remoteJid, senderPn, pushName }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.canonicalPhone || null;
+  } catch (err) {
+    console.error('identity/resolve failed:', err.message);
+    return null;
+  }
+}
 
 // Rate limiting: max messages per minute
 const RATE_LIMIT_PER_MINUTE = 30;
@@ -223,7 +264,10 @@ async function initWhatsApp() {
 
     for (const msg of messages) {
 
-      if (!msg.message) continue;
+      if (!msg.message) {
+        logDrop(msg, 'no-content');
+        continue;
+      }
 
       // fromMe can be: (a) a reply we sent from this process (AI / /send /
       // /send-bulk) or (b) a manual reply typed by staff on the business
@@ -232,21 +276,36 @@ async function initWhatsApp() {
         const msgId = msg.key.id;
         if (msgId && ourSentMessageIds.has(msgId)) {
           // Our own outbound echoing back — ignore.
+          logDrop(msg, 'fromMe-self');
           continue;
         }
         const remoteJid = msg.key.remoteJid || '';
-        if (remoteJid.endsWith('@g.us') || remoteJid === 'status@broadcast') continue;
-        if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) continue;
+        if (remoteJid.endsWith('@g.us') || remoteJid === 'status@broadcast') {
+          logDrop(msg, 'fromMe-staff-group');
+          continue;
+        }
+        if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) {
+          logDrop(msg, 'fromMe-staff-jid');
+          continue;
+        }
 
         const staffText =
           msg.message?.conversation ||
           msg.message?.extendedTextMessage?.text ||
           '';
-        if (!staffText.trim()) continue;
+        if (!staffText.trim()) {
+          logDrop(msg, 'fromMe-staff-empty');
+          continue;
+        }
 
-        const staffPhone = remoteJid
-          .replace(/@s\.whatsapp\.net$/, '')
-          .replace(/@lid$/, '');
+        // Resolve LID/phone JID to a canonical phone so the AI session lookup
+        // matches the one used by outbound system notifications.
+        let staffPhone = await resolveCanonicalPhone(remoteJid, msg);
+        if (!staffPhone) {
+          staffPhone = remoteJid
+            .replace(/@s\.whatsapp\.net$/, '')
+            .replace(/@lid$/, '');
+        }
 
         console.log(
           `👤 Staff manual reply to ${staffPhone}: ${staffText.substring(0, 80)}`
@@ -262,11 +321,16 @@ async function initWhatsApp() {
       const nowSec = Math.floor(Date.now() / 1000);
       const msgAge = nowSec - msgTimestamp;
 
-      // For real-time messages (notify), accept if within 2 minutes
-      // For offline batch messages (append), accept if newer than last connection open
-      // This catches DMs that arrived while we were disconnected
-      const maxAge = type === 'notify' ? 120 : 300; // 2 min for live, 5 min for offline
+      // For real-time messages (notify), accept if within 2 minutes.
+      // For offline batch messages (append), accept up to 30 minutes — covers
+      // typical disconnect/reconnect cycles. processedMessageIds dedup below
+      // prevents double-replies if the same id arrives in both notify and
+      // append.
+      const MAX_AGE_NOTIFY_SEC = 120;
+      const MAX_AGE_APPEND_SEC = 1800;
+      const maxAge = type === 'notify' ? MAX_AGE_NOTIFY_SEC : MAX_AGE_APPEND_SEC;
       if (msgAge > maxAge) {
+        logDrop(msg, `too-old (age=${msgAge}s, max=${maxAge}s, type=${type})`);
         continue;
       }
 
@@ -274,6 +338,7 @@ async function initWhatsApp() {
       // an offline batch and a real-time notification
       const msgId = msg.key.id;
       if (processedMessageIds.has(msgId)) {
+        logDrop(msg, 'dup');
         continue;
       }
       processedMessageIds.add(msgId);
@@ -285,15 +350,68 @@ async function initWhatsApp() {
 
       const remoteJid = msg.key.remoteJid || '';
       // Skip group messages, broadcasts, and status updates
-      if (remoteJid.endsWith('@g.us') || remoteJid === 'status@broadcast') continue;
+      if (remoteJid.endsWith('@g.us')) {
+        logDrop(msg, 'group');
+        continue;
+      }
+      if (remoteJid === 'status@broadcast') {
+        logDrop(msg, 'broadcast');
+        continue;
+      }
       // Only handle direct chats (@s.whatsapp.net or @lid)
-      if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) continue;
+      if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) {
+        logDrop(msg, `unsupported-jid (${remoteJid})`);
+        continue;
+      }
 
-      // Extract identifier for logging/session (phone or lid)
-      const from = remoteJid.replace(/@s\.whatsapp\.net$/, '').replace(/@lid$/, '');
+      // Resolve to a canonical phone so the inbound session lookup matches
+      // outbound system-notification logging. Falls back to bare LID if the
+      // resolver can't match (still produces a session, just one that is not
+      // unified with the order's phone).
+      let from = await resolveCanonicalPhone(remoteJid, msg);
+      if (!from) {
+        from = remoteJid.replace(/@s\.whatsapp\.net$/, '').replace(/@lid$/, '');
+      }
 
       const text = msg.message?.conversation ||
                    msg.message?.extendedTextMessage?.text || '';
+      const imageMsg = msg.message?.imageMessage;
+
+      if (imageMsg) {
+        const caption = imageMsg.caption || '';
+        const mimeType = imageMsg.mimetype || 'image/jpeg';
+        try {
+          const buffer = await downloadMediaMessage(
+            msg,
+            'buffer',
+            {},
+            { reuploadRequest: sock.updateMediaMessage }
+          );
+          const MAX_BYTES = 5 * 1024 * 1024;
+          if (buffer.length > MAX_BYTES) {
+            console.log(`📩 Incoming image from ${from} (${buffer.length} bytes) — too large, replying with size hint`);
+            const sent = await sock.sendMessage(remoteJid, {
+              text: "That image is a bit too large for me to read — could you send a smaller one (under 5 MB) or type your question?",
+            });
+            rememberOurSentId(sent?.key?.id);
+            continue;
+          }
+          console.log(
+            `📩 Incoming image from ${from} (${buffer.length} bytes, ${mimeType})${caption ? `: ${caption.substring(0, 80)}` : ''}`
+          );
+          if (AI_CHAT_ENABLED) {
+            handleAIChat(remoteJid, from, caption, {
+              base64: buffer.toString('base64'),
+              mimeType,
+            }).catch(err => {
+              console.error(`❌ AI image handler error for ${from}:`, err.message);
+            });
+          }
+        } catch (err) {
+          console.error(`❌ Failed to download image from ${from}:`, err.message);
+        }
+        continue;
+      }
 
       if (!text.trim()) {
         const msgType = Object.keys(msg.message || {}).join(', ');
@@ -318,9 +436,12 @@ async function initWhatsApp() {
 
 /**
  * Handle AI chat: get response from AI endpoint, then reply directly via sock
- * Uses the original JID (remoteJid) to reply, avoiding phone number lookup issues with @lid format
+ * Uses the original JID (remoteJid) to reply, avoiding phone number lookup issues with @lid format.
+ *
+ * `image` is optional. When present, the route forwards it as a Claude vision
+ * content block alongside the (possibly empty) text caption.
  */
-async function handleAIChat(remoteJid, phone, text) {
+async function handleAIChat(remoteJid, phone, text, image) {
   // Skip ignored phones (admin numbers etc.)
   if (AI_CHAT_IGNORE_PHONES.some(p => phone.includes(p.replace(/[^\d]/g, '')))) {
     console.log(`🤖 AI: skipping ignored phone ${phone}`);
@@ -328,14 +449,15 @@ async function handleAIChat(remoteJid, phone, text) {
   }
 
   try {
-    // Call the AI endpoint to get the response text (don't let it send the reply)
+    const body = { phone, message: text };
+    if (image) body.image = image;
     const response = await fetch(AI_CHAT_PROCESS_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-API-Secret': API_SECRET,
       },
-      body: JSON.stringify({ phone, message: text }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {

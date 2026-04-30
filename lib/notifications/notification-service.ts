@@ -1,6 +1,7 @@
 // Main Notification Service - Orchestrates WhatsApp notifications via Baileys sidecar
 import { createServiceClient } from '@/lib/supabase/service';
 import { appendAssistantMessage } from '@/lib/ai/session-log';
+import { normalizePhone } from '@/lib/whatsapp/identity';
 import * as templates from './message-templates';
 import type { 
   NotificationSettings,
@@ -158,9 +159,15 @@ async function sendNotification(options: SendNotificationOptions): Promise<boole
       // Mirror customer-facing notifications into the AI session so the AI
       // has context when the customer replies ("when will it arrive?").
       // Admin notifications go to staff phones, not customer threads.
+      // Key the session under the normalized digit form so inbound replies
+      // (which the sidecar resolves to the same canonical phone) land in the
+      // same row.
       if (options.notificationType === 'customer') {
         try {
-          await appendAssistantMessage(options.phone, options.message, 'system');
+          const canonical = normalizePhone(options.phone);
+          if (canonical) {
+            await appendAssistantMessage(canonical, options.message, 'system');
+          }
         } catch (err) {
           console.error('[notify] appendAssistantMessage failed:', err);
         }

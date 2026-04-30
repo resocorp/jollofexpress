@@ -3,6 +3,11 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createServiceClient } from '@/lib/supabase/service';
+import { phoneVariants, normalizePhone } from '@/lib/whatsapp/identity';
+import { clearAwaitingFeedback } from '@/lib/ai/session-log';
+import { scoreFeedback } from '@/lib/ai/sentiment';
+
+const FEEDBACK_LOOKUP_WINDOW_DAYS = 14;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://myshawarma.express';
 const BAILEYS_URL = process.env.BAILEYS_SIDECAR_URL || 'http://localhost:3001';
@@ -175,6 +180,7 @@ async function browseMenu(category?: string): Promise<string> {
     .from('menu_items')
     .select('id, category_id, name, description, base_price, promo_price, is_available, dietary_tag')
     .in('category_id', categoryIds)
+    .eq('is_listed', true)
     .eq('is_available', true)
     .order('display_order', { ascending: true });
 
@@ -587,56 +593,202 @@ async function escalateToManager(
 
 // ---- find_recent_pending_feedback_order ----
 // The feedback-worker sets orders.feedback_requested_at when it sends the
-// prompt. We look up the most recent such order with no feedback row yet
-// (completed within the last 48h) — that's what the customer's rating refers to.
+// prompt. We look up the most recent such order with no feedback row yet —
+// that's what the customer's rating refers to.
+//
+// Matching strategy (tried in order, most specific first):
+//   1. Phase 2 awaiting-feedback flag on the session row (set by the worker).
+//   2. Phone-variant match against orders.customer_phone (handles every format
+//      checkout might have stored: 234XX / +234XX / 0XX / bare 10-digit).
+//   3. Fallback: scan recent session history for a feedback-prompt notification
+//      and parse the order number out of it. Covers LID-resolution drift where
+//      the inbound phone doesn't match what's on the order.
 async function findRecentPendingFeedbackOrder(phone: string): Promise<string> {
   if (!phone) return 'Phone number is required.';
 
   const supabase = createServiceClient();
+  const variants = phoneVariants(phone);
+  const cutoffIso = new Date(
+    Date.now() - FEEDBACK_LOOKUP_WINDOW_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
 
-  // Normalize phone to match stored format variants
-  let normalized = phone.replace(/[^\d]/g, '');
-  if (normalized.startsWith('234')) normalized = '0' + normalized.substring(3);
-  if (!normalized.startsWith('0')) normalized = '0' + normalized;
+  // Strategy 1: explicit awaiting-feedback flag on the session.
+  // Set by the feedback-worker when it sends the prompt; cleared by submitFeedback.
+  const fromFlag = await lookupViaAwaitingFlag(supabase, phone, cutoffIso);
+  if (fromFlag) {
+    console.log('[AI/feedback-lookup]', {
+      phone,
+      strategy: 'awaiting-flag',
+      order_id: fromFlag.id,
+      order_number: fromFlag.order_number,
+    });
+    return formatPendingOrder(fromFlag);
+  }
 
-  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-
+  // Strategy 2: phone-variant match.
   const { data: orders } = await supabase
     .from('orders')
     .select('id, order_number, customer_name, completed_at, feedback_requested_at, total')
-    .or(
-      `customer_phone.eq.${normalized},customer_phone.eq.+234${normalized.substring(1)}`
-    )
+    .in('customer_phone', variants)
     .eq('status', 'completed')
     .not('feedback_requested_at', 'is', null)
-    .gte('feedback_requested_at', cutoff)
+    .gte('feedback_requested_at', cutoffIso)
     .order('feedback_requested_at', { ascending: false })
     .limit(5);
 
-  if (!orders?.length) {
-    return 'No recent pending-feedback order found for this phone. Do not submit feedback — thank the customer for the message and move on.';
+  if (orders?.length) {
+    const ids = orders.map((o) => o.id);
+    const { data: existing } = await supabase
+      .from('order_feedback')
+      .select('order_id')
+      .in('order_id', ids);
+    const ratedIds = new Set((existing || []).map((r) => r.order_id));
+    const pending = orders.find((o) => !ratedIds.has(o.id));
+    if (pending) {
+      console.log('[AI/feedback-lookup]', {
+        phone,
+        variants,
+        strategy: 'phone-variant',
+        order_id: pending.id,
+        order_number: pending.order_number,
+      });
+      return formatPendingOrder(pending);
+    }
   }
 
-  // Exclude orders that already have a feedback row.
-  const ids = orders.map((o) => o.id);
+  // Strategy 3: scan session history for a recent feedback prompt and parse the
+  // order number out. Catches the case where the customer's WhatsApp identity
+  // doesn't resolve to the same phone string as on the order.
+  const fromSession = await lookupViaSessionHistory(supabase, phone, cutoffIso);
+  if (fromSession) {
+    console.log('[AI/feedback-lookup]', {
+      phone,
+      strategy: 'session-history',
+      order_id: fromSession.id,
+      order_number: fromSession.order_number,
+    });
+    return formatPendingOrder(fromSession);
+  }
+
+  console.log('[AI/feedback-lookup]', {
+    phone,
+    variants,
+    strategy: 'none',
+    reason: orders?.length
+      ? 'all-already-rated'
+      : 'no-pending-orders-and-no-session-prompt',
+    window_days: FEEDBACK_LOOKUP_WINDOW_DAYS,
+  });
+
+  return orders?.length
+    ? 'All recent orders for this customer already have feedback recorded.'
+    : 'No recent pending-feedback order found for this phone. Do not submit feedback — thank the customer for the message and move on.';
+}
+
+interface PendingOrder {
+  id: string;
+  order_number: string;
+  completed_at: string;
+}
+
+function formatPendingOrder(order: PendingOrder): string {
+  return (
+    `Order ${order.order_number} (id: ${order.id}), completed ${new Date(
+      order.completed_at
+    ).toLocaleString('en-NG', { timeZone: 'Africa/Lagos' })}. ` +
+    `Call submit_feedback with order_id="${order.id}".`
+  );
+}
+
+async function lookupViaAwaitingFlag(
+  supabase: ReturnType<typeof createServiceClient>,
+  phone: string,
+  cutoffIso: string
+): Promise<PendingOrder | null> {
+  // Columns added in the Phase 2 migration. Tolerate their absence so this
+  // function is safe to call before that migration has been applied.
+  const { data: session, error } = await supabase
+    .from('whatsapp_ai_sessions')
+    .select('awaiting_feedback_order_id, awaiting_feedback_set_at')
+    .eq('phone', phone)
+    .maybeSingle();
+
+  if (error) return null;
+
+  if (
+    !session?.awaiting_feedback_order_id ||
+    !session.awaiting_feedback_set_at ||
+    session.awaiting_feedback_set_at < cutoffIso
+  ) {
+    return null;
+  }
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, order_number, completed_at')
+    .eq('id', session.awaiting_feedback_order_id)
+    .maybeSingle();
+
+  if (!order) return null;
+
+  // If feedback was already recorded for this order, treat the flag as stale.
   const { data: existing } = await supabase
     .from('order_feedback')
     .select('order_id')
-    .in('order_id', ids);
+    .eq('order_id', order.id)
+    .maybeSingle();
+  if (existing) return null;
 
-  const ratedIds = new Set((existing || []).map((r) => r.order_id));
-  const pending = orders.find((o) => !ratedIds.has(o.id));
+  return order as PendingOrder;
+}
 
-  if (!pending) {
-    return 'All recent orders for this customer already have feedback recorded.';
+async function lookupViaSessionHistory(
+  supabase: ReturnType<typeof createServiceClient>,
+  phone: string,
+  cutoffIso: string
+): Promise<PendingOrder | null> {
+  const { data: session } = await supabase
+    .from('whatsapp_ai_sessions')
+    .select('messages')
+    .eq('phone', phone)
+    .maybeSingle();
+
+  const messages = (session?.messages || []) as Array<{
+    role: string;
+    content: string;
+    source?: string;
+  }>;
+  if (!messages.length) return null;
+
+  // Walk newest → oldest looking for a feedback prompt with an order number.
+  const orderNumberRe = /Order\s+#?(ORD-[A-Z0-9-]+)/i;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.source !== 'system') continue;
+    if (!/how was your order/i.test(m.content)) continue;
+    const match = m.content.match(orderNumberRe);
+    if (!match) continue;
+
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, order_number, completed_at, feedback_requested_at')
+      .eq('order_number', match[1])
+      .maybeSingle();
+
+    if (!order || !order.feedback_requested_at) continue;
+    if (order.feedback_requested_at < cutoffIso) continue;
+
+    const { data: existing } = await supabase
+      .from('order_feedback')
+      .select('order_id')
+      .eq('order_id', order.id)
+      .maybeSingle();
+    if (existing) continue;
+
+    return order as PendingOrder;
   }
 
-  return (
-    `Order ${pending.order_number} (id: ${pending.id}), completed ${new Date(
-      pending.completed_at
-    ).toLocaleString('en-NG', { timeZone: 'Africa/Lagos' })}. ` +
-    `Call submit_feedback with order_id="${pending.id}".`
-  );
+  return null;
 }
 
 // ---- submit_feedback ----
@@ -662,24 +814,78 @@ async function submitFeedback(
     return `Order ${orderId} not found.`;
   }
 
-  const { error } = await supabase.from('order_feedback').insert({
-    order_id: order.id,
-    customer_phone: order.customer_phone,
-    rating,
-    comment: comment?.trim() || null,
-    source: 'whatsapp_inline',
-  });
+  const trimmedComment = comment?.trim() || null;
+
+  const { data: inserted, error } = await supabase
+    .from('order_feedback')
+    .insert({
+      order_id: order.id,
+      customer_phone: order.customer_phone,
+      rating,
+      comment: trimmedComment,
+      source: 'whatsapp_inline',
+    })
+    .select('id')
+    .single();
 
   if (error) {
     // Duplicate order_id (unique constraint) — graceful dedupe.
     if (error.code === '23505') {
+      await clearAwaitingFlag(order.customer_phone);
       return `Feedback for order ${order.order_number} was already recorded. Thank the customer and note the rating was already received.`;
     }
     console.error('[AI] submit_feedback insert failed:', error);
     return `Failed to record feedback: ${error.message}`;
   }
 
+  await clearAwaitingFlag(order.customer_phone);
+
+  // Live sentiment scoring — best-effort. Backfill picks up failures.
+  if (inserted?.id) {
+    void scoreAndPersist(inserted.id, rating, trimmedComment);
+  }
+
   return `Feedback recorded for order ${order.order_number}: rating=${rating}${
     comment ? `, comment="${comment}"` : ''
   }. Thank the customer briefly.`;
+}
+
+async function scoreAndPersist(
+  feedbackId: string,
+  rating: number,
+  comment: string | null
+): Promise<void> {
+  try {
+    const scored = await scoreFeedback({ rating, comment });
+    if (!scored) return;
+    const supabase = createServiceClient();
+    await supabase
+      .from('order_feedback')
+      .update({
+        sentiment: scored.sentiment,
+        sentiment_score: scored.sentiment_score,
+        themes: scored.themes,
+      })
+      .eq('id', feedbackId);
+  } catch (err) {
+    console.error('[AI] sentiment update failed:', err);
+  }
+}
+
+// Clear the awaiting-feedback flag on whichever session key actually matches —
+// the order's stored phone may differ from the canonical session key, so try
+// both. Tolerates the Phase 2 columns being absent.
+async function clearAwaitingFlag(orderPhone: string | null): Promise<void> {
+  if (!orderPhone) return;
+  const canonical = normalizePhone(orderPhone);
+  const candidates = new Set<string>();
+  if (canonical) candidates.add(canonical);
+  candidates.add(orderPhone);
+  for (const phone of candidates) {
+    try {
+      await clearAwaitingFeedback(phone);
+    } catch {
+      // Column missing pre-Phase-2 migration — ignore.
+    }
+  }
 }

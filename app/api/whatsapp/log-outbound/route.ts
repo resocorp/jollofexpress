@@ -9,7 +9,10 @@
 // directly because it already runs inside the Next.js process.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { appendAssistantMessage } from '@/lib/ai/session-log';
+import {
+  appendAssistantMessage,
+  setAwaitingFeedback,
+} from '@/lib/ai/session-log';
 
 const API_SECRET = process.env.BAILEYS_API_SECRET || 'dev-secret-change-me';
 
@@ -40,6 +43,16 @@ export async function POST(request: NextRequest) {
     }
 
     await appendAssistantMessage(phone, message, source);
+
+    // Optional: when the feedback-worker sends a prompt it includes the order
+    // id so the AI can deterministically resolve the customer's reply.
+    const awaitingFeedbackOrderId =
+      typeof body.awaiting_feedback_order_id === 'string'
+        ? body.awaiting_feedback_order_id
+        : null;
+    if (awaitingFeedbackOrderId) {
+      await setAwaitingFeedback(phone, awaitingFeedbackOrderId);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

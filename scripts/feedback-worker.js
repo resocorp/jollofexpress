@@ -64,6 +64,21 @@ console.log('📝 Feedback Request Worker starting...');
 console.log(`   Poll every ${POLL_INTERVAL / 1000}s`);
 console.log(`   Delay window: ${DELAY_MIN}–${DELAY_MAX} min after completion`);
 
+// Canonicalise a phone to digits-only "234..." form so the AI session key
+// matches what notification-service writes and what the sidecar resolves
+// inbound replies to. Mirrors lib/whatsapp/identity.ts:normalizePhone.
+function normalizePhone(input) {
+  if (!input) return '';
+  let cleaned = String(input).replace(/\D/g, '');
+  if (!cleaned) return '';
+  if (cleaned.startsWith('0')) {
+    cleaned = '234' + cleaned.substring(1);
+  } else if (!cleaned.startsWith('234')) {
+    cleaned = '234' + cleaned;
+  }
+  return cleaned;
+}
+
 function buildPrompt(order) {
   const name = (order.customer_name || '').split(' ')[0] || 'there';
   return (
@@ -91,7 +106,7 @@ async function sendViaBaileys(phone, message) {
   return res.json();
 }
 
-async function logToSession(phone, message) {
+async function logToSession(phone, message, awaitingOrderId) {
   try {
     await fetch(`${APP_URL}/api/whatsapp/log-outbound`, {
       method: 'POST',
@@ -99,7 +114,12 @@ async function logToSession(phone, message) {
         'Content-Type': 'application/json',
         'X-API-Secret': BAILEYS_SECRET,
       },
-      body: JSON.stringify({ phone, message, source: 'system' }),
+      body: JSON.stringify({
+        phone,
+        message,
+        source: 'system',
+        awaiting_feedback_order_id: awaitingOrderId,
+      }),
     });
   } catch (err) {
     console.error(`[feedback] log-outbound failed for ${phone}:`, err.message);
@@ -140,13 +160,14 @@ async function runOnce() {
     if (!order.customer_phone) continue;
 
     const message = buildPrompt(order);
+    const canonicalPhone = normalizePhone(order.customer_phone);
     try {
-      await sendViaBaileys(order.customer_phone, message);
+      await sendViaBaileys(canonicalPhone, message);
       await supabase
         .from('orders')
         .update({ feedback_requested_at: new Date().toISOString() })
         .eq('id', order.id);
-      await logToSession(order.customer_phone, message);
+      await logToSession(canonicalPhone, message, order.id);
       console.log(`📝 Feedback prompt sent for ${order.order_number}`);
     } catch (err) {
       console.error(`[feedback] failed for ${order.order_number}:`, err.message);

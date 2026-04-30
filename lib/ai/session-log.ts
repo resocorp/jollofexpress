@@ -164,6 +164,73 @@ export async function clearMute(phone: string): Promise<void> {
     .eq('phone', phone);
 }
 
+/**
+ * Mark this phone's session as awaiting feedback for a specific order.
+ * Set by the feedback-worker when it sends the prompt; consumed by
+ * findRecentPendingFeedbackOrder so the AI doesn't have to guess which
+ * order a customer's reply refers to.
+ */
+export async function setAwaitingFeedback(
+  phone: string,
+  orderId: string
+): Promise<void> {
+  if (!phone || !orderId) return;
+  const supabase = createServiceClient();
+  const { id } = await fetchSessionMessages(phone);
+  const patch = {
+    awaiting_feedback_order_id: orderId,
+    awaiting_feedback_set_at: new Date().toISOString(),
+  };
+  if (id) {
+    await supabase.from('whatsapp_ai_sessions').update(patch).eq('id', id);
+  } else {
+    await supabase
+      .from('whatsapp_ai_sessions')
+      .insert({ phone, messages: [], ...patch });
+  }
+}
+
+export async function clearAwaitingFeedback(phone: string): Promise<void> {
+  if (!phone) return;
+  const supabase = createServiceClient();
+  await supabase
+    .from('whatsapp_ai_sessions')
+    .update({
+      awaiting_feedback_order_id: null,
+      awaiting_feedback_set_at: null,
+    })
+    .eq('phone', phone);
+}
+
+/**
+ * Returns the awaiting-feedback order_id for this phone if set within the
+ * given window, else null. Tolerant of the migration not yet being applied.
+ */
+export async function getAwaitingFeedbackOrderId(
+  phone: string,
+  withinDays = 14
+): Promise<string | null> {
+  if (!phone) return null;
+  const supabase = createServiceClient();
+  const cutoff = new Date(
+    Date.now() - withinDays * 24 * 60 * 60 * 1000
+  ).toISOString();
+  const { data, error } = await supabase
+    .from('whatsapp_ai_sessions')
+    .select('awaiting_feedback_order_id, awaiting_feedback_set_at')
+    .eq('phone', phone)
+    .maybeSingle();
+  if (error || !data) return null;
+  if (
+    !data.awaiting_feedback_order_id ||
+    !data.awaiting_feedback_set_at ||
+    data.awaiting_feedback_set_at < cutoff
+  ) {
+    return null;
+  }
+  return data.awaiting_feedback_order_id as string;
+}
+
 export async function listMuted(): Promise<
   Array<{ phone: string; ai_muted_until: string }>
 > {

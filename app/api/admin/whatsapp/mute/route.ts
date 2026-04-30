@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 import { clearMute, listMuted, setMute } from '@/lib/ai/session-log';
+import { normalizePhone } from '@/lib/whatsapp/identity';
 
 export async function GET(request: NextRequest) {
   const authResult = await verifyAdminAuth(request);
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
   if (!authResult.authenticated) return authResult.response;
 
   const body = await request.json().catch(() => ({}));
-  const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+  const phone = normalizePhone(typeof body.phone === 'string' ? body.phone : '');
   const minutes = Number.isFinite(body.minutes) && body.minutes > 0 ? body.minutes : 120;
 
   if (!phone) {
@@ -37,7 +38,7 @@ export async function DELETE(request: NextRequest) {
   if (!authResult.authenticated) return authResult.response;
 
   const body = await request.json().catch(() => ({}));
-  const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+  const phone = normalizePhone(typeof body.phone === 'string' ? body.phone : '');
 
   if (!phone) {
     return NextResponse.json({ error: 'phone is required' }, { status: 400 });

@@ -56,13 +56,18 @@ function getAppUrl(): string {
 export function orderConfirmedMessage(order: OrderWithItems): string {
   const appUrl = getAppUrl();
   const trackingUrl = `${appUrl}/orders/${order.id}`;
-  
+
+  const windowLine = order.delivery_window
+    ? order.order_type === 'carryout'
+      ? `🏪 Pickup Window: ${order.delivery_window}\n`
+      : `🛵 Delivery Window: ${order.delivery_window}\n`
+    : '';
+
   return `🎉 *Order Confirmed!*
 
 📋 Order #: ${order.order_number}
 💰 Total: ${formatCurrency(order.total)}
-⏱️ Estimated Prep Time: ${order.estimated_prep_time || 30} minutes
-
+${windowLine}
 🍲 *Your Order:*
 ${formatOrderItems(order.items)}
 
@@ -110,16 +115,15 @@ _- myshawarma.express 🌯_`;
  * Order Out for Delivery Message
  */
 export function orderOutForDeliveryMessage(order: OrderWithItems): string {
-  const eta = order.estimated_prep_time 
-    ? `${Math.round(order.estimated_prep_time * 1.5)} minutes` 
-    : '30-45 minutes';
+  const windowLine = order.delivery_window
+    ? `⏰ Delivery Window: ${order.delivery_window}\n`
+    : '';
 
   return `🛵 *Your Order is On The Way!*
 
 📋 Order #${order.order_number}
 📍 Delivering to: ${order.delivery_city}
-⏰ Estimated Arrival: ${eta}
-
+${windowLine}
 Get ready to enjoy your meal! 😋
 
 _- myshawarma.express 🌯_`;

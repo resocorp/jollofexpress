@@ -4,7 +4,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createServiceClient } from '@/lib/supabase/service';
 import { tools, handleToolCall } from './tools';
-import { appendAssistantMessage, type SessionMessage } from './session-log';
+import {
+  appendAssistantMessage,
+  getAwaitingFeedbackOrderId,
+  type SessionMessage,
+} from './session-log';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -12,8 +16,11 @@ const anthropic = new Anthropic({
 
 const MODEL = process.env.AI_CHAT_MODEL || 'claude-sonnet-4-6';
 const MAX_TOKENS = 1024;
-const SESSION_TTL_MINUTES = 30;
-// History trimming lives in session-log.ts (MAX_HISTORY_MESSAGES) now.
+// 24 hours: an order placed at lunchtime can be picked up, delivered, and the
+// customer can still reply that evening with the prior status notifications
+// in context. MAX_HISTORY_MESSAGES in session-log.ts trims by length so
+// long-lived sessions don't grow unbounded.
+const SESSION_TTL_MINUTES = 24 * 60;
 
 const SYSTEM_PROMPT = `You are the MyShawarma.express customer support assistant on WhatsApp. You help customers with enquiries and direct them to order via the website.
 
@@ -58,10 +65,22 @@ Prior assistant turns in the history may be prefixed to tell you who sent them:
 - Lines with no prefix are your own prior replies.
 
 FEEDBACK REQUESTS:
-If the most recent [System notification] in the conversation is a feedback request (starts with "How was your order"), or the customer's message looks like a rating (e.g. "5 stars", "great, loved it", "terrible, cold food", "4/5", "2 — food was late"), treat it as feedback:
-  1. Call find_recent_pending_feedback_order with the customer's phone to resolve which order it refers to.
-  2. Call submit_feedback with that order_id, a rating (1–5), and the customer's comment verbatim (if any).
-  3. Thank them in ONE short sentence (no sign-off, no "let us know if…"). If the rating is 1 or 2, also call escalate_to_manager with the comment so the team can follow up.`;
+If any of the following holds, treat the customer's message as feedback:
+  - An "AWAITING FEEDBACK" hint is included below in this prompt — that means the customer was just asked to rate a specific order and their reply IS the feedback, even if it's just text with no number.
+  - The most recent [System notification] in the conversation is a feedback request (starts with "How was your order").
+  - The customer's message looks like a rating (e.g. "5 stars", "great, loved it", "terrible, cold food", "4/5", "2 — food was late").
+Then:
+  1. Call find_recent_pending_feedback_order with the customer's phone to resolve which order it refers to. Use the AWAITING FEEDBACK order if the hint provides one.
+  2. Call submit_feedback with that order_id, a rating (1–5), and the customer's comment verbatim (if any). If they didn't give a number, infer rating from sentiment: great/amazing/loved → 5, good/nice → 4, ok/fine → 3, slow/cold/disappointing → 2, terrible/awful/never again → 1.
+  3. Thank them in ONE short sentence (no sign-off, no "let us know if…"). If the rating is 1 or 2, also call escalate_to_manager with the comment so the team can follow up.
+
+IMAGES:
+If the customer sends a photo or screenshot, read it carefully before replying:
+  - Screenshot of an order / payment / receipt → extract the order number (e.g. ORD-XXXXXXXX-XXXX) and use check_order_status. If the screenshot is clearly an issue with payment, escalate.
+  - Photo of food (e.g. a complaint about quality, missing items, wrong dish) → briefly acknowledge what you see, then call escalate_to_manager with a one-line description of the visible issue.
+  - Screenshot of our menu / website → answer the customer's question relative to what's shown.
+  - Anything unrelated (memes, screenshots from elsewhere, blurry pictures) → politely steer back to ordering questions.
+Do NOT describe the image in detail to the customer — they sent it; they know what it shows. Just act on it.`;
 
 // ============================================
 // SESSION MANAGEMENT
@@ -145,9 +164,17 @@ async function releaseSession(sessionId: string): Promise<void> {
 // MAIN HANDLER
 // ============================================
 
+export interface WhatsAppImage {
+  /** Raw base64 (no data: prefix) */
+  base64: string;
+  /** e.g. 'image/jpeg', 'image/png' */
+  mimeType: string;
+}
+
 export async function handleWhatsAppMessage(
   phone: string,
-  incomingMessage: string
+  incomingMessage: string,
+  image?: WhatsAppImage
 ): Promise<string> {
   let sessionId: string | null = null;
 
@@ -155,26 +182,89 @@ export async function handleWhatsAppMessage(
     const session = await getOrCreateSession(phone);
     sessionId = session.id;
 
-    // Session may or may not already contain the inbound turn — the route
-    // persists it via appendUserMessage before calling us. Detect the tail
-    // to avoid double-adding.
+    // Persisted text used for history matching: matches what the route
+    // wrote via appendUserMessage (caption, or '[image]' when no caption).
+    const persistedText = incomingMessage.trim() || (image ? '[image]' : '');
+
+    // Session may already contain the inbound turn — the route persists it
+    // via appendUserMessage before calling us. Detect the tail to avoid
+    // double-adding.
     const tail = session.messages[session.messages.length - 1];
     const inboundAlreadyPersisted =
-      tail?.role === 'user' && tail.content === incomingMessage;
+      tail?.role === 'user' && tail.content === persistedText;
 
-    const effectiveHistory: SessionMessage[] = inboundAlreadyPersisted
-      ? session.messages
-      : [
-          ...session.messages,
-          { role: 'user', content: incomingMessage, source: 'user' },
-        ];
+    // History stays text-only (image bytes are heavy and rarely need to be
+    // replayed). When we have an image, drop the persisted-text last turn
+    // from history and replace it with a richer user content array for this
+    // call only.
+    const historyForApi: SessionMessage[] = image
+      ? inboundAlreadyPersisted
+        ? session.messages.slice(0, -1)
+        : session.messages
+      : inboundAlreadyPersisted
+        ? session.messages
+        : [
+            ...session.messages,
+            { role: 'user', content: persistedText, source: 'user' },
+          ];
 
-    const messages = renderForClaude(effectiveHistory);
+    const messages: Anthropic.Messages.MessageParam[] =
+      renderForClaude(historyForApi);
 
-    // Build the system prompt with phone context
+    if (image) {
+      const visionTextFallback =
+        'The customer sent this image. Read any text or describe what is relevant for our restaurant context (menu, order, payment, food complaint).';
+      messages.push({
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: image.mimeType as
+                | 'image/jpeg'
+                | 'image/png'
+                | 'image/gif'
+                | 'image/webp',
+              data: image.base64,
+            },
+          },
+          {
+            type: 'text',
+            text: incomingMessage.trim() || visionTextFallback,
+          },
+        ],
+      });
+    }
+
+    // Build the system prompt with phone context. If the feedback-worker
+    // recently prompted this customer for a rating, surface the order so the
+    // model resolves their reply deterministically (no phone-format guessing).
+    let awaitingHint = '';
+    try {
+      const awaitingOrderId = await getAwaitingFeedbackOrderId(phone);
+      if (awaitingOrderId) {
+        const supabase = createServiceClient();
+        const { data: order } = await supabase
+          .from('orders')
+          .select('order_number')
+          .eq('id', awaitingOrderId)
+          .maybeSingle();
+        if (order?.order_number) {
+          awaitingHint =
+            `\n\nAWAITING FEEDBACK: This customer was just asked to rate Order #${order.order_number}. ` +
+            `Their next message is almost certainly that feedback — treat it as a rating even if there's no number. ` +
+            `Resolve via find_recent_pending_feedback_order and call submit_feedback with order_id="${awaitingOrderId}".`;
+        }
+      }
+    } catch (err) {
+      console.error('[AI] awaiting-feedback hint lookup failed:', err);
+    }
+
     const systemWithContext =
       SYSTEM_PROMPT +
-      `\n\nCustomer's WhatsApp phone number: ${phone}`;
+      `\n\nCustomer's WhatsApp phone number: ${phone}` +
+      awaitingHint;
 
     // Call Claude with tools - loop for multi-turn tool use
     let response = await anthropic.messages.create({
