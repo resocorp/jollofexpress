@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Edit2, Search, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Edit2, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -65,6 +65,16 @@ export function ExpensesTable() {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<ExpenseWithCategory | null>(null);
   const [deleting, setDeleting] = useState<ExpenseWithCategory | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleBatch = (date: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  };
 
   const filters: ExpenseFilters = useMemo(
     () => ({
@@ -84,6 +94,23 @@ export function ExpensesTable() {
   const totals = useMemo(() => {
     const total = (expenses ?? []).reduce((sum, e) => sum + Number(e.total_cost), 0);
     return { total, count: expenses?.length ?? 0 };
+  }, [expenses]);
+
+  const batches = useMemo(() => {
+    const groups = new Map<string, ExpenseWithCategory[]>();
+    for (const e of expenses ?? []) {
+      const key = e.purchase_date;
+      const list = groups.get(key);
+      if (list) list.push(e);
+      else groups.set(key, [e]);
+    }
+    return Array.from(groups.entries())
+      .map(([date, items]) => {
+        const sorted = [...items].sort((a, b) => a.item_name.localeCompare(b.item_name));
+        const totalCost = sorted.reduce((sum, e) => sum + Number(e.total_cost), 0);
+        return { date, items: sorted, totalCost, itemCount: sorted.length };
+      })
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   }, [expenses]);
 
   const onConfirmDelete = async () => {
@@ -177,51 +204,92 @@ export function ExpensesTable() {
 
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading…</div>
-        ) : expenses && expenses.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Item</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
-                <TableHead className="text-right">Unit cost</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Vendor</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {expenses.map((e) => (
-                <TableRow key={e.id}>
-                  <TableCell>{formatDate(e.purchase_date)}</TableCell>
-                  <TableCell className="font-medium">{e.item_name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{e.category?.name ?? '—'}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {Number(e.quantity)}
-                    {e.unit ? ` ${e.unit}` : ''}
-                  </TableCell>
-                  <TableCell className="text-right">{formatCurrency(Number(e.unit_cost))}</TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {formatCurrency(Number(e.total_cost))}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{e.vendor || '—'}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => setEditing(e)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleting(e)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+        ) : batches.length > 0 ? (
+          <div className="space-y-3">
+            {batches.map((batch) => {
+              const isOpen = expanded.has(batch.date);
+              return (
+                <div key={batch.date} className="rounded-md border">
+                  <button
+                    type="button"
+                    onClick={() => toggleBatch(batch.date)}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                  >
+                    {isOpen ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <span className="font-medium">{formatDate(batch.date)}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {batch.itemCount} item{batch.itemCount === 1 ? '' : 's'}
+                    </span>
+                    <Badge variant="secondary" className="ml-auto text-base">
+                      {formatCurrency(batch.totalCost)}
+                    </Badge>
+                  </button>
+                  {isOpen && (
+                    <div className="border-t bg-muted/20">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Item</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead className="text-right">Qty</TableHead>
+                            <TableHead className="text-right">Unit cost</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead>Vendor</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {batch.items.map((e) => (
+                            <TableRow key={e.id}>
+                              <TableCell className="font-medium">{e.item_name}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{e.category?.name ?? '—'}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {Number(e.quantity)}
+                                {e.unit ? ` ${e.unit}` : ''}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {formatCurrency(Number(e.unit_cost))}
+                              </TableCell>
+                              <TableCell className="text-right font-semibold">
+                                {formatCurrency(Number(e.total_cost))}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {e.vendor || '—'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setEditing(e)}
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setDeleting(e)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <p className="text-center py-12 text-muted-foreground">
             No expenses recorded for this filter.
