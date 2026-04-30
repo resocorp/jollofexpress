@@ -70,6 +70,13 @@ export const useCartStore = create<CartStore>()(
       },
 
       addItem: (item, quantity, selectedVariation, selectedAddons = []) => {
+        if (item.is_available === false || item.is_listed === false) {
+          if (typeof window !== 'undefined') {
+            console.warn('Refusing to add unavailable item to cart:', item.name);
+          }
+          return;
+        }
+
         const unitPrice = calculateItemPrice(item, selectedVariation, selectedAddons);
         const subtotal = unitPrice * quantity;
 

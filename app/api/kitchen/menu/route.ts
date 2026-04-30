@@ -1,12 +1,19 @@
-// Public endpoint to fetch complete menu with categories, items, variations, and addons
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+// Kitchen-side menu fetch — returns every listed item regardless of stock,
+// so the kitchen controls UI keeps showing items it has marked sold out.
+// Mirrors /api/menu but skips the is_available filter.
+import { NextRequest, NextResponse } from 'next/server';
+import { createServiceClient } from '@/lib/supabase/service';
+import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authResult = await verifyAdminAuth(request);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
-    // Fetch active categories with their items
     const { data: categories, error: categoriesError } = await supabase
       .from('menu_categories')
       .select(`
@@ -27,9 +34,8 @@ export async function GET() {
       );
     }
 
-    // Fetch all menu items for the categories
     const categoryIds = categories.map(cat => cat.id);
-    
+
     const { data: items, error: itemsError } = await supabase
       .from('menu_items')
       .select(`
@@ -57,30 +63,18 @@ export async function GET() {
       );
     }
 
-    // Fetch variations for all items
     const itemIds = items.map(item => item.id);
-    
-    const { data: variations, error: variationsError } = await supabase
+
+    const { data: variations } = await supabase
       .from('item_variations')
       .select('*')
       .in('item_id', itemIds);
 
-    if (variationsError) {
-      console.error('Error fetching variations:', variationsError);
-    }
-
-    // Fetch addons for all items
-    const { data: addons, error: addonsError } = await supabase
+    const { data: addons } = await supabase
       .from('item_addons')
       .select('*')
-      .in('item_id', itemIds)
-      .eq('is_available', true);
+      .in('item_id', itemIds);
 
-    if (addonsError) {
-      console.error('Error fetching addons:', addonsError);
-    }
-
-    // Organize data into nested structure
     const menu = categories.map(category => ({
       ...category,
       items: items
@@ -97,7 +91,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('Unexpected error in /api/menu:', error);
+    console.error('Unexpected error in /api/kitchen/menu:', error);
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
       { status: 500 }

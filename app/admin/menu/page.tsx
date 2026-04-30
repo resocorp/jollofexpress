@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit2, Trash2, Eye, EyeOff, ImageIcon, LayoutGrid, LayoutList, Filter, ArrowUpDown, Clock } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Eye, EyeOff, ImageIcon, LayoutGrid, LayoutList, Filter, ArrowUpDown, Clock, PackageX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,7 @@ interface MenuItem {
   category_id?: string;
   image_url?: string;
   is_available: boolean;
+  is_listed: boolean;
   prep_time?: number;
   created_at: string;
 }
@@ -44,6 +45,13 @@ interface MenuItem {
 type ViewMode = 'grid' | 'table';
 type SortKey = 'name' | 'price' | 'category' | 'created_at';
 type SortOrder = 'asc' | 'desc';
+type StatusFilter = 'all' | 'available' | 'sold_out' | 'hidden';
+
+function getItemStatus(item: MenuItem): 'available' | 'sold_out' | 'hidden' {
+  if (!item.is_listed) return 'hidden';
+  if (!item.is_available) return 'sold_out';
+  return 'available';
+}
 
 export default function MenuManagementPage() {
   const queryClient = useQueryClient();
@@ -52,7 +60,7 @@ export default function MenuManagementPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'unavailable'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   // Fetch menu items
   const { data: menuItems, isLoading, refetch } = useQuery<MenuItem[]>({
@@ -74,9 +82,8 @@ export default function MenuManagementPage() {
         const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.description?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-        const matchesStatus = statusFilter === 'all' || 
-          (statusFilter === 'available' && item.is_available) ||
-          (statusFilter === 'unavailable' && !item.is_available);
+        const status = getItemStatus(item);
+        const matchesStatus = statusFilter === 'all' || statusFilter === status;
         return matchesSearch && matchesCategory && matchesStatus;
       })
       .sort((a, b) => {
@@ -123,34 +130,34 @@ export default function MenuManagementPage() {
     }
   };
 
-  // Handle availability toggle
-  const handleToggleAvailability = async (id: string, currentStatus: boolean) => {
+  const handleUpdateField = async (
+    id: string,
+    field: 'is_available' | 'is_listed',
+    value: boolean,
+  ) => {
     try {
-      const newStatus = !currentStatus;
-      console.log('🔄 Toggling availability:', { id, from: currentStatus, to: newStatus });
-      
       const response = await adminFetch(`/api/admin/menu/items/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_available: newStatus }),
+        body: JSON.stringify({ [field]: value }),
       });
-      
-      if (!response.ok) throw new Error('Failed to update availability');
-      
-      console.log('✅ Availability updated, refetching list');
-      
-      // Refetch data using React Query
+
+      if (!response.ok) throw new Error(`Failed to update ${field}`);
+
       await refetch();
-      
-      // Also invalidate customer menu cache so it updates immediately
       await queryClient.invalidateQueries({ queryKey: ['menu'] });
-      
-      console.log('✅ All caches invalidated');
+      await queryClient.invalidateQueries({ queryKey: ['kitchen-menu'] });
     } catch (error) {
       console.error('❌ Toggle error:', error);
-      alert('Failed to update availability');
+      alert(`Failed to update ${field === 'is_listed' ? 'listing' : 'availability'}`);
     }
   };
+
+  const handleToggleAvailability = (id: string, currentStatus: boolean) =>
+    handleUpdateField(id, 'is_available', !currentStatus);
+
+  const handleToggleListed = (id: string, currentStatus: boolean) =>
+    handleUpdateField(id, 'is_listed', !currentStatus);
 
   return (
     <div className="space-y-6">
@@ -193,7 +200,7 @@ export default function MenuManagementPage() {
             <CardHeader className="pb-2">
               <CardDescription>Available</CardDescription>
               <CardTitle className="text-3xl font-bold text-green-600">
-                {menuItems?.filter((item) => item.is_available).length || 0}
+                {menuItems?.filter((item) => getItemStatus(item) === 'available').length || 0}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -203,11 +210,11 @@ export default function MenuManagementPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="hover:shadow-md transition-shadow duration-300 border-l-4 border-l-red-600">
+          <Card className="hover:shadow-md transition-shadow duration-300 border-l-4 border-l-amber-500">
             <CardHeader className="pb-2">
-              <CardDescription>Out of Stock</CardDescription>
-              <CardTitle className="text-3xl font-bold text-red-600">
-                {menuItems?.filter((item) => !item.is_available).length || 0}
+              <CardDescription>Sold Out</CardDescription>
+              <CardTitle className="text-3xl font-bold text-amber-600">
+                {menuItems?.filter((item) => getItemStatus(item) === 'sold_out').length || 0}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -217,11 +224,11 @@ export default function MenuManagementPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <Card className="hover:shadow-md transition-shadow duration-300 border-l-4 border-l-blue-600">
+          <Card className="hover:shadow-md transition-shadow duration-300 border-l-4 border-l-slate-500">
             <CardHeader className="pb-2">
-              <CardDescription>Categories</CardDescription>
-              <CardTitle className="text-3xl font-bold">
-                {new Set(menuItems?.map((item) => item.category)).size || 0}
+              <CardDescription>Hidden</CardDescription>
+              <CardTitle className="text-3xl font-bold text-slate-600">
+                {menuItems?.filter((item) => getItemStatus(item) === 'hidden').length || 0}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -286,11 +293,18 @@ export default function MenuManagementPage() {
                   Available
                 </Button>
                 <Button
-                  variant={statusFilter === 'unavailable' ? 'default' : 'outline'}
+                  variant={statusFilter === 'sold_out' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setStatusFilter('unavailable')}
+                  onClick={() => setStatusFilter('sold_out')}
                 >
-                  Unavailable
+                  Sold Out
+                </Button>
+                <Button
+                  variant={statusFilter === 'hidden' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setStatusFilter('hidden')}
+                >
+                  Hidden
                 </Button>
               </div>
 
@@ -347,6 +361,7 @@ export default function MenuManagementPage() {
                       item={item}
                       index={index}
                       onToggleAvailability={handleToggleAvailability}
+                      onToggleListed={handleToggleListed}
                       onDelete={handleDelete}
                     />
                   ))}
@@ -412,26 +427,34 @@ export default function MenuManagementPage() {
                     </TableCell>
                     <TableCell>{item.prep_time || 15} min</TableCell>
                     <TableCell>
-                      {item.is_available ? (
-                        <Badge variant="default" className="bg-green-600">
-                          Available
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive">Out of Stock</Badge>
-                      )}
+                      <StatusBadge item={item} />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
+                        {item.is_listed && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleAvailability(item.id, item.is_available)}
+                            title={item.is_available ? 'Mark as sold out' : 'Mark as in stock'}
+                          >
+                            {item.is_available ? (
+                              <PackageX className="h-4 w-4" />
+                            ) : (
+                              <PackageX className="h-4 w-4 text-amber-600" />
+                            )}
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleToggleAvailability(item.id, item.is_available)}
-                          title={item.is_available ? 'Mark as unavailable' : 'Mark as available'}
+                          onClick={() => handleToggleListed(item.id, item.is_listed)}
+                          title={item.is_listed ? 'Hide from storefront' : 'Show on storefront'}
                         >
-                          {item.is_available ? (
+                          {item.is_listed ? (
                             <Eye className="h-4 w-4" />
                           ) : (
-                            <EyeOff className="h-4 w-4" />
+                            <EyeOff className="h-4 w-4 text-slate-500" />
                           )}
                         </Button>
                         <Link href={`/admin/menu/${item.id}`}>
@@ -479,15 +502,27 @@ export default function MenuManagementPage() {
   );
 }
 
+function StatusBadge({ item }: { item: MenuItem }) {
+  const status = getItemStatus(item);
+  if (status === 'available') {
+    return <Badge className="bg-green-600 hover:bg-green-700">Available</Badge>;
+  }
+  if (status === 'sold_out') {
+    return <Badge className="bg-amber-500 hover:bg-amber-600 text-white">Sold Out</Badge>;
+  }
+  return <Badge variant="outline" className="text-slate-500 border-slate-400">Hidden</Badge>;
+}
+
 // Menu Item Card Component for Grid View
 interface MenuItemCardProps {
   item: MenuItem;
   index: number;
   onToggleAvailability: (id: string, currentStatus: boolean) => void;
+  onToggleListed: (id: string, currentStatus: boolean) => void;
   onDelete: (id: string) => void;
 }
 
-function MenuItemCard({ item, index, onToggleAvailability, onDelete }: MenuItemCardProps) {
+function MenuItemCard({ item, index, onToggleAvailability, onToggleListed, onDelete }: MenuItemCardProps) {
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { 
@@ -529,16 +564,8 @@ function MenuItemCard({ item, index, onToggleAvailability, onDelete }: MenuItemC
         )}
 
         {/* Status Badge */}
-        <div className="absolute top-3 right-3">
-          {item.is_available ? (
-            <Badge className="bg-green-600 hover:bg-green-700 shadow-lg">
-              Available
-            </Badge>
-          ) : (
-            <Badge variant="destructive" className="shadow-lg">
-              Out of Stock
-            </Badge>
-          )}
+        <div className="absolute top-3 right-3 shadow-lg">
+          <StatusBadge item={item} />
         </div>
 
         {/* Quick Actions Overlay */}
@@ -602,22 +629,32 @@ function MenuItemCard({ item, index, onToggleAvailability, onDelete }: MenuItemC
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          {item.is_listed ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => onToggleAvailability(item.id, item.is_available)}
+              title={item.is_available ? 'Mark this item as sold out (kitchen + customer view)' : 'Mark this item back in stock'}
+            >
+              <PackageX className="h-3 w-3 mr-1" />
+              {item.is_available ? 'Sold out' : 'In stock'}
+            </Button>
+          ) : (
+            <div className="flex-1 text-xs text-muted-foreground italic px-2">
+              Hidden from storefront
+            </div>
+          )}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="flex-1"
-            onClick={() => onToggleAvailability(item.id, item.is_available)}
+            onClick={() => onToggleListed(item.id, item.is_listed)}
+            title={item.is_listed ? 'Hide from storefront entirely (e.g. discontinued)' : 'Show on storefront'}
           >
-            {item.is_available ? (
-              <>
-                <EyeOff className="h-3 w-3 mr-1" />
-                Disable
-              </>
+            {item.is_listed ? (
+              <Eye className="h-4 w-4" />
             ) : (
-              <>
-                <Eye className="h-3 w-3 mr-1" />
-                Enable
-              </>
+              <EyeOff className="h-4 w-4 text-slate-500" />
             )}
           </Button>
           <Button

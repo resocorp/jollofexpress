@@ -82,6 +82,7 @@ export const menuItemSchema = z.object({
   base_price: z.number().min(0, 'Price must be positive'),
   dietary_tag: z.enum(['veg', 'non_veg', 'vegan', 'halal', 'none']),
   is_available: z.boolean().default(true),
+  is_listed: z.boolean().default(true),
   display_order: z.number().default(0),
 });
 

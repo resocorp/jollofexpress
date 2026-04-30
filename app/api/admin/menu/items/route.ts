@@ -13,6 +13,7 @@ const itemSchema = z.object({
   category_id: z.string().uuid(),
   image_url: z.string().optional(),
   is_available: z.boolean().optional(),
+  is_listed: z.boolean().optional(),
   dietary_tag: z.enum(['veg', 'non_veg', 'vegan', 'gluten_free']).optional(),
   display_order: z.number().int().min(0).optional(),
 });

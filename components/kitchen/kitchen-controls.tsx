@@ -8,9 +8,14 @@ import { Switch } from '@/components/ui/switch';
 import { DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { useRestaurantStatus, useUpdateRestaurantStatus } from '@/hooks/use-settings';
-import { useMenu, useToggleItemAvailability } from '@/hooks/use-menu';
+import {
+  useKitchenMenu,
+  useToggleItemAvailability,
+  useMarkAllItemsAvailable,
+} from '@/hooks/use-menu';
 import { toast } from 'sonner';
-import { Clock, Power, Loader2 } from 'lucide-react';
+import { Clock, Power, Loader2, PackageX, RefreshCw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface KitchenControlsProps {
   onClose: () => void;
@@ -18,13 +23,30 @@ interface KitchenControlsProps {
 
 export function KitchenControls({ onClose }: KitchenControlsProps) {
   const { data: status } = useRestaurantStatus();
-  const { data: menu } = useMenu();
+  const { data: menu } = useKitchenMenu();
   const updateStatus = useUpdateRestaurantStatus();
   const toggleAvailability = useToggleItemAvailability();
+  const markAllAvailable = useMarkAllItemsAvailable();
 
   const [isOpen, setIsOpen] = useState(status?.is_open || false);
   const [prepTime, setPrepTime] = useState(status?.estimated_prep_time || 30);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const soldOutCount =
+    menu?.categories.reduce(
+      (sum, cat) => sum + cat.items.filter((i) => !i.is_available).length,
+      0,
+    ) ?? 0;
+
+  const handleRestockAll = async () => {
+    if (soldOutCount === 0) return;
+    try {
+      const res = await markAllAvailable.mutateAsync();
+      toast.success(`Restocked ${res.updated} item${res.updated === 1 ? '' : 's'}`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to restock items');
+    }
+  };
 
   const handleUpdateStatus = async () => {
     setIsUpdating(true);
@@ -117,9 +139,32 @@ export function KitchenControls({ onClose }: KitchenControlsProps) {
 
       {/* Menu Items Availability */}
       <div>
-        <h3 className="text-base font-semibold mb-3">Menu Items</h3>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-semibold">Menu Items</h3>
+            {soldOutCount > 0 && (
+              <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
+                <PackageX className="h-3 w-3 mr-1" />
+                {soldOutCount} sold out
+              </Badge>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRestockAll}
+            disabled={soldOutCount === 0 || markAllAvailable.isPending}
+          >
+            {markAllAvailable.isPending ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3 w-3 mr-1" />
+            )}
+            Mark all back in stock
+          </Button>
+        </div>
         <p className="text-sm text-muted-foreground mb-4">
-          Mark items as sold out when ingredients run out
+          Toggle off when an item runs out — it stays on the menu as &quot;Sold Out&quot; for customers.
         </p>
 
         <div className="max-h-[400px] overflow-y-auto space-y-4">

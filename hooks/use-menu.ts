@@ -138,12 +138,41 @@ export function useDeleteMenuItem() {
  */
 export function useToggleItemAvailability() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ id, is_available }: { id: string; is_available: boolean }) =>
       patch<MenuItem>(`/api/kitchen/items/${id}/availability`, { is_available }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['menu'] });
+      queryClient.invalidateQueries({ queryKey: ['kitchen-menu'] });
+    },
+  });
+}
+
+/**
+ * Kitchen-side menu fetch — includes sold-out items so kitchen staff
+ * can toggle them back in stock. Hits /api/kitchen/menu (admin+kitchen auth).
+ */
+export function useKitchenMenu() {
+  return useQuery({
+    queryKey: ['kitchen-menu'],
+    queryFn: () => get<MenuResponse>('/api/kitchen/menu'),
+    staleTime: 30 * 1000,
+  });
+}
+
+/**
+ * Mark every listed item as in stock again (kitchen/admin).
+ */
+export function useMarkAllItemsAvailable() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      post<{ updated: number }>('/api/kitchen/items/mark-all-available', {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['menu'] });
+      queryClient.invalidateQueries({ queryKey: ['kitchen-menu'] });
     },
   });
 }

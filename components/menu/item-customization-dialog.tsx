@@ -74,6 +74,10 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
   }, [effectivePrice, item.addons, selectedVariationOption, variationQuantity, selectedAddonQuantities, quantity]);
 
   const handleAddToCart = () => {
+    if (!item.is_available) {
+      return;
+    }
+
     const selectedAddons = Object.entries(selectedAddonQuantities)
       .map(([addonId, qty]) => {
         const addon = item.addons?.find(a => a.id === addonId);
@@ -320,12 +324,15 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
           <Button
             onClick={handleAddToCart}
             disabled={
+              !item.is_available ||
               // Require variation selection if variations exist
               (item.variations && item.variations.length > 0 && !selectedVariationOption)
             }
             className="w-full sm:w-auto"
           >
-            Add to Cart • {formatCurrency(totalPrice)}
+            {item.is_available
+              ? `Add to Cart • ${formatCurrency(totalPrice)}`
+              : 'Sold Out'}
           </Button>
         </DialogFooter>
       </DialogContent>

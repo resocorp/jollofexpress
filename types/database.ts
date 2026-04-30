@@ -47,6 +47,7 @@ export interface MenuItem {
   promo_price?: number | null;
   image_url?: string;
   is_available: boolean;
+  is_listed: boolean;
   dietary_tag: DietaryTag;
   display_order: number;
   created_at: string;

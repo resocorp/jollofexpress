@@ -59,6 +59,7 @@ CREATE TABLE menu_items (
     base_price DECIMAL(10, 2) NOT NULL,
     image_url TEXT,
     is_available BOOLEAN NOT NULL DEFAULT true,
+    is_listed BOOLEAN NOT NULL DEFAULT true,
     dietary_tag dietary_tag NOT NULL DEFAULT 'none',
     display_order INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -67,6 +68,7 @@ CREATE TABLE menu_items (
 
 CREATE INDEX idx_menu_items_category ON menu_items(category_id);
 CREATE INDEX idx_menu_items_available ON menu_items(is_available);
+CREATE INDEX idx_menu_items_listed ON menu_items(is_listed);
 
 -- ================================================
 -- ITEM VARIATIONS TABLE (sizes, spice levels, etc.)
@@ -326,7 +328,7 @@ CREATE POLICY "Menu categories are viewable by everyone" ON menu_categories
     FOR SELECT USING (is_active = true);
 
 CREATE POLICY "Menu items are viewable by everyone" ON menu_items
-    FOR SELECT USING (is_available = true);
+    FOR SELECT USING (is_listed = true);
 
 CREATE POLICY "Item variations are viewable by everyone" ON item_variations
     FOR SELECT USING (true);

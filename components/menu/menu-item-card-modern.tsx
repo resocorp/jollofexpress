@@ -64,7 +64,10 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
         className="h-full"
         onClick={handleCardClick}
       >
-        <Card className="overflow-hidden h-full flex flex-col group border-0 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.12)] active:shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-all duration-300 bg-card rounded-xl cursor-pointer touch-manipulation">
+        <Card className={cn(
+          "overflow-hidden h-full flex flex-col group border-0 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.12)] active:shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-all duration-300 bg-card rounded-xl touch-manipulation",
+          item.is_available ? "cursor-pointer" : "cursor-not-allowed opacity-90"
+        )}>
           {/* Image Section */}
           <div className="relative aspect-[4/3] bg-gradient-to-br from-orange-50 via-white to-red-50 overflow-hidden rounded-t-xl">
             {item.image_url ? (
@@ -73,14 +76,20 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
                   src={item.image_url}
                   alt={item.name}
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  className={cn(
+                    "object-cover transition-transform duration-500",
+                    item.is_available ? "group-hover:scale-105" : "grayscale"
+                  )}
                   sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                   priority={index < 4}
                   fetchPriority={index < 4 ? "high" : "auto"}
                 />
               </motion.div>
             ) : (
-              <div className="flex items-center justify-center h-full text-6xl sm:text-7xl animate-pulse">
+              <div className={cn(
+                "flex items-center justify-center h-full text-6xl sm:text-7xl",
+                item.is_available ? "animate-pulse" : "grayscale opacity-60"
+              )}>
                 🍲
               </div>
             )}
@@ -126,9 +135,9 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
             </div>
 
 
-            {/* Sold Out Overlay */}
+            {/* Sold Out Overlay — light wash so the greyscaled image is still recognisable */}
             {!item.is_available && (
-              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center">
+              <div className="absolute inset-0 bg-white/30 flex items-center justify-center">
                 <Badge variant="destructive" className="text-base sm:text-lg px-4 sm:px-6 py-1.5 sm:py-2 shadow-xl">
                   Sold Out
                 </Badge>

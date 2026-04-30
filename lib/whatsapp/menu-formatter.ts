@@ -58,6 +58,7 @@ export async function fetchMenu(): Promise<MenuCategory[]> {
     .from('menu_items')
     .select('id, category_id, name, description, base_price, image_url')
     .in('category_id', categoryIds)
+    .eq('is_listed', true)
     .eq('is_available', true)
     .order('display_order', { ascending: true });
   

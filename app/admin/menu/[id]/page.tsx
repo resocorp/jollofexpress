@@ -54,6 +54,7 @@ interface MenuItem {
   promo_price?: number | null;
   category_id: string;
   is_available: boolean;
+  is_listed: boolean;
   image_url?: string;
 }
 
@@ -73,6 +74,7 @@ export default function EditMenuItemPage() {
     promo_price: '',
     category_id: '',
     is_available: true,
+    is_listed: true,
     image_url: '',
   });
 
@@ -132,6 +134,7 @@ export default function EditMenuItemPage() {
         promo_price: item.promo_price ? item.promo_price.toString() : '',
         category_id: item.category_id,
         is_available: item.is_available,
+        is_listed: item.is_listed ?? true,
         image_url: item.image_url || '',
       });
       if (item.image_url) {
@@ -670,18 +673,33 @@ export default function EditMenuItemPage() {
             {/* Availability */}
             <Card>
               <CardHeader>
-                <CardTitle>Availability</CardTitle>
+                <CardTitle>Visibility & Stock</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-5">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Available for orders</Label>
+                  <div className="space-y-0.5 pr-4">
+                    <Label>Listed on menu</Label>
                     <p className="text-sm text-muted-foreground">
-                      Customers can order this item
+                      Off = hide entirely from the storefront (e.g. discontinued, seasonal off).
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.is_listed}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, is_listed: checked }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5 pr-4">
+                    <Label>In stock</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Off = show as &quot;Sold Out&quot; on the menu (kitchen can toggle this too).
                     </p>
                   </div>
                   <Switch
                     checked={formData.is_available}
+                    disabled={!formData.is_listed}
                     onCheckedChange={(checked) =>
                       setFormData((prev) => ({ ...prev, is_available: checked }))
                     }
