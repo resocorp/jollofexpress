@@ -2,13 +2,14 @@
 // exits the customer's location radius. Driven by driver GPS updates.
 //
 // State machine per order (out_for_delivery with customer coords):
-//   - arrived_at_customer IS NULL → en route
+//   - distance <= NEARBY_RADIUS_M AND not yet notified → send "rider nearby" WhatsApp
 //   - distance <= ARRIVAL_RADIUS_M → set arrived_at_customer = now()
 //   - distance > EXIT_RADIUS_M AND (now - arrived_at_customer) >= MIN_DWELL_MS
 //     → mark completed, set auto_completed_at, fire completion notification
 
 import { createServiceClient } from '@/lib/supabase/service';
 
+export const NEARBY_RADIUS_M = 300;
 export const ARRIVAL_RADIUS_M = 50;
 export const EXIT_RADIUS_M = 70; // hysteresis buffer to avoid GPS flapping
 export const MIN_DWELL_MS = 20 * 1000;
@@ -32,7 +33,7 @@ export function haversineMeters(
 export interface GeofenceResult {
   orderId: string;
   orderNumber: string;
-  event: 'arrived' | 'completed' | 'noop';
+  event: 'nearby' | 'arrived' | 'completed' | 'noop';
   distance: number;
 }
 
@@ -52,7 +53,7 @@ export async function evaluateGeofenceForDriver(
   const { data: orders, error } = await supabase
     .from('orders')
     .select(
-      'id, order_number, status, customer_latitude, customer_longitude, arrived_at_customer'
+      'id, order_number, status, customer_name, customer_phone, delivery_address, notes, customer_latitude, customer_longitude, arrived_at_customer'
     )
     .eq('assigned_driver_id', driverId)
     .eq('status', 'out_for_delivery')
@@ -69,6 +70,42 @@ export async function evaluateGeofenceForDriver(
       order.customer_latitude as number,
       order.customer_longitude as number
     );
+
+    // NEARBY — one-shot WhatsApp to customer while rider is ~300m out
+    if (
+      distance <= NEARBY_RADIUS_M &&
+      !order.notes?.includes('[PROXIMITY_NOTIFIED]')
+    ) {
+      try {
+        const { sendRiderNearbyNotification } = await import(
+          '@/lib/notifications/notification-service'
+        );
+        const sent = await sendRiderNearbyNotification(
+          order.customer_phone,
+          order.customer_name,
+          order.order_number,
+          order.delivery_address || 'your location',
+          order.id
+        );
+        if (sent) {
+          const updatedNotes = order.notes
+            ? `${order.notes} [PROXIMITY_NOTIFIED]`
+            : '[PROXIMITY_NOTIFIED]';
+          await supabase
+            .from('orders')
+            .update({ notes: updatedNotes })
+            .eq('id', order.id);
+          results.push({
+            orderId: order.id,
+            orderNumber: order.order_number,
+            event: 'nearby',
+            distance: Math.round(distance),
+          });
+        }
+      } catch (nearbyErr) {
+        console.error('Rider-nearby notification failed:', nearbyErr);
+      }
+    }
 
     // ARRIVAL — first time inside radius
     if (distance <= ARRIVAL_RADIUS_M && !order.arrived_at_customer) {

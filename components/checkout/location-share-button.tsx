@@ -31,9 +31,9 @@ interface LocationShareButtonProps {
   highlight?: boolean;
 }
 
-// Restaurant coords — sensible default when GPS is denied / desktop users
-const DEFAULT_LAT = 7.0707;
-const DEFAULT_LNG = 6.2103;
+// Awka, Anambra — sensible default when GPS is denied / desktop users
+const DEFAULT_LAT = 6.2103;
+const DEFAULT_LNG = 7.0707;
 
 const LOCATION_ANIMATION_KEY = 'jollof_location_animation_count';
 const MAX_ANIMATION_VIEWS = 5;

@@ -94,6 +94,27 @@ module.exports = {
       out_file: './logs/feedback-worker-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     },
+    {
+      // Tracking Worker — polls driver locations for active deliveries so
+      // the geofence (nearby notify / arrival / auto-complete on exit) runs
+      // even when the admin batch-map UI isn't open.
+      name: 'tracking-worker',
+      script: './scripts/tracking-worker.js',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '200M',
+      restart_delay: 10000,
+      max_restarts: 0,
+      min_uptime: 10000,
+      env_file: './.env.local',
+      env: {
+        NODE_ENV: 'production',
+      },
+      error_file: './logs/tracking-worker-error.log',
+      out_file: './logs/tracking-worker-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    },
   ],
 
   /**
