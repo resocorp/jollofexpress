@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const ratingFilter = ratingParam ? parseInt(ratingParam, 10) : null;
     const fromDate = searchParams.get('from');
     const toDate = searchParams.get('to');
+    const sentimentFilter = searchParams.get('sentiment');
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest) {
       .from('order_feedback')
       .select(
         `id, order_id, customer_phone, rating, comment, submitted_at, source,
+         sentiment, sentiment_score, themes,
          order:orders (
            order_number, customer_name, total, completed_at
          )`,
@@ -34,6 +36,13 @@ export async function GET(request: NextRequest) {
 
     if (ratingFilter && ratingFilter >= 1 && ratingFilter <= 5) {
       query = query.eq('rating', ratingFilter);
+    }
+    if (
+      sentimentFilter === 'positive' ||
+      sentimentFilter === 'neutral' ||
+      sentimentFilter === 'negative'
+    ) {
+      query = query.eq('sentiment', sentimentFilter);
     }
     if (fromDate) query = query.gte('submitted_at', fromDate);
     if (toDate) query = query.lte('submitted_at', toDate + 'T23:59:59');
