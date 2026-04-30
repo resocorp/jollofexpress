@@ -110,7 +110,16 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   receipt.items.forEach(item => {
     // Main item line with quantity and name
     commands.push(`${item.quantity}  ${item.name}` + LF);
-    
+
+    // Description (truncated to fit 48-char width with 4-char indent)
+    if (item.description) {
+      const maxDescLen = 48 - 4;
+      const desc = item.description.length > maxDescLen
+        ? item.description.slice(0, maxDescLen - 1) + '…'
+        : item.description;
+      commands.push(`    ${desc}` + LF);
+    }
+
     // Show variation as a bullet point
     if (item.variation) {
       commands.push(`    • ${item.variation}` + LF);
