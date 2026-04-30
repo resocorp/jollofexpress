@@ -96,3 +96,4 @@ MIGRATE_*.md
 /auth_store/
 /logs/
 /plans/
+/tmp/
