@@ -17,6 +17,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Bike,
   MapPin,
   Phone,
@@ -24,10 +31,10 @@ import {
   LogOut,
   Loader2,
   RefreshCw,
-  Hand,
   Clock,
   QrCode,
   Navigation,
+  Printer,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/formatters';
@@ -39,6 +46,7 @@ interface RiderOrder {
   order_number: string;
   customer_name: string;
   customer_phone: string;
+  customer_phone_alt?: string | null;
   delivery_address: string;
   total: number;
   payment_method_type: 'paystack' | 'cod';
@@ -56,6 +64,18 @@ interface DriverInfo {
   name: string;
 }
 
+interface RiderBatch {
+  id: string;
+  delivery_date: string;
+  status: string;
+  window_name: string;
+  delivery_start: string | null;
+  delivery_end: string | null;
+  cutoff_time: string | null;
+  stop_count: number;
+  printable: boolean;
+}
+
 export default function RiderChecklist() {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
@@ -66,7 +86,12 @@ export default function RiderChecklist() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [confirmOrder, setConfirmOrder] = useState<RiderOrder | null>(null);
   const [isDelivering, setIsDelivering] = useState(false);
-  const [claimingOrderId, setClaimingOrderId] = useState<string | null>(null);
+
+  // Manifest print
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false);
+  const [batches, setBatches] = useState<RiderBatch[]>([]);
+  const [batchesLoading, setBatchesLoading] = useState(false);
+  const [printingBatchId, setPrintingBatchId] = useState<string | null>(null);
 
   // Login state
   const [phone, setPhone] = useState('');
@@ -172,43 +197,62 @@ export default function RiderChecklist() {
     toast.success('Refreshed');
   };
 
-  const handleClaim = async (order: RiderOrder) => {
+  // Load printable batches when the manifest dialog opens
+  useEffect(() => {
+    if (!batchDialogOpen || !token) return;
+    let cancelled = false;
+    setBatchesLoading(true);
+    fetch('/api/rider/batches', { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (r) => {
+        if (r.status === 401) {
+          handleLogout();
+          toast.error('Session expired. Please log in again.');
+          return [] as RiderBatch[];
+        }
+        if (!r.ok) return [] as RiderBatch[];
+        return (await r.json()) as RiderBatch[];
+      })
+      .then((data) => {
+        if (!cancelled) setBatches(data);
+      })
+      .catch(() => {
+        if (!cancelled) setBatches([]);
+      })
+      .finally(() => {
+        if (!cancelled) setBatchesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [batchDialogOpen, token]);
+
+  const handlePrintBatch = async (batchId: string) => {
     if (!token) return;
-    setClaimingOrderId(order.order_id);
+    setPrintingBatchId(batchId);
     try {
-      const res = await fetch('/api/rider/claim', {
+      const res = await fetch(`/api/rider/batch/${batchId}/print-manifest`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ order_id: order.order_id }),
       });
-
       if (res.status === 401) {
         handleLogout();
         toast.error('Session expired. Please log in again.');
         return;
       }
-
-      if (res.status === 409) {
-        toast.error('Order already claimed by another rider');
-        await fetchOrders(token);
-        return;
-      }
-
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || 'Failed to claim order');
+        toast.error(data.error || 'Print failed');
         return;
       }
-
-      toast.success(`Claimed order ${order.order_number}`);
-      await fetchOrders(token);
+      toast.success(data.message || 'Manifest sent to printer');
+      setBatchDialogOpen(false);
     } catch {
-      toast.error('Failed to claim order');
+      toast.error('Network error');
     } finally {
-      setClaimingOrderId(null);
+      setPrintingBatchId(null);
     }
   };
 
@@ -340,6 +384,15 @@ export default function RiderChecklist() {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setBatchDialogOpen(true)}
+              className="text-white hover:bg-white/20"
+              title="Print delivery manifest"
+            >
+              <Printer className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleRefresh}
               disabled={isRefreshing}
               className="text-white hover:bg-white/20"
@@ -378,7 +431,7 @@ export default function RiderChecklist() {
 
         {/* Pending orders */}
         {orders.map((order) => (
-          <Card key={order.order_id} className={`border-l-4 ${!order.assigned_driver_id ? 'border-l-blue-400' : order.assigned_driver_id === driver?.id ? 'border-l-orange-400' : 'border-l-border'}`}>
+          <Card key={order.order_id} className="border-l-4 border-l-orange-400">
             <CardContent className="p-4">
               <div className="flex items-start justify-between mb-2">
                 <div>
@@ -413,7 +466,7 @@ export default function RiderChecklist() {
                   size="sm"
                   className="flex-none"
                   onClick={() => {
-                    window.location.href = `tel:${order.customer_phone}`;
+                    window.location.href = `tel:${order.customer_phone_alt || order.customer_phone}`;
                   }}
                   title="Call customer"
                 >
@@ -433,33 +486,14 @@ export default function RiderChecklist() {
                 >
                   <Navigation className="h-4 w-4" />
                 </Button>
-                {!order.assigned_driver_id ? (
-                  <Button
-                    className="flex-1 h-11 text-base bg-blue-600 hover:bg-blue-700"
-                    onClick={() => handleClaim(order)}
-                    disabled={claimingOrderId === order.order_id}
-                  >
-                    {claimingOrderId === order.order_id ? (
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    ) : (
-                      <Hand className="h-5 w-5 mr-2" />
-                    )}
-                    Claim
-                  </Button>
-                ) : order.assigned_driver_id === driver?.id ? (
-                  <Button
-                    className="flex-1 h-11 text-base"
-                    onClick={() => setConfirmOrder(order)}
-                    disabled={!order.assignment_id}
-                  >
-                    <CheckCircle2 className="h-5 w-5 mr-2" />
-                    Delivered
-                  </Button>
-                ) : (
-                  <Badge variant="outline" className="flex-1 h-11 flex items-center justify-center text-base bg-muted text-muted-foreground border-border">
-                    Claimed
-                  </Badge>
-                )}
+                <Button
+                  className="flex-1 h-11 text-base"
+                  onClick={() => setConfirmOrder(order)}
+                  disabled={!order.assignment_id}
+                >
+                  <CheckCircle2 className="h-5 w-5 mr-2" />
+                  Delivered
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -535,6 +569,80 @@ export default function RiderChecklist() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Print manifest — pick a batch */}
+      <Dialog open={batchDialogOpen} onOpenChange={setBatchDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Print Delivery Manifest</DialogTitle>
+            <DialogDescription>
+              Pick a batch to print its map-optimized stop list to the kitchen printer.
+            </DialogDescription>
+          </DialogHeader>
+
+          {batchesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : batches.length === 0 ? (
+            <div className="text-center py-6 text-sm text-muted-foreground">
+              No batches scheduled for today.
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {batches.map((b) => {
+                const windowStr =
+                  b.delivery_start && b.delivery_end
+                    ? `${b.delivery_start.slice(0, 5)} - ${b.delivery_end.slice(0, 5)}`
+                    : '';
+                const cutoffStr = b.cutoff_time ? b.cutoff_time.slice(0, 5) : null;
+                const isPrinting = printingBatchId === b.id;
+                return (
+                  <div
+                    key={b.id}
+                    className={`flex items-center justify-between gap-3 p-3 border rounded-lg ${
+                      b.printable ? '' : 'opacity-60'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm truncate">{b.window_name}</span>
+                        <Badge variant="outline" className="text-[10px] px-1 py-0">
+                          {b.status}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {windowStr}
+                        {windowStr && ' · '}
+                        {b.stop_count} {b.stop_count === 1 ? 'stop' : 'stops'}
+                      </p>
+                      {!b.printable && cutoffStr && (
+                        <p className="text-[11px] text-amber-600 mt-0.5">
+                          Opens at {cutoffStr}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handlePrintBatch(b.id)}
+                      disabled={isPrinting || !b.printable || b.stop_count === 0}
+                    >
+                      {isPrinting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Printer className="h-4 w-4 mr-1" />
+                          Print
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
