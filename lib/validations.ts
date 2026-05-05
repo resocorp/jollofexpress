@@ -13,11 +13,8 @@ export const deliveryAddressSchema = z.object({
   orderType: z.enum(['delivery', 'carryout']),
   fullAddress: z.string().optional(),
   phone: phoneSchema,
-  phoneAlt: z
-    .string()
-    .regex(nigerianPhoneRegex, 'Please enter a valid Nigerian phone number')
-    .optional()
-    .or(z.literal('')),
+  phoneAlt: phoneSchema,
+  phoneAltDifferent: z.boolean(),
   deliveryInstructions: z.string().max(200).optional(),
 });
 
@@ -52,6 +49,7 @@ export const checkoutSchema = deliveryAddressSchema
         });
       }
     }
+
   });
 
 export type CheckoutFormData = z.infer<typeof checkoutSchema>;

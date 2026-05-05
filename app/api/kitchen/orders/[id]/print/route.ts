@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { formatReceipt } from '@/lib/print/format-receipt';
+import { triggerImmediatePrint } from '@/lib/print/print-processor';
+import { logPrintAudit } from '@/lib/print/audit-log';
 
 export async function POST(
   request: NextRequest,
@@ -17,7 +19,6 @@ export async function POST(
     const queryField = isUUID ? 'id' : 'order_number';
     console.log(`[REPRINT] Querying by ${queryField}:`, id);
 
-    // Fetch full order with items
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
@@ -37,15 +38,12 @@ export async function POST(
 
     console.log('[REPRINT] Order found:', order.order_number);
 
-    // Format receipt data
     const receiptData = formatReceipt(order);
-    console.log('[REPRINT] Receipt data formatted');
 
-    // Add to print queue with formatted data
     const { data: insertedJob, error: printError } = await supabase
       .from('print_queue')
       .insert({
-        order_id: order.id, // Use the actual UUID from the fetched order
+        order_id: order.id,
         print_data: receiptData,
         status: 'pending',
       })
@@ -53,6 +51,22 @@ export async function POST(
       .single();
 
     if (printError) {
+      // Partial unique index: a pending row for this order already exists
+      // (e.g. the original print hasn't gone out yet). Treat as success —
+      // the existing row will be printed shortly.
+      if ((printError as { code?: string }).code === '23505') {
+        console.log('[REPRINT] Pending job already exists for order:', order.id);
+        await logPrintAudit({
+          event: 'duplicate_blocked',
+          source: 'kitchen_reprint',
+          orderId: order.id,
+          details: { reason: 'pending_already_exists' },
+        }, supabase);
+        return NextResponse.json({
+          success: true,
+          message: `A pending print job already exists for order ${order.order_number}`,
+        });
+      }
       console.error('[REPRINT] Error adding to print queue:', printError);
       return NextResponse.json(
         { error: 'Failed to queue print job', details: printError.message },
@@ -61,6 +75,18 @@ export async function POST(
     }
 
     console.log('[REPRINT] Print job queued successfully:', insertedJob.id);
+    await logPrintAudit({
+      event: 'queued',
+      source: 'kitchen_reprint',
+      orderId: order.id,
+      printJobId: insertedJob.id,
+    }, supabase);
+
+    // Fire an immediate print so the staff member sees paper come out fast.
+    // Race-safe via the same atomic claim the worker poll uses.
+    triggerImmediatePrint(order.id).catch((err) => {
+      console.error('[REPRINT] Immediate print error:', err);
+    });
 
     return NextResponse.json({
       success: true,

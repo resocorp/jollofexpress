@@ -110,7 +110,7 @@ export function CartSheet() {
               {formatCurrency(amountToFreeDelivery)} away from <strong>FREE DELIVERY</strong>
             </span>
           </div>
-          <div className="w-full h-2 bg-orange-200 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-orange-200 dark:bg-orange-500/20 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-orange-400 to-green-500 rounded-full transition-all duration-500"
               style={{ width: `${freeDeliveryPercent}%` }}

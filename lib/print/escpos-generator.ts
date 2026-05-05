@@ -63,12 +63,14 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
   commands.push(BOLD_ON);
   commands.push(LARGE);
   commands.push(`${receipt.customerName}` + LF);
-  commands.push(`${receipt.customerPhone}` + LF);
+  if (receipt.customerPhoneAlt) {
+    commands.push(`WhatsApp: ${receipt.customerPhone}` + LF);
+    commands.push(`Calling:  ${receipt.customerPhoneAlt}` + LF);
+  } else {
+    commands.push(`${receipt.customerPhone}` + LF);
+  }
   commands.push(NORMAL);
   commands.push(BOLD_OFF);
-  if (receipt.customerPhoneAlt) {
-    commands.push(`Alt: ${receipt.customerPhoneAlt}` + LF);
-  }
   commands.push(`${receipt.orderType.toUpperCase()}` + LF);
   commands.push(line('-', 48) + LF);
   

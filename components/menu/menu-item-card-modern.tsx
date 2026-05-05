@@ -69,7 +69,7 @@ export function MenuItemCard({ item, index = 0 }: MenuItemCardProps) {
           item.is_available ? "cursor-pointer" : "cursor-not-allowed opacity-90"
         )}>
           {/* Image Section */}
-          <div className="relative aspect-[4/3] bg-gradient-to-br from-orange-50 via-white to-red-50 overflow-hidden rounded-t-xl">
+          <div className="relative aspect-[4/3] bg-muted overflow-hidden rounded-t-xl">
             {item.image_url ? (
               <motion.div variants={imageVariants} className="h-full w-full">
                 <Image

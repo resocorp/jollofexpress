@@ -17,6 +17,10 @@ function buildFaqItems(hasTwoBatches: boolean, batches: { windowName: string; cu
         : 'We grill every shawarma fresh to order in daily batches. This means your food is never sitting around — it goes straight from the grill to your door, hot and delicious.',
     },
     {
+      question: 'Are you open on Sundays?',
+      answer: "We're closed every Sunday. If you order on a Sunday (or after the Saturday cutoff), your shawarma will be grilled fresh and delivered the following Monday afternoon. You'll get a WhatsApp update before it goes out.",
+    },
+    {
       question: 'What happens after the order cutoff?',
       answer: hasTwoBatches
         ? `If you miss the ${sorted[0].windowName} cutoff (${sorted[0].cutoffTime}), you can still order for the ${sorted[1].windowName} (delivered ${sorted[1].deliveryWindow}). After both cutoffs, you can pre-order for the next day.`

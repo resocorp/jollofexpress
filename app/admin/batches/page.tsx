@@ -33,6 +33,7 @@ interface Batch {
   status: string;
   orders_placed: number;
   total_orders: number;
+  delivery_stops: number;
   max_capacity: number;
   capacity_percent: number;
   delivery_window: string;
@@ -54,17 +55,85 @@ function formatTime(time: string): string {
   return `${displayH}:${String(m).padStart(2, '0')} ${period}`;
 }
 
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+
+function formatDaysOfWeek(days: number[] | null | undefined): string {
+  if (!days || days.length === 7) return 'Every day';
+  if (days.length === 0) return 'No days';
+  const sorted = [...days].sort();
+  return sorted.map((d) => DAY_LABELS[d]).join(', ');
+}
+
+function DaysOfWeekPicker({
+  value,
+  onChange,
+}: {
+  value: number[] | null;
+  onChange: (next: number[] | null) => void;
+}) {
+  // null = every day; treat as all selected for display
+  const selected = value === null ? ALL_DAYS : value;
+  const toggle = (day: number) => {
+    const has = selected.includes(day);
+    const next = has ? selected.filter((d) => d !== day) : [...selected, day].sort();
+    // Normalize "all 7 selected" back to null (= every day) for cleaner DB state
+    if (next.length === 7) onChange(null);
+    else onChange(next);
+  };
+  return (
+    <div>
+      <Label className="text-xs text-muted-foreground">Active days</Label>
+      <div className="flex flex-wrap gap-1.5 mt-1.5">
+        {ALL_DAYS.map((d) => {
+          const isSelected = selected.includes(d);
+          return (
+            <button
+              key={d}
+              type="button"
+              onClick={() => toggle(d)}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+                isSelected
+                  ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
+                  : 'bg-background border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {DAY_LABELS[d]}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[10px] text-muted-foreground mt-1">
+        {value === null
+          ? 'Every day (deselect a day to skip it, e.g. Sunday)'
+          : selected.length === 0
+          ? 'Pick at least one day'
+          : `Active: ${formatDaysOfWeek(selected)}`}
+      </p>
+    </div>
+  );
+}
+
 export default function BatchesPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [showNewWindow, setShowNewWindow] = useState(false);
-  const [newWindow, setNewWindow] = useState({
+  const [newWindow, setNewWindow] = useState<{
+    name: string;
+    order_open_time: string;
+    cutoff_time: string;
+    delivery_start: string;
+    delivery_end: string;
+    max_capacity: number;
+    days_of_week: number[] | null;
+  }>({
     name: '',
     order_open_time: '08:00',
     cutoff_time: '14:00',
     delivery_start: '16:00',
     delivery_end: '18:00',
     max_capacity: 50,
+    days_of_week: null,
   });
 
   // Fetch delivery windows
@@ -115,7 +184,7 @@ export default function BatchesPage() {
       queryClient.invalidateQueries({ queryKey: ['delivery-windows'] });
       toast.success('Delivery window created');
       setShowNewWindow(false);
-      setNewWindow({ name: '', order_open_time: '08:00', cutoff_time: '14:00', delivery_start: '16:00', delivery_end: '18:00', max_capacity: 50 });
+      setNewWindow({ name: '', order_open_time: '08:00', cutoff_time: '14:00', delivery_start: '16:00', delivery_end: '18:00', max_capacity: 50, days_of_week: null });
     },
     onError: () => toast.error('Failed to create delivery window'),
   });
@@ -233,8 +302,9 @@ export default function BatchesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {batchesData.batches.map((batch) => {
               const sc = STATUS_COLORS[batch.status] || STATUS_COLORS.accepting;
-              const orderCount = batch.orders_placed ?? batch.total_orders ?? 0;
-              const pct = batch.max_capacity > 0 ? Math.round((orderCount / batch.max_capacity) * 100) : 0;
+              const activeOrders = batch.orders_placed ?? batch.total_orders ?? 0;
+              const stops = batch.delivery_stops ?? 0;
+              const pct = batch.max_capacity > 0 ? Math.round((activeOrders / batch.max_capacity) * 100) : 0;
               return (
                 <Card key={batch.batch_id} className="bg-card border-border">
                   <CardContent className="p-5">
@@ -245,11 +315,14 @@ export default function BatchesPage() {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">{batch.delivery_window}</p>
-                    
-                    {/* Capacity bar */}
+
+                    {/* Stops + capacity bar */}
                     <div className="mb-3">
                       <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                        <span>{orderCount} orders</span>
+                        <span>
+                          <span className="text-foreground font-semibold">{stops}</span> stops
+                          <span className="ml-2 opacity-70">({activeOrders} {activeOrders === 1 ? 'order' : 'orders'})</span>
+                        </span>
                         <span>{pct}% / {batch.max_capacity} max</span>
                       </div>
                       <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -371,10 +444,18 @@ export default function BatchesPage() {
                 <Label className="text-xs text-muted-foreground">Max Capacity</Label>
                 <Input type="number" value={newWindow.max_capacity} onChange={(e) => setNewWindow({ ...newWindow, max_capacity: parseInt(e.target.value) || 50 })} className="bg-background border-border text-foreground text-sm h-9" />
               </div>
+              <DaysOfWeekPicker
+                value={newWindow.days_of_week}
+                onChange={(days_of_week) => setNewWindow({ ...newWindow, days_of_week })}
+              />
               <div className="flex gap-2">
                 <Button
                   onClick={() => createWindowMutation.mutate(newWindow)}
-                  disabled={createWindowMutation.isPending || !newWindow.name}
+                  disabled={
+                    createWindowMutation.isPending ||
+                    !newWindow.name ||
+                    (newWindow.days_of_week !== null && newWindow.days_of_week.length === 0)
+                  }
                   size="sm"
                   className="bg-gradient-to-r from-red-600 to-orange-500 text-white text-xs"
                 >
@@ -422,8 +503,20 @@ export default function BatchesPage() {
                     <Label className="text-xs text-muted-foreground">Max Capacity</Label>
                     <Input type="number" value={editWindow.max_capacity || 50} onChange={(e) => setEditWindow({ ...editWindow, max_capacity: parseInt(e.target.value) || 50 })} className="bg-background border-border text-foreground text-sm h-9" />
                   </div>
+                  <DaysOfWeekPicker
+                    value={editWindow.days_of_week ?? null}
+                    onChange={(days_of_week) => setEditWindow({ ...editWindow, days_of_week })}
+                  />
                   <div className="flex gap-2">
-                    <Button onClick={saveEdit} disabled={updateWindowMutation.isPending} size="sm" className="bg-green-600 hover:bg-green-500 text-white text-xs">
+                    <Button
+                      onClick={saveEdit}
+                      disabled={
+                        updateWindowMutation.isPending ||
+                        (editWindow.days_of_week !== null && editWindow.days_of_week !== undefined && editWindow.days_of_week.length === 0)
+                      }
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-500 text-white text-xs"
+                    >
                       {updateWindowMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Check className="h-3 w-3 mr-1" />}
                       Save
                     </Button>
@@ -441,6 +534,9 @@ export default function BatchesPage() {
                       <p className="text-sm font-medium text-foreground">{w.name}</p>
                       <p className="text-xs text-muted-foreground">
                         Orders {formatTime(w.order_open_time)} – {formatTime(w.cutoff_time)} · Delivery {formatTime(w.delivery_start)} – {formatTime(w.delivery_end)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Active days: <span className="text-foreground">{formatDaysOfWeek(w.days_of_week)}</span>
                       </p>
                     </div>
                   </div>
@@ -493,7 +589,10 @@ export default function BatchesPage() {
                   <span className="text-sm font-medium text-foreground">{b.window_name}</span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-xs text-muted-foreground">{b.total_orders} orders</span>
+                  <span className="text-xs text-muted-foreground">
+                    <span className="text-foreground font-semibold">{b.delivery_stops ?? 0}</span> stops
+                    <span className="ml-2 opacity-70">({b.total_orders} {b.total_orders === 1 ? 'order' : 'orders'})</span>
+                  </span>
                   <Badge className={`${sc.bg} ${sc.text} border-0 text-xs capitalize`}>
                     {b.status}
                   </Badge>

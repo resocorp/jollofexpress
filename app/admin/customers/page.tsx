@@ -48,6 +48,7 @@ import {
   Tag
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
+import { useCurrentUser } from '@/hooks/use-current-user';
 
 interface CustomerLocation {
   latitude: number;
@@ -97,6 +98,8 @@ interface Influencer {
 }
 
 export default function CustomersPage() {
+  const { data: me, isLoading: meLoading } = useCurrentUser();
+  const canSeeRevenue = !meLoading && me?.role === 'admin';
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -180,7 +183,7 @@ export default function CustomersPage() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${canSeeRevenue ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
@@ -224,18 +227,20 @@ export default function CustomersPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <Banknote className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(summary.total_revenue)}</div>
-              <p className="text-xs text-muted-foreground">
-                Avg: {formatCurrency(summary.total_customers > 0 ? summary.total_revenue / summary.total_customers : 0)} per customer
-              </p>
-            </CardContent>
-          </Card>
+          {canSeeRevenue && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <Banknote className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(summary.total_revenue)}</div>
+                <p className="text-xs text-muted-foreground">
+                  Avg: {formatCurrency(summary.total_customers > 0 ? summary.total_revenue / summary.total_customers : 0)} per customer
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 

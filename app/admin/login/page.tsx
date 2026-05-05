@@ -39,10 +39,10 @@ export default function AdminLoginPage() {
         throw new Error('No user returned from authentication');
       }
 
-      // Verify user has admin or kitchen role
+      // Verify user has a staff role and is not disabled
       const { data: userProfile, error: profileError } = await supabase
         .from('users')
-        .select('role')
+        .select('role, disabled, must_change_password')
         .eq('id', data.user.id)
         .single();
 
@@ -50,13 +50,27 @@ export default function AdminLoginPage() {
         throw new Error('Failed to fetch user profile');
       }
 
-      if (userProfile.role !== 'admin' && userProfile.role !== 'kitchen') {
+      if (userProfile.disabled) {
         await supabase.auth.signOut();
-        throw new Error('Access denied. Admin or kitchen role required.');
+        throw new Error('Account disabled. Contact an administrator.');
       }
 
-      // Redirect to admin dashboard
-      router.push('/admin');
+      const allowedRoles = ['admin', 'kitchen', 'customer_care_agent'];
+      if (!allowedRoles.includes(userProfile.role)) {
+        await supabase.auth.signOut();
+        throw new Error('Access denied. Staff role required.');
+      }
+
+      // First-login password change for agents/kitchen onboarded by an admin
+      if (userProfile.must_change_password) {
+        router.push('/admin/account?firstLogin=1');
+        router.refresh();
+        return;
+      }
+
+      // Route based on role
+      const home = userProfile.role === 'customer_care_agent' ? '/admin/whatsapp' : '/admin';
+      router.push(home);
       router.refresh();
     } catch (err) {
       console.error('Login error:', err);

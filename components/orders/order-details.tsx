@@ -23,14 +23,21 @@ export function OrderDetails({ order }: OrderDetailsProps) {
             <User className="h-4 w-4 text-muted-foreground" />
             <span>{order.customer_name}</span>
           </div>
-          <div className="flex items-center gap-3">
-            <Phone className="h-4 w-4 text-muted-foreground" />
-            <span>{formatPhoneNumber(order.customer_phone)}</span>
-          </div>
-          {order.customer_phone_alt && (
+          {order.customer_phone_alt ? (
+            <>
+              <div className="flex items-center gap-3">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span>WhatsApp: {formatPhoneNumber(order.customer_phone)}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span>Calling: {formatPhoneNumber(order.customer_phone_alt)}</span>
+              </div>
+            </>
+          ) : (
             <div className="flex items-center gap-3">
               <Phone className="h-4 w-4 text-muted-foreground" />
-              <span>{formatPhoneNumber(order.customer_phone_alt)} (Alt)</span>
+              <span>{formatPhoneNumber(order.customer_phone)}</span>
             </div>
           )}
           {order.customer_email && (

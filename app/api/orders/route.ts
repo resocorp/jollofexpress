@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { isRestaurantOpen, checkAndManageCapacity } from '@/lib/kitchen-capacity';
 import { shouldBeOpenNow } from '@/lib/operating-hours';
-import { assignOrderToBatch, getNextAvailableBatch } from '@/lib/batch/batch-service';
+import { getNextAvailableBatch } from '@/lib/batch/batch-service';
 import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 import { signOrderToken } from '@/lib/qr/sign';
 import { z } from 'zod';
@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
       ? `Pre-order for ${deliveryDate} delivery window ${deliveryWindow}`
       : '';
 
-    console.log(`� Assigning order to batch: ${nextBatch.id} (${deliveryWindow}, preorder: ${isPreorder})`);
+    console.log(`Assigning order to batch: ${nextBatch.id} (${deliveryWindow}, preorder: ${isPreorder})`);
 
     // Generate unique order number
     const orderNumber = generateOrderNumber();
@@ -250,7 +250,10 @@ export async function POST(request: NextRequest) {
         order_number: orderNumber,
         customer_name: orderData.customer_name,
         customer_phone: orderData.customer_phone,
-        customer_phone_alt: orderData.customer_phone_alt,
+        customer_phone_alt:
+          orderData.customer_phone_alt && orderData.customer_phone_alt !== orderData.customer_phone
+            ? orderData.customer_phone_alt
+            : null,
         customer_email: orderData.customer_email,
         order_type: orderData.order_type,
         delivery_city: orderData.delivery_city,

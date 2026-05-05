@@ -63,6 +63,16 @@ export async function evaluateGeofenceForDriver(
 
   if (error || !orders || orders.length === 0) return results;
 
+  // One driver lookup per evaluation — name + plate threaded into the
+  // "rider nearby" WhatsApp so the customer knows who is arriving.
+  const { data: driver } = await supabase
+    .from('drivers')
+    .select('name, vehicle_plate')
+    .eq('id', driverId)
+    .maybeSingle();
+  const riderName = driver?.name ?? null;
+  const vehiclePlate = driver?.vehicle_plate ?? null;
+
   for (const order of orders) {
     const distance = haversineMeters(
       driverLat,
@@ -85,7 +95,9 @@ export async function evaluateGeofenceForDriver(
           order.customer_name,
           order.order_number,
           order.delivery_address || 'your location',
-          order.id
+          order.id,
+          riderName,
+          vehiclePlate
         );
         if (sent) {
           const updatedNotes = order.notes

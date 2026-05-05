@@ -9,7 +9,6 @@ import { Clock, Settings, Power, PowerOff, Loader2, Receipt } from 'lucide-react
 import { Button } from '@/components/ui/button';
 import { KanbanBoard } from '@/components/kitchen/kanban-board';
 import { KitchenControls } from '@/components/kitchen/kitchen-controls';
-import { AutoPrintHandler } from '@/components/print/auto-print-handler';
 import { useKitchenOrders } from '@/hooks/use-orders';
 import { useRestaurantStatus } from '@/hooks/use-settings';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -65,9 +64,6 @@ export default function KitchenPage() {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gray-900 text-white">
-        {/* Auto-print handler - monitors print queue and triggers printing */}
-        <AutoPrintHandler />
-        
         {/* Header */}
         <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
           <div className="flex items-center justify-between">

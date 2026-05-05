@@ -5,6 +5,7 @@ interface ManifestOrder {
   order_number: string;
   customer_name: string;
   customer_phone: string;
+  customer_phone_alt?: string | null;
   delivery_address: string | null;
   delivery_city: string | null;
   delivery_instructions: string | null;
@@ -84,7 +85,12 @@ export function formatDeliveryManifest(data: ManifestData): string {
       `#${order.order_number}  ${truncate(order.customer_name, 20)}`,
       isPaid ? '[PAID]' : isCOD ? '[COD]' : `[${order.payment_status.toUpperCase()}]`
     ));
-    lines.push(`Tel: ${order.customer_phone}`);
+    if (order.customer_phone_alt) {
+      lines.push(`WA:   ${order.customer_phone}`);
+      lines.push(`Call: ${order.customer_phone_alt}`);
+    } else {
+      lines.push(`Tel: ${order.customer_phone}`);
+    }
 
     if (order.delivery_city || order.delivery_address) {
       const addr = [order.delivery_city, order.delivery_address].filter(Boolean).join(', ');

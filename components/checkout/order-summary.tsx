@@ -170,7 +170,7 @@ export function OrderSummaryWithButton({
 
   return (
     <Card className="border-2 shadow-lg overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-primary/10 via-orange-50 to-red-50 border-b">
+      <CardHeader className="bg-gradient-to-r from-primary/10 via-orange-500/5 to-red-500/5 border-b">
         <CardTitle className="flex items-center gap-2 text-xl">
           <ShoppingCart className="h-5 w-5 text-primary" />
           Order Summary
@@ -260,7 +260,7 @@ export function OrderSummaryWithButton({
                 variant="ghost"
                 size="sm"
                 onClick={handleRemovePromo}
-                className="h-auto p-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="h-auto p-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-500/10"
               >
                 <XCircle className="h-4 w-4" />
               </Button>

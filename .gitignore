@@ -97,3 +97,9 @@ MIGRATE_*.md
 /logs/
 /plans/
 /tmp/
+
+# Local one-off investigation scripts (root level)
+/dump-session-histories.mjs
+/inspect-affected-sessions.mjs
+/list-failed-ai-replies.mjs
+/lookup-order.mjs

@@ -71,6 +71,9 @@ export function HowItWorksStrip() {
           </div>
         ))}
       </div>
+      <p className="text-center text-[11px] sm:text-xs text-muted-foreground mt-2">
+        Closed Sundays · Sunday orders deliver Monday afternoon
+      </p>
     </motion.div>
   );
 }

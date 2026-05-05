@@ -82,9 +82,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No driver position available' }, { status: 404 });
     }
 
-    // Get orders in this batch that are out_for_delivery and have GPS
-    // Note: proximity_notified column must exist on orders table
-    // If it doesn't exist yet, the query will still work — it just won't filter
+    // Get orders in this batch that are out_for_delivery and have GPS.
+    // assigned_driver_id is pulled so we can name the rider in the customer's
+    // WhatsApp ("Tunde on ABC-123-XY is nearby"). Falls back to a generic
+    // wording when unassigned.
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select(`
@@ -96,7 +97,8 @@ export async function POST(request: NextRequest) {
         customer_longitude,
         delivery_address,
         status,
-        notes
+        notes,
+        assigned_driver_id
       `)
       .eq('batch_id', batchId)
       .eq('order_type', 'delivery')
@@ -109,6 +111,25 @@ export async function POST(request: NextRequest) {
     }
 
     const notifications: { orderId: string; orderNumber: string; distance: number }[] = [];
+
+    // Batch-fetch driver info for any orders that have an assignment.
+    const driverIds = Array.from(
+      new Set(
+        (orders || [])
+          .map(o => (o as { assigned_driver_id?: string | null }).assigned_driver_id)
+          .filter((id): id is string => !!id)
+      )
+    );
+    const driverInfoById = new Map<string, { name: string | null; vehicle_plate: string | null }>();
+    if (driverIds.length > 0) {
+      const { data: drivers } = await supabase
+        .from('drivers')
+        .select('id, name, vehicle_plate')
+        .in('id', driverIds);
+      for (const d of drivers || []) {
+        driverInfoById.set(d.id, { name: d.name ?? null, vehicle_plate: d.vehicle_plate ?? null });
+      }
+    }
 
     for (const order of orders || []) {
       // Skip if already notified (use notes field to track, or a separate column if available)
@@ -124,12 +145,16 @@ export async function POST(request: NextRequest) {
 
       if (distance <= PROXIMITY_RADIUS_M) {
         try {
+          const assignedId = (order as { assigned_driver_id?: string | null }).assigned_driver_id;
+          const driverInfo = assignedId ? driverInfoById.get(assignedId) : undefined;
           const sent = await sendRiderNearbyNotification(
             order.customer_phone,
             order.customer_name,
             order.order_number,
             order.delivery_address || 'your location',
-            order.id
+            order.id,
+            driverInfo?.name ?? null,
+            driverInfo?.vehicle_plate ?? null
           );
 
           if (sent) {

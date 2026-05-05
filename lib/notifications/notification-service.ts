@@ -427,24 +427,26 @@ export async function sendSystemAlert(title: string, alertMessage: string): Prom
 // ============================================
 
 /**
- * Send rider nearby notification to customer
+ * Send rider nearby notification to customer. `riderName` and `vehiclePlate`
+ * are optional so existing callers (and missing driver records) still work.
  */
 export async function sendRiderNearbyNotification(
   phone: string,
   customerName: string,
   orderNumber: string,
   deliveryAddress: string,
-  orderId: string
+  orderId: string,
+  riderName?: string | null,
+  vehiclePlate?: string | null
 ): Promise<boolean> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://myshawarma.express';
-  const trackingUrl = `${appUrl}/orders/${orderId}`;
-  const message =
-    `🏍️ *Your rider is nearby!*\n\n` +
-    `Hi ${customerName}, your MyShawarma delivery (Order #${orderNumber}) ` +
-    `is almost at your location. Please be ready to receive your order!\n\n` +
-    `📍 Delivering to: ${deliveryAddress}\n\n` +
-    `🔗 Track your rider live: ${trackingUrl}\n\n` +
-    `Thank you for ordering from MyShawarma! 🌯`;
+  const message = templates.riderNearbyMessage({
+    customerName,
+    orderNumber,
+    deliveryAddress,
+    orderId,
+    riderName,
+    vehiclePlate,
+  });
 
   return sendNotification({
     phone,

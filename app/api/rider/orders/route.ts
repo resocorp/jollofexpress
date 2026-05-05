@@ -11,7 +11,9 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServiceClient();
 
-    // Fetch ALL orders that are out for delivery (not just assigned to this rider)
+    // Each rider only sees orders they personally scanned (= are now assigned to
+    // them). Admin pre-assignments without a scan are intentionally excluded —
+    // the scan is what makes an order "mine".
     const { data: orders, error } = await supabase
       .from('orders')
       .select(`
@@ -19,6 +21,7 @@ export async function GET(request: NextRequest) {
         order_number,
         customer_name,
         customer_phone,
+        customer_phone_alt,
         delivery_address,
         total,
         payment_method_type,
@@ -28,6 +31,7 @@ export async function GET(request: NextRequest) {
         assigned_driver_id
       `)
       .eq('status', 'out_for_delivery')
+      .eq('assigned_driver_id', auth.driver_id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -44,6 +48,7 @@ export async function GET(request: NextRequest) {
         .from('delivery_assignments')
         .select('id, order_id')
         .in('order_id', orderIds)
+        .eq('driver_id', auth.driver_id)
         .in('status', ['pending', 'accepted', 'picked_up']);
 
       if (assignments) {
@@ -57,6 +62,7 @@ export async function GET(request: NextRequest) {
       order_number: order.order_number,
       customer_name: order.customer_name,
       customer_phone: order.customer_phone,
+      customer_phone_alt: order.customer_phone_alt,
       delivery_address: order.delivery_address,
       total: order.total,
       payment_method_type: order.payment_method_type,

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { formatReceipt } from '@/lib/print/format-receipt';
 import { triggerImmediatePrint } from '@/lib/print/print-processor';
+import { logPrintAudit } from '@/lib/print/audit-log';
 
 export async function POST(request: NextRequest) {
   try {
@@ -128,28 +129,43 @@ export async function POST(request: NextRequest) {
       .eq('id', order_id)
       .single();
 
-    // Format receipt data and add to print queue (with idempotency check)
+    // Idempotent insert into print queue. The partial unique index
+    // uq_print_queue_one_pending_per_order serialises with the webhook
+    // path: whichever request arrives first inserts, the other receives
+    // a 23505 unique violation and silently moves on.
     if (completeOrder) {
-      // Check if print job already exists for this order
-      const { data: existingPrintJob } = await supabase
+      const receiptData = formatReceipt(completeOrder);
+      const { error: insertError } = await supabase
         .from('print_queue')
-        .select('id')
-        .eq('order_id', order_id)
-        .maybeSingle();
-
-      if (!existingPrintJob) {
-        const receiptData = formatReceipt(completeOrder);
-
-        // Add to print queue with formatted data
-        await supabase.from('print_queue').insert({
+        .insert({
           order_id: order_id,
           print_data: receiptData,
           status: 'pending',
         });
-        console.log(`Added order ${order_id} to print queue`);
 
-        // Trigger immediate printing (non-blocking, fire-and-forget)
-        // If this fails, the job stays in queue for the print-worker to retry
+      if (insertError) {
+        if ((insertError as { code?: string }).code === '23505') {
+          console.log(`[VERIFY-PAYMENT] Print job already queued for order ${order_id} (race lost)`);
+          await logPrintAudit({
+            event: 'duplicate_blocked',
+            source: 'verify_payment',
+            orderId: order_id,
+            details: { reason: 'unique_violation' },
+          }, supabase);
+        } else {
+          console.error(`[VERIFY-PAYMENT] Failed to queue print for order ${order_id}:`, insertError);
+        }
+      } else {
+        console.log(`Added order ${order_id} to print queue`);
+        await logPrintAudit({
+          event: 'queued',
+          source: 'verify_payment',
+          orderId: order_id,
+        }, supabase);
+
+        // Trigger immediate printing (non-blocking, fire-and-forget). The
+        // worker poll and triggerImmediatePrint share an atomic claim, so
+        // the same row can't be picked up twice.
         triggerImmediatePrint(order_id).then((result) => {
           if (result.success) {
             console.log(`[VERIFY-PAYMENT] Immediate print succeeded for order ${order_id}`);
@@ -159,8 +175,6 @@ export async function POST(request: NextRequest) {
         }).catch((err) => {
           console.error(`[VERIFY-PAYMENT] Immediate print error for order ${order_id}:`, err);
         });
-      } else {
-        console.log(`Print job already exists for order ${order_id}, skipping`);
       }
     }
 

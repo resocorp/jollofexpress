@@ -105,9 +105,16 @@ export function OrderTracker({ order }: OrderTrackerProps) {
               <strong>Your order is on its way!</strong> Our delivery rider will contact you if they need directions.
             </p>
             {order.customer_phone && (
-              <p className="text-sm text-blue-800 mt-2">
-                Contact number: {order.customer_phone}
-              </p>
+              order.customer_phone_alt ? (
+                <div className="text-sm text-blue-800 mt-2 space-y-0.5">
+                  <p>WhatsApp number: {order.customer_phone}</p>
+                  <p>Calling number: {order.customer_phone_alt}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-blue-800 mt-2">
+                  Contact number: {order.customer_phone}
+                </p>
+              )
             )}
           </div>
         )}

@@ -59,7 +59,7 @@ export function EnhancedBanner() {
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute top-full mt-2 left-0 bg-white rounded-lg shadow-lg overflow-hidden z-10 min-w-[150px]"
+                className="absolute top-full mt-2 left-0 bg-popover text-popover-foreground rounded-lg shadow-lg overflow-hidden z-10 min-w-[150px] border border-border"
               >
                 {locations.map((location) => (
                   <button
@@ -68,8 +68,8 @@ export function EnhancedBanner() {
                       setSelectedLocation(location);
                       setShowLocationMenu(false);
                     }}
-                    className={`block w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors ${
-                      selectedLocation === location ? 'bg-gray-50 font-semibold text-[#FF4433]' : 'text-gray-700'
+                    className={`block w-full text-left px-4 py-2 hover:bg-accent transition-colors ${
+                      selectedLocation === location ? 'bg-accent font-semibold text-primary' : 'text-foreground'
                     }`}
                   >
                     {location}

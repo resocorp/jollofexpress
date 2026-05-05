@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { RESTAURANT_LNG_LAT } from '@/lib/delivery/restaurant-location';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 // Restaurant location (Awka) — [lng, lat] for Mapbox
-const RESTAURANT_LOCATION: [number, number] = [7.063700, 6.203072];
+const RESTAURANT_LOCATION: [number, number] = RESTAURANT_LNG_LAT;
 
 interface BatchOrder {
   id: string;
@@ -39,6 +40,10 @@ interface VehicleLocation {
 interface OptimizedRoute {
   orderedIds: string[];
   totalDistance: number;
+  // Optional road-following polyline from Mapbox Optimization. When absent
+  // (nearest-neighbor fallback) the line is drawn straight + dashed.
+  geometry?: GeoJSON.LineString;
+  source?: 'mapbox' | 'fallback';
 }
 
 interface BatchDeliveryMapProps {
@@ -253,16 +258,23 @@ export function BatchDeliveryMap({
     const mapInstance = map.current;
 
     const drawRoute = () => {
-      // Build coordinates array: restaurant → stops in order
-      const coords: [number, number][] = [RESTAURANT_LOCATION];
-      const orderMap = new Map(geoOrders.map(o => [o.id, o]));
+      // Prefer the road-following GeoJSON from Mapbox Optimization when present;
+      // fall back to straight legs between consecutive stops.
+      const isRoadRoute = !!optimizedRoute.geometry && optimizedRoute.source === 'mapbox';
+      let coords: [number, number][];
 
-      optimizedRoute.orderedIds.forEach(id => {
-        const order = orderMap.get(id);
-        if (order?.customer_longitude && order?.customer_latitude) {
-          coords.push([order.customer_longitude, order.customer_latitude]);
-        }
-      });
+      if (optimizedRoute.geometry) {
+        coords = optimizedRoute.geometry.coordinates as [number, number][];
+      } else {
+        coords = [RESTAURANT_LOCATION];
+        const orderMap = new Map(geoOrders.map(o => [o.id, o]));
+        optimizedRoute.orderedIds.forEach(id => {
+          const order = orderMap.get(id);
+          if (order?.customer_longitude && order?.customer_latitude) {
+            coords.push([order.customer_longitude, order.customer_latitude]);
+          }
+        });
+      }
 
       // Remove existing route layer/source
       if (mapInstance.getLayer('route-line')) mapInstance.removeLayer('route-line');
@@ -290,8 +302,9 @@ export function BatchDeliveryMap({
         },
         paint: {
           'line-color': '#6366f1',
-          'line-width': 3,
-          'line-dasharray': [2, 2],
+          'line-width': isRoadRoute ? 4 : 3,
+          // Solid for road routes, dashed when we fell back to straight lines.
+          ...(isRoadRoute ? {} : { 'line-dasharray': [2, 2] }),
         },
       });
 

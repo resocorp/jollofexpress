@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ArrowLeft, Camera, CheckCircle2, Loader2, QrCode, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -17,6 +27,13 @@ interface ScannedOrder {
   already_dispatched: boolean;
 }
 
+interface PendingOverride {
+  qr_token: string;
+  order_number: string;
+  customer_name: string;
+  previous_driver_name: string;
+}
+
 const SCANNER_REGION_ID = 'rider-scan-region';
 const COOLDOWN_MS = 1500; // ignore same token for 1.5s to avoid duplicate scans
 
@@ -26,6 +43,8 @@ export default function RiderScanPage() {
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState<ScannedOrder[]>([]);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [pendingOverride, setPendingOverride] = useState<PendingOverride | null>(null);
+  const [confirmingOverride, setConfirmingOverride] = useState(false);
   const scannerRef = useRef<unknown>(null);
   const recentTokenRef = useRef<{ token: string; at: number } | null>(null);
   const submittingRef = useRef<Set<string>>(new Set());
@@ -40,7 +59,7 @@ export default function RiderScanPage() {
   }, [router]);
 
   const submitToken = useCallback(
-    async (qrToken: string) => {
+    async (qrToken: string, confirmOverride = false) => {
       if (!token) return;
       if (submittingRef.current.has(qrToken)) return;
       submittingRef.current.add(qrToken);
@@ -51,9 +70,24 @@ export default function RiderScanPage() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ qr_token: qrToken }),
+          body: JSON.stringify({
+            qr_token: qrToken,
+            ...(confirmOverride ? { confirm_override: true } : {}),
+          }),
         });
         const data = await res.json();
+
+        // Takeover requires explicit confirmation — surface a dialog.
+        if (res.status === 409 && data.requires_confirmation) {
+          setPendingOverride({
+            qr_token: qrToken,
+            order_number: data.order?.order_number ?? '?',
+            customer_name: data.order?.customer_name ?? '',
+            previous_driver_name: data.previous_driver?.name ?? 'another rider',
+          });
+          return;
+        }
+
         if (!res.ok) {
           setLastError(data.error || 'Scan failed');
           toast.error(data.error || 'Scan failed');
@@ -87,6 +121,17 @@ export default function RiderScanPage() {
     },
     [token]
   );
+
+  const handleConfirmOverride = useCallback(async () => {
+    if (!pendingOverride) return;
+    setConfirmingOverride(true);
+    try {
+      await submitToken(pendingOverride.qr_token, true);
+    } finally {
+      setConfirmingOverride(false);
+      setPendingOverride(null);
+    }
+  }, [pendingOverride, submitToken]);
 
   useEffect(() => {
     if (!scanning || !token) return;
@@ -261,6 +306,32 @@ export default function RiderScanPage() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog
+        open={!!pendingOverride}
+        onOpenChange={(open) => {
+          if (!open && !confirmingOverride) setPendingOverride(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Take over from {pendingOverride?.previous_driver_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Order <strong>#{pendingOverride?.order_number}</strong>
+              {pendingOverride?.customer_name ? <> for <strong>{pendingOverride.customer_name}</strong></> : null}
+              {' '}is currently assigned to <strong>{pendingOverride?.previous_driver_name}</strong>.
+              Confirming will reassign it to you and remove it from their list. The takeover will be logged.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={confirmingOverride}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmOverride} disabled={confirmingOverride}>
+              {confirmingOverride && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Yes, take it over
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

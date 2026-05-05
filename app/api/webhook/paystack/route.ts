@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { formatReceipt } from '@/lib/print/format-receipt';
 import { triggerImmediatePrint } from '@/lib/print/print-processor';
+import { logPrintAudit } from '@/lib/print/audit-log';
 import crypto from 'crypto';
 
 // Verify webhook signature
@@ -283,27 +284,44 @@ export async function POST(request: NextRequest) {
 
         const completeOrder = existingOrder;
 
-        // Format and add to print queue (with idempotency check)
+        // Idempotent insert into print queue. The partial unique index
+        // uq_print_queue_one_pending_per_order makes this race-safe: if the
+        // verify-payment redirect path beat us to it, we get a 23505 unique
+        // violation and treat that as "already queued".
         if (completeOrder) {
-          // Check if print job already exists for this order
-          const { data: existingPrintJob } = await supabase
+          const receiptData = formatReceipt(completeOrder);
+          const { error: insertError } = await supabase
             .from('print_queue')
-            .select('id')
-            .eq('order_id', orderId)
-            .maybeSingle();
-
-          if (!existingPrintJob) {
-            const receiptData = formatReceipt(completeOrder);
-            
-            await supabase.from('print_queue').insert({
+            .insert({
               order_id: orderId,
               print_data: receiptData,
               status: 'pending',
             });
-            console.log(`Added order ${orderId} to print queue`);
 
-            // Trigger immediate printing (non-blocking, fire-and-forget)
-            // If this fails, the job stays in queue for the print-worker to retry
+          if (insertError) {
+            // 23505 = unique_violation — verify-payment already queued it.
+            if ((insertError as { code?: string }).code === '23505') {
+              console.log(`[WEBHOOK] Print job already queued for order ${orderId} (race lost)`);
+              await logPrintAudit({
+                event: 'duplicate_blocked',
+                source: 'webhook',
+                orderId,
+                details: { reason: 'unique_violation' },
+              }, supabase);
+            } else {
+              console.error(`[WEBHOOK] Failed to queue print for order ${orderId}:`, insertError);
+            }
+          } else {
+            console.log(`Added order ${orderId} to print queue`);
+            await logPrintAudit({
+              event: 'queued',
+              source: 'webhook',
+              orderId,
+            }, supabase);
+
+            // Trigger immediate printing (non-blocking, fire-and-forget). The
+            // claim_print_job_for_order RPC inside triggerImmediatePrint
+            // serialises against the worker poll, so this can't double-print.
             triggerImmediatePrint(orderId).then((result) => {
               if (result.success) {
                 console.log(`[WEBHOOK] Immediate print succeeded for order ${orderId}`);
@@ -313,8 +331,6 @@ export async function POST(request: NextRequest) {
             }).catch((err) => {
               console.error(`[WEBHOOK] Immediate print error for order ${orderId}:`, err);
             });
-          } else {
-            console.log(`Print job already exists for order ${orderId}, skipping`);
           }
         }
 

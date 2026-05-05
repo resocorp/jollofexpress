@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 
+const READ_ROLES = ['admin', 'kitchen', 'customer_care_agent'] as const;
+
 interface CustomerLocation {
   latitude: number;
   longitude: number;
@@ -12,7 +14,7 @@ interface CustomerLocation {
 }
 
 export async function GET(request: NextRequest) {
-  const authResult = await verifyAdminAuth(request);
+  const authResult = await verifyAdminAuth(request, [...READ_ROLES]);
   if (!authResult.authenticated) {
     return authResult.response;
   }

@@ -3,7 +3,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createServiceClient } from '@/lib/supabase/service';
-import { phoneVariants, normalizePhone } from '@/lib/whatsapp/identity';
+import { phoneVariants, normalizePhone, recordLidForPhone } from '@/lib/whatsapp/identity';
 import { clearAwaitingFeedback } from '@/lib/ai/session-log';
 import { scoreFeedback } from '@/lib/ai/sentiment';
 
@@ -554,16 +554,34 @@ async function escalateToManager(
     return 'Escalation noted but no admin contacts configured. The issue has been logged.';
   }
 
+  // Enrich: the model often hands us only a session-key "phone" (which may be
+  // a bare WhatsApp LID) and no name. Resolve a callable phone + real name
+  // server-side from the order or the LID map so the alert is actionable.
+  const enriched = await resolveEscalationIdentity({
+    sessionPhone: customerPhone,
+    providedName: customerName,
+    orderNumber,
+  });
+
   const timestamp = new Date().toLocaleString('en-NG', {
     timeZone: 'Africa/Lagos',
     dateStyle: 'short',
     timeStyle: 'short',
   });
 
+  const phoneLine = enriched.callablePhone
+    ? `📞 Phone: ${enriched.callablePhone}\n`
+    : `📞 WhatsApp ID (no phone yet): ${enriched.lidJid ?? customerPhone}\n`;
+  const lidLine =
+    enriched.callablePhone && enriched.lidJid
+      ? `🆔 WhatsApp ID: ${enriched.lidJid}\n`
+      : '';
+
   const message =
     `⚠️ *Customer Issue — Escalation*\n\n` +
-    `👤 Customer: ${customerName || 'Unknown'}\n` +
-    `📞 Phone: ${customerPhone}\n` +
+    `👤 Customer: ${enriched.name || 'Unknown'}\n` +
+    phoneLine +
+    lidLine +
     (orderNumber ? `📋 Order: ${orderNumber}\n` : '') +
     `\n📝 *Issue:*\n${issueSummary}\n\n` +
     `⏰ ${timestamp}\n` +
@@ -589,6 +607,107 @@ async function escalateToManager(
   return sentCount > 0
     ? `Issue escalated to ${sentCount} manager(s). They have been notified via WhatsApp.`
     : 'Failed to reach managers via WhatsApp, but the issue has been logged.';
+}
+
+interface EscalationIdentity {
+  name: string | null;
+  /** A real, callable phone if we could resolve one; null when only a LID is known. */
+  callablePhone: string | null;
+  /** The `<digits>@lid` form when the inbound session was a LID, for transparency. */
+  lidJid: string | null;
+}
+
+async function resolveEscalationIdentity(args: {
+  sessionPhone: string;
+  providedName?: string;
+  orderNumber?: string;
+}): Promise<EscalationIdentity> {
+  const supabase = createServiceClient();
+  const sessionLooksLikePhone = isLikelyNigerianPhone(args.sessionPhone);
+  const lidJid = sessionLooksLikePhone ? null : `${args.sessionPhone}@lid`;
+
+  // Most reliable signal: the order. Checkout always captures a real name
+  // and a callable phone, regardless of which WhatsApp identity inbound used.
+  if (args.orderNumber) {
+    const { data: order } = await supabase
+      .from('orders')
+      .select('customer_name, customer_phone')
+      .eq('order_number', args.orderNumber)
+      .maybeSingle();
+    if (order?.customer_phone) {
+      // Side benefit: backfill the LID map so future inbound messages from
+      // this LID resolve immediately rather than re-falling through here.
+      if (lidJid) {
+        recordLidForPhone(lidJid, order.customer_phone).catch((err) => {
+          console.error('[AI] recordLidForPhone (escalation) failed:', err);
+        });
+      }
+      return {
+        name: args.providedName || order.customer_name || null,
+        callablePhone: order.customer_phone,
+        lidJid,
+      };
+    }
+  }
+
+  // No order, or order lookup miss. If the session phone is itself real,
+  // use it directly and try to grab a name from any prior order on it.
+  if (sessionLooksLikePhone) {
+    const { data: lastOrder } = await supabase
+      .from('orders')
+      .select('customer_name')
+      .in('customer_phone', phoneVariants(args.sessionPhone))
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return {
+      name: args.providedName || lastOrder?.customer_name || null,
+      callablePhone: args.sessionPhone,
+      lidJid: null,
+    };
+  }
+
+  // Session phone is a LID. Try the LID-map cache.
+  if (lidJid) {
+    const { data: mapping } = await supabase
+      .from('whatsapp_lid_map')
+      .select('phone')
+      .eq('lid_jid', lidJid)
+      .maybeSingle();
+    if (mapping?.phone) {
+      const { data: lastOrder } = await supabase
+        .from('orders')
+        .select('customer_name')
+        .in('customer_phone', phoneVariants(mapping.phone))
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return {
+        name: args.providedName || lastOrder?.customer_name || null,
+        callablePhone: mapping.phone,
+        lidJid,
+      };
+    }
+  }
+
+  // Truly unknown — preserve the LID for transparency, no fake phone.
+  return {
+    name: args.providedName || null,
+    callablePhone: null,
+    lidJid,
+  };
+}
+
+function isLikelyNigerianPhone(input: string | null | undefined): boolean {
+  // normalizePhone() always rewrites to a 234-prefixed digits string. A real
+  // Nigerian mobile in canonical form is 13 digits (234 + 10). LIDs we've
+  // seen in the wild are 14–15+ digits and don't fit that shape.
+  const normalized = normalizePhone(input);
+  if (!normalized.startsWith('234')) return false;
+  if (normalized.length !== 13) return false;
+  // Nigerian mobile prefixes always start with 7, 8, or 9 after the country code.
+  const carrier = normalized[3];
+  return carrier === '7' || carrier === '8' || carrier === '9';
 }
 
 // ---- find_recent_pending_feedback_order ----
@@ -681,8 +800,8 @@ async function findRecentPendingFeedbackOrder(phone: string): Promise<string> {
   });
 
   return orders?.length
-    ? 'All recent orders for this customer already have feedback recorded.'
-    : 'No recent pending-feedback order found for this phone. Do not submit feedback — thank the customer for the message and move on.';
+    ? 'All recent orders for this customer already have feedback recorded. Do not submit feedback. Reply with a brief warm thank-you (one short sentence). DO NOT tell the customer about this lookup result — do not say "already recorded", "couldn\'t attach", "no order linked", or anything internal. Just thank them naturally as if their message stands on its own.'
+    : 'No recent pending-feedback order found for this phone. Do not submit feedback. Reply with a brief warm thank-you (one short sentence). DO NOT tell the customer about this lookup result — do not say "couldn\'t find your order", "couldn\'t attach the rating", "no recent order linked to your number", or anything that exposes the internal lookup. Just thank them naturally as if their message stands on its own.';
 }
 
 interface PendingOrder {
@@ -832,7 +951,7 @@ async function submitFeedback(
     // Duplicate order_id (unique constraint) — graceful dedupe.
     if (error.code === '23505') {
       await clearAwaitingFlag(order.customer_phone);
-      return `Feedback for order ${order.order_number} was already recorded. Thank the customer and note the rating was already received.`;
+      return `Feedback for order ${order.order_number} was already recorded. Reply with a brief warm thank-you (one short sentence). DO NOT tell the customer their rating was "already recorded" or "already received" — just thank them naturally.`;
     }
     console.error('[AI] submit_feedback insert failed:', error);
     return `Failed to record feedback: ${error.message}`;

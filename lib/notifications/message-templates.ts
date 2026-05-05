@@ -46,6 +46,33 @@ function getAppUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL || 'https://myshawarma.express';
 }
 
+const RESTAURANT_TIMEZONE = 'Africa/Lagos';
+
+function dayOfWeekInLagos(timestamp: string): number {
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return -1;
+  const dayName = new Intl.DateTimeFormat('en-US', {
+    timeZone: RESTAURANT_TIMEZONE,
+    weekday: 'short',
+  }).format(d);
+  const days: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return days[dayName] ?? -1;
+}
+
+/**
+ * True when delivery_date is a Monday and the order was placed on the prior
+ * Saturday or Sunday — i.e. the order spans our Sunday closure.
+ */
+function crossesSundayClosure(order: OrderWithItems): boolean {
+  if (!order.delivery_date || !order.created_at) return false;
+  const [y, m, d] = order.delivery_date.split('-').map(Number);
+  if (!y || !m || !d) return false;
+  const deliveryDow = new Date(y, m - 1, d).getDay();
+  if (deliveryDow !== 1) return false;
+  const createdDow = dayOfWeekInLagos(order.created_at);
+  return createdDow === 0 || createdDow === 6;
+}
+
 // ============================================
 // CUSTOMER MESSAGE TEMPLATES
 // ============================================
@@ -63,11 +90,15 @@ export function orderConfirmedMessage(order: OrderWithItems): string {
       : `🛵 Delivery Window: ${order.delivery_window}\n`
     : '';
 
+  const sundayNote = crossesSundayClosure(order)
+    ? `🗓️ We're closed Sundays — your shawarma will be grilled fresh and delivered Monday afternoon.\n`
+    : '';
+
   return `🎉 *Order Confirmed!*
 
 📋 Order #: ${order.order_number}
 💰 Total: ${formatCurrency(order.total)}
-${windowLine}
+${windowLine}${sundayNote}
 🍲 *Your Order:*
 ${formatOrderItems(order.items)}
 
@@ -172,6 +203,41 @@ Order #${order.order_number}
 
 Reply with a rating *1–5* (5 = best) and a quick comment if you'd like.
 _Example:_ "5 — was amazing, thanks!"
+
+_- myshawarma.express 🌯_`;
+}
+
+/**
+ * Rider Nearby Message — fired by the geofence at ~300m. Names the driver and
+ * vehicle when known so the customer recognises the rider on arrival.
+ */
+export function riderNearbyMessage(args: {
+  customerName: string;
+  orderNumber: string;
+  deliveryAddress: string;
+  orderId: string;
+  riderName?: string | null;
+  vehiclePlate?: string | null;
+}): string {
+  const appUrl = getAppUrl();
+  const trackingUrl = `${appUrl}/orders/${args.orderId}`;
+
+  const firstName = (args.riderName || '').trim().split(/\s+/)[0];
+  const plate = (args.vehiclePlate || '').trim();
+  // "Tunde on ABC-123-XY" / "Tunde" / "your rider"
+  const riderPhrase = firstName
+    ? plate
+      ? `${firstName} on ${plate}`
+      : firstName
+    : 'your rider';
+
+  return `🏍️ *Your rider is nearby!*
+
+Hi ${args.customerName}, ${riderPhrase} is almost at your location with Order #${args.orderNumber}. Please be ready to receive your order!
+
+📍 Delivering to: ${args.deliveryAddress}
+
+🔗 Track your rider live: ${trackingUrl}
 
 _- myshawarma.express 🌯_`;
 }

@@ -180,9 +180,11 @@ export function formatReceiptText(receipt: ReceiptData): string {
   
   // Row 2: Customer contact details (prominent)
   lines.push(`${receipt.customerName}`);
-  lines.push(`${receipt.customerPhone}`);
   if (receipt.customerPhoneAlt) {
-    lines.push(`Alt: ${receipt.customerPhoneAlt}`);
+    lines.push(`WhatsApp: ${receipt.customerPhone}`);
+    lines.push(`Calling:  ${receipt.customerPhoneAlt}`);
+  } else {
+    lines.push(`${receipt.customerPhone}`);
   }
   lines.push(`${receipt.orderType.toUpperCase()}`);
   lines.push(line('-'));

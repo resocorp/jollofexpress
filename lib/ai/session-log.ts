@@ -18,6 +18,11 @@ export interface SessionMessage {
   content: string;
   source?: MessageSource;
   timestamp?: string;
+  // Optional metadata used when source='staff' (set from the comms panel):
+  agent_id?: string;
+  agent_name?: string;
+  media_url?: string;
+  message_id?: string;
 }
 
 function trim(messages: SessionMessage[]): SessionMessage[] {
@@ -141,6 +146,55 @@ export async function getMuteUntil(phone: string): Promise<Date | null> {
   if (!data?.ai_muted_until) return null;
   const until = new Date(data.ai_muted_until);
   return until.getTime() > Date.now() ? until : null;
+}
+
+/**
+ * Append an agent reply from the comms panel. Same as appendAssistantMessage
+ * with source='staff', but carries author and media metadata so the UI can
+ * render "sent by <agent name>" and inline images. Always extends the AI mute.
+ */
+export async function appendStaffMessage(
+  phone: string,
+  content: string,
+  meta: {
+    agent_id: string;
+    agent_name?: string;
+    media_url?: string;
+    message_id?: string;
+    mute_minutes?: number;
+  }
+): Promise<void> {
+  if (!phone || (!content && !meta.media_url)) return;
+
+  const supabase = createServiceClient();
+  const { id, messages } = await fetchSessionMessages(phone);
+
+  const next = trim([
+    ...messages,
+    {
+      role: 'assistant',
+      content,
+      source: 'staff',
+      timestamp: new Date().toISOString(),
+      agent_id: meta.agent_id,
+      agent_name: meta.agent_name,
+      media_url: meta.media_url,
+      message_id: meta.message_id,
+    },
+  ]);
+
+  const muteMinutes = meta.mute_minutes ?? 24 * 60;
+  const patch = {
+    messages: next,
+    last_activity: new Date().toISOString(),
+    ai_muted_until: new Date(Date.now() + muteMinutes * 60_000).toISOString(),
+  };
+
+  if (id) {
+    await supabase.from('whatsapp_ai_sessions').update(patch).eq('id', id);
+  } else {
+    await supabase.from('whatsapp_ai_sessions').insert({ phone, ...patch });
+  }
 }
 
 export async function setMute(phone: string, until: Date): Promise<void> {

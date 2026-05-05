@@ -67,13 +67,13 @@ export default function ContactPage() {
           transition={{ duration: 0.5 }}
           className="max-w-2xl mx-auto mb-16"
         >
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-500/10 dark:to-green-500/15 border-green-200 dark:border-green-500/30">
             <CardContent className="p-8 text-center">
               <div className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-6">
                 <MessageCircle className="h-10 w-10 text-white" />
               </div>
-              <h2 className="text-3xl font-bold mb-4 text-green-900">Chat With Us on WhatsApp</h2>
-              <p className="text-green-700 mb-6 text-lg">
+              <h2 className="text-3xl font-bold mb-4 text-green-900 dark:text-green-300">Chat With Us on WhatsApp</h2>
+              <p className="text-green-700 dark:text-green-400 mb-6 text-lg">
                 The fastest way to reach us! Get instant responses for orders, inquiries, and support.
               </p>
               <a 

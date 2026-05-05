@@ -150,7 +150,7 @@ Location: Solution Arena, Abakaliki Street, Awka.`
             viewport={{ once: true }}
             className="mt-12"
           >
-            <Card className="bg-gradient-to-br from-orange-50 to-red-50 border-orange-200">
+            <Card className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-500/10 dark:to-red-500/10 border-orange-200 dark:border-orange-500/30">
               <CardContent className="p-8 text-center">
                 <h3 className="text-2xl font-bold mb-4">That's It!</h3>
                 <p className="text-muted-foreground mb-6">

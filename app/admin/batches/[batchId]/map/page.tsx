@@ -69,69 +69,8 @@ interface BatchData {
 interface OptimizedRoute {
   orderedIds: string[];
   totalDistance: number;
-}
-
-// Restaurant location (Awka)
-const RESTAURANT_LAT = 6.203072;
-const RESTAURANT_LNG = 7.063700;
-
-// Haversine distance in meters
-function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-// Nearest-neighbor TSP starting from restaurant
-function optimizeRoute(orders: BatchOrder[]): OptimizedRoute {
-  const geoOrders = orders.filter(
-    o => o.customer_latitude != null && o.customer_longitude != null
-  );
-
-  if (geoOrders.length === 0) return { orderedIds: [], totalDistance: 0 };
-  if (geoOrders.length === 1) return { orderedIds: [geoOrders[0].id], totalDistance: 0 };
-
-  const remaining = new Set(geoOrders.map(o => o.id));
-  const orderMap = new Map(geoOrders.map(o => [o.id, o]));
-  const ordered: string[] = [];
-  let totalDist = 0;
-
-  let currentLat = RESTAURANT_LAT;
-  let currentLng = RESTAURANT_LNG;
-
-  while (remaining.size > 0) {
-    let nearestId = '';
-    let nearestDist = Infinity;
-
-    for (const id of remaining) {
-      const order = orderMap.get(id)!;
-      const dist = haversineDistance(
-        currentLat,
-        currentLng,
-        order.customer_latitude!,
-        order.customer_longitude!
-      );
-      if (dist < nearestDist) {
-        nearestDist = dist;
-        nearestId = id;
-      }
-    }
-
-    ordered.push(nearestId);
-    totalDist += nearestDist;
-    remaining.delete(nearestId);
-
-    const nearest = orderMap.get(nearestId)!;
-    currentLat = nearest.customer_latitude!;
-    currentLng = nearest.customer_longitude!;
-  }
-
-  return { orderedIds: ordered, totalDistance: totalDist };
+  geometry?: GeoJSON.LineString;
+  source?: 'mapbox' | 'fallback';
 }
 
 export default function BatchMapPage() {
@@ -220,11 +159,45 @@ export default function BatchMapPage() {
     return () => clearInterval(interval);
   }, [isPollingDriver, batchId]);
 
-  const handleOptimize = () => {
+  const handleOptimize = async () => {
     if (!data) return;
-    const route = optimizeRoute(data.orders);
-    setOptimizedRoute(route);
-    toast.success(`Route optimized: ${route.orderedIds.length} stops, ${(route.totalDistance / 1000).toFixed(1)} km`);
+    const stops = data.orders
+      .filter(o => o.customer_latitude != null && o.customer_longitude != null)
+      .map(o => ({
+        id: o.id,
+        lat: o.customer_latitude as number,
+        lng: o.customer_longitude as number,
+      }));
+    if (stops.length === 0) {
+      toast.error('No stops with GPS to optimize');
+      return;
+    }
+
+    try {
+      const result = await post<{
+        orderedIds: string[];
+        totalDistanceM: number;
+        totalDurationS: number;
+        geometry: GeoJSON.LineString;
+        source: 'mapbox' | 'fallback';
+      }>('/api/admin/optimize-route', { stops });
+
+      setOptimizedRoute({
+        orderedIds: result.orderedIds,
+        totalDistance: result.totalDistanceM,
+        geometry: result.geometry,
+        source: result.source,
+      });
+
+      const km = (result.totalDistanceM / 1000).toFixed(1);
+      const mins = Math.round(result.totalDurationS / 60);
+      const sourceTag = result.source === 'mapbox' ? 'road' : 'approx';
+      toast.success(
+        `Route optimized (${sourceTag}): ${result.orderedIds.length} stops, ${km} km, ~${mins} min`
+      );
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to optimize route');
+    }
   };
 
   const handlePrintManifest = async () => {

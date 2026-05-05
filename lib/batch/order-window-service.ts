@@ -164,6 +164,17 @@ function buildClosedMessage(status: RestaurantOpenCloseStatus): string {
 
   const next = status.nextOpenInfo;
 
+  // Sunday-specific copy — we don't operate on Sundays; Sunday orders deliver Monday afternoon
+  if (status.closedReason === 'Closed on sundays') {
+    if (next?.isTomorrow) {
+      return `We're closed Sundays 🌅 Pre-order now — we'll deliver tomorrow at ${next.time}!`;
+    }
+    if (next) {
+      return `We're closed Sundays 🌅 Pre-order now — we'll deliver ${next.dayName} at ${next.time}!`;
+    }
+    return "We're closed Sundays 🌅 Pre-order now — your shawarma will be delivered Monday afternoon!";
+  }
+
   if (next?.isToday) {
     return `We open at ${next.time} today — see you soon! 🔥`;
   }

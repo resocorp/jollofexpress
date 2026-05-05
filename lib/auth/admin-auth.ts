@@ -3,10 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import type { UserRole } from '@/types/database';
 
-/**
- * Verify admin authentication and authorization
- * Use this middleware in all /api/admin/* routes
- */
 interface AuthenticatedUser {
   id: string;
   email: string | undefined;
@@ -17,9 +13,8 @@ type AuthResult =
   | { authenticated: true; user: AuthenticatedUser }
   | { authenticated: false; response: NextResponse };
 
-/**
- * Create a failed auth response
- */
+const DEFAULT_ALLOWED_ROLES: UserRole[] = ['admin', 'kitchen'];
+
 function authFailure(error: string, status: number): AuthResult {
   return {
     authenticated: false,
@@ -27,20 +22,29 @@ function authFailure(error: string, status: number): AuthResult {
   };
 }
 
-export async function verifyAdminAuth(request: NextRequest): Promise<AuthResult> {
+/**
+ * Verify an API caller is an authenticated user with one of the allowed roles.
+ * Defaults to ['admin', 'kitchen'] for backwards compatibility.
+ *
+ * Pass a custom allowedRoles array on routes that should be reachable by
+ * customer-care agents (e.g., the WhatsApp comms endpoints + read-only
+ * orders/customers endpoints).
+ */
+export async function verifyAdminAuth(
+  request: NextRequest,
+  allowedRoles: UserRole[] = DEFAULT_ALLOWED_ROLES
+): Promise<AuthResult> {
   try {
-    // Get authorization header
     const authHeader = request.headers.get('authorization');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return authFailure('Unauthorized - Missing or invalid authorization header', 401);
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const token = authHeader.substring(7);
 
     const supabase = createServiceClient();
 
-    // Verify JWT and get user
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
@@ -48,10 +52,9 @@ export async function verifyAdminAuth(request: NextRequest): Promise<AuthResult>
       return authFailure('Unauthorized - Invalid or expired token', 401);
     }
 
-    // Check user role (admin or kitchen)
     const { data: userProfile, error: profileError } = await supabase
       .from('users')
-      .select('role')
+      .select('role, disabled')
       .eq('id', user.id)
       .single();
 
@@ -60,15 +63,17 @@ export async function verifyAdminAuth(request: NextRequest): Promise<AuthResult>
       return authFailure('Unauthorized - User profile not found', 401);
     }
 
+    if (userProfile.disabled) {
+      return authFailure('Forbidden - Account disabled', 403);
+    }
+
     const role = userProfile.role as UserRole;
 
-    // Verify user has admin or kitchen role
-    if (role !== 'admin' && role !== 'kitchen') {
-      console.warn('[AUTH] Access denied for user:', user.id, 'role:', role);
+    if (!allowedRoles.includes(role)) {
+      console.warn('[AUTH] Access denied for user:', user.id, 'role:', role, 'required:', allowedRoles);
       return authFailure('Forbidden - Insufficient permissions', 403);
     }
 
-    // Authentication successful
     return {
       authenticated: true,
       user: {
@@ -85,19 +90,24 @@ export async function verifyAdminAuth(request: NextRequest): Promise<AuthResult>
 }
 
 /**
- * Verify admin-only access (excludes kitchen role)
+ * Verify admin-only access (excludes kitchen and agents).
  */
 export async function verifyAdminOnly(request: NextRequest): Promise<AuthResult> {
-  const authResult = await verifyAdminAuth(request);
+  return verifyAdminAuth(request, ['admin']);
+}
 
-  if (!authResult.authenticated) {
-    return authResult;
-  }
+/**
+ * Allow admin + customer-care agent. Used by the WhatsApp comms panel,
+ * read-only orders, and read-only customers endpoints.
+ */
+export async function verifyAdminOrAgent(request: NextRequest): Promise<AuthResult> {
+  return verifyAdminAuth(request, ['admin', 'customer_care_agent']);
+}
 
-  // Check if user is specifically admin (not kitchen)
-  if (authResult.user.role !== 'admin') {
-    return authFailure('Forbidden - Admin access required', 403);
-  }
-
-  return authResult;
+/**
+ * Verify a logged-in user (any role except 'customer').
+ * Used by /api/admin/account/* (e.g., the password change endpoint).
+ */
+export async function verifyAnyStaff(request: NextRequest): Promise<AuthResult> {
+  return verifyAdminAuth(request, ['admin', 'kitchen', 'customer_care_agent']);
 }

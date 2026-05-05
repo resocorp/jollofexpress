@@ -199,7 +199,7 @@ If you are not satisfied with our response, you can lodge a complaint with the N
             viewport={{ once: true }}
             className="mt-12"
           >
-            <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+            <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-500/10 dark:to-purple-500/10 border-blue-200 dark:border-blue-500/30">
               <CardContent className="p-8">
                 <h3 className="text-2xl font-bold mb-4 text-center">Your Privacy Matters</h3>
                 <p className="text-muted-foreground text-center mb-6">

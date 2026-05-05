@@ -59,6 +59,7 @@ interface ActiveDelivery {
   order_number: string;
   customer_name: string;
   customer_phone: string;
+  customer_phone_alt?: string | null;
   delivery_address: string;
   total: number;
   payment_method_type: 'paystack' | 'cod';
@@ -263,7 +264,7 @@ export default function DriverDashboard() {
 
   const callCustomer = () => {
     if (activeDelivery?.customer_phone) {
-      window.location.href = `tel:${activeDelivery.customer_phone}`;
+      window.location.href = `tel:${activeDelivery.customer_phone_alt || activeDelivery.customer_phone}`;
     }
   };
 
@@ -453,7 +454,12 @@ export default function DriverDashboard() {
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{activeDelivery.customer_name} - {activeDelivery.customer_phone}</span>
+                  <span>
+                    {activeDelivery.customer_name} -{' '}
+                    {activeDelivery.customer_phone_alt
+                      ? `WhatsApp ${activeDelivery.customer_phone} / Call ${activeDelivery.customer_phone_alt}`
+                      : activeDelivery.customer_phone}
+                  </span>
                 </div>
               </div>
 

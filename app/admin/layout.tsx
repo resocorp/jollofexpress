@@ -34,10 +34,10 @@ export default function AdminLayout({
           return;
         }
 
-        // Verify user has admin or kitchen role
+        // Verify user is a non-disabled staff member
         const { data: userProfile, error } = await supabase
           .from('users')
-          .select('role')
+          .select('role, disabled, must_change_password')
           .eq('id', session.user.id)
           .single();
 
@@ -48,10 +48,23 @@ export default function AdminLayout({
           return;
         }
 
-        if (userProfile.role !== 'admin' && userProfile.role !== 'kitchen') {
+        if (userProfile.disabled) {
+          await supabase.auth.signOut();
+          router.push('/admin/login');
+          return;
+        }
+
+        const allowedRoles = ['admin', 'kitchen', 'customer_care_agent'];
+        if (!allowedRoles.includes(userProfile.role)) {
           console.error('Insufficient permissions:', userProfile.role);
           await supabase.auth.signOut();
           router.push('/admin/login');
+          return;
+        }
+
+        // Force first-login password change before any other admin page is accessible.
+        if (userProfile.must_change_password && pathname !== '/admin/account') {
+          router.push('/admin/account?firstLogin=1');
           return;
         }
 

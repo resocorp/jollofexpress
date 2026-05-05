@@ -6,14 +6,22 @@ import { z } from 'zod';
 
 const scanSchema = z.object({
   qr_token: z.string().min(10).max(200),
+  confirm_override: z.boolean().optional(),
 });
 
 export const dynamic = 'force-dynamic';
 
 // POST /api/rider/scan — rider scans a receipt QR to claim + dispatch the order.
 // Force-advances status to out_for_delivery, sets assigned_driver_id to scanning
-// rider (overrides prior assignment), upserts delivery_assignment to picked_up,
-// and fires the existing "out for delivery" customer notification.
+// rider, upserts delivery_assignment to picked_up, and fires the existing
+// "out for delivery" customer notification.
+//
+// Takeover protection: if the order is already assigned to a DIFFERENT rider,
+// the request returns 409 with `requires_confirmation` and the rider must
+// re-submit with `confirm_override: true` to take it over.
+//
+// Every scan that results in a state change (or a same-rider re-scan) is
+// recorded to scan_events for audit.
 export async function POST(request: NextRequest) {
   const auth = await verifyRiderAuth(request);
   if (!auth.authenticated) return auth.response;
@@ -25,7 +33,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
 
-    const { qr_token } = parsed.data;
+    const { qr_token, confirm_override } = parsed.data;
 
     // Verify HMAC signature first — rejects forged / random codes cheaply.
     const orderIdFromSig = verifyOrderToken(qr_token);
@@ -56,12 +64,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const previousDriverId = order.assigned_driver_id ?? null;
+    const previousStatus = order.status as string;
+    const isTakeover = !!previousDriverId && previousDriverId !== auth.driver_id;
+
     // Idempotent: if already dispatched to this rider, return success without
-    // touching anything or re-firing the notification.
+    // touching anything or re-firing the notification — but still log the scan.
     if (
       order.status === 'out_for_delivery' &&
       order.assigned_driver_id === auth.driver_id
     ) {
+      logScanEvent(supabase, {
+        order_id: order.id,
+        driver_id: auth.driver_id,
+        was_override: false,
+        previous_driver_id: previousDriverId,
+        previous_status: previousStatus,
+      });
       return NextResponse.json({
         success: true,
         already_dispatched: true,
@@ -72,6 +91,29 @@ export async function POST(request: NextRequest) {
           delivery_address: order.delivery_address,
         },
       });
+    }
+
+    // Takeover guard: another rider already owns this order. Require explicit
+    // confirmation from the scanning rider before stealing it.
+    if (isTakeover && !confirm_override) {
+      const { data: prevDriver } = await supabase
+        .from('drivers')
+        .select('id, name')
+        .eq('id', previousDriverId!)
+        .maybeSingle();
+
+      return NextResponse.json(
+        {
+          requires_confirmation: true,
+          previous_driver: prevDriver ?? { id: previousDriverId, name: 'Another rider' },
+          order: {
+            id: order.id,
+            order_number: order.order_number,
+            customer_name: order.customer_name,
+          },
+        },
+        { status: 409 }
+      );
     }
 
     // Scan-claims: take over the order regardless of prior assignment.
@@ -118,6 +160,15 @@ export async function POST(request: NextRequest) {
     // Mark driver busy
     await supabase.from('drivers').update({ status: 'busy' }).eq('id', auth.driver_id);
 
+    // Audit log — must not block the success path on failure.
+    logScanEvent(supabase, {
+      order_id: order.id,
+      driver_id: auth.driver_id,
+      was_override: isTakeover,
+      previous_driver_id: previousDriverId,
+      previous_status: previousStatus,
+    });
+
     // Fire "out for delivery" WhatsApp — customer's first alert. Fetch the full
     // order-with-items that the notification function expects.
     try {
@@ -150,4 +201,25 @@ export async function POST(request: NextRequest) {
     console.error('Scan error:', error);
     return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
   }
+}
+
+type ScanEventRow = {
+  order_id: string;
+  driver_id: string;
+  was_override: boolean;
+  previous_driver_id: string | null;
+  previous_status: string | null;
+};
+
+function logScanEvent(
+  supabase: ReturnType<typeof createServiceClient>,
+  row: ScanEventRow
+) {
+  // Fire-and-forget — audit failure must never break the scan flow.
+  supabase
+    .from('scan_events')
+    .insert(row)
+    .then(({ error }) => {
+      if (error) console.error('Scan: audit log insert failed', error);
+    });
 }

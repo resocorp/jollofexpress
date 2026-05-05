@@ -554,6 +554,85 @@ app.post('/send', async (req, res) => {
 });
 
 /**
+ * POST /send-media - Send an image (with optional caption) by URL.
+ * Body: { phone: string, mediaUrl: string, caption?: string }
+ *
+ * The caller (Next.js admin route) provides a short-lived signed URL pointing
+ * at a Supabase Storage object. We fetch the bytes here and forward them to
+ * Baileys as an image message. The returned messageId is added to
+ * `ourSentMessageIds` so the inbound `messages.upsert` listener doesn't
+ * double-log this send when WhatsApp echoes it back as fromMe.
+ */
+app.post('/send-media', async (req, res) => {
+  try {
+    const { phone, mediaUrl, caption } = req.body;
+
+    if (!phone || !mediaUrl) {
+      return res.status(400).json({ error: 'phone and mediaUrl are required' });
+    }
+
+    if (!sock || connectionStatus !== 'connected') {
+      return res.status(503).json({
+        error: 'WhatsApp not connected',
+        status: connectionStatus,
+      });
+    }
+
+    if (messagesSentLastMinute >= RATE_LIMIT_PER_MINUTE) {
+      return res.status(429).json({
+        error: 'Rate limit exceeded',
+        limit: RATE_LIMIT_PER_MINUTE,
+        reset_in_seconds: Math.ceil((60000 - (Date.now() - rateLimitResetTime)) / 1000),
+      });
+    }
+
+    const formattedPhone = formatPhoneNumber(phone);
+    const jid = `${formattedPhone}@s.whatsapp.net`;
+
+    const [onWA] = await sock.onWhatsApp(jid);
+    if (!onWA?.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'not_on_whatsapp',
+        message: `${phone} is not registered on WhatsApp`,
+      });
+    }
+
+    // Fetch the media bytes from the signed URL.
+    const mediaRes = await fetch(mediaUrl);
+    if (!mediaRes.ok) {
+      return res.status(502).json({
+        error: 'media_fetch_failed',
+        message: `Failed to fetch media: ${mediaRes.status} ${mediaRes.statusText}`,
+      });
+    }
+    const arrayBuffer = await mediaRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const sent = await sock.sendMessage(jid, {
+      image: buffer,
+      caption: caption || undefined,
+    });
+    rememberOurSentId(sent?.key?.id);
+    messagesSentLastMinute++;
+
+    console.log(`📤 Image sent to ${formattedPhone}${caption ? `: ${caption.substring(0, 50)}` : ''}`);
+
+    return res.json({
+      success: true,
+      messageId: sent.key.id,
+      phone: formattedPhone,
+    });
+  } catch (error) {
+    console.error('Error sending media:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to send media',
+    });
+  }
+});
+
+/**
  * POST /send-bulk - Send multiple messages with stagger delay
  */
 app.post('/send-bulk', async (req, res) => {

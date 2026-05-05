@@ -32,6 +32,69 @@ export interface Batch {
   updated_at: string;
   // Joined fields
   delivery_window?: DeliveryWindow;
+  // Computed in service layer (not a DB column): unique delivery addresses
+  // among active delivery orders. Equals the number of stops the rider has
+  // to make for this batch.
+  delivery_stops?: number;
+}
+
+const ACTIVE_ORDER_STATUSES = [
+  'confirmed',
+  'preparing',
+  'ready',
+  'out_for_delivery',
+  'completed',
+] as const;
+
+/**
+ * Attach `delivery_stops` to each batch — count of unique delivery addresses
+ * among that batch's active delivery (non-pickup) orders. Two orders to the
+ * same address = one stop. Mutates and returns the same array.
+ */
+async function attachStopCounts(batches: Batch[]): Promise<Batch[]> {
+  if (batches.length === 0) return batches;
+
+  const supabase = createServiceClient();
+  const batchIds = batches.map(b => b.id);
+
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('batch_id, delivery_address, customer_latitude, customer_longitude')
+    .in('batch_id', batchIds)
+    .in('status', ACTIVE_ORDER_STATUSES as unknown as string[])
+    .eq('order_type', 'delivery');
+
+  if (error) {
+    console.error('Error computing delivery_stops:', error);
+    for (const b of batches) b.delivery_stops = 0;
+    return batches;
+  }
+
+  const stopsByBatch = new Map<string, Set<string>>();
+  for (const o of (orders || []) as Array<{
+    batch_id: string;
+    delivery_address: string | null;
+    customer_latitude: number | null;
+    customer_longitude: number | null;
+  }>) {
+    if (!o.batch_id) continue;
+    const key =
+      typeof o.customer_latitude === 'number' && typeof o.customer_longitude === 'number'
+        ? `${o.customer_latitude.toFixed(5)},${o.customer_longitude.toFixed(5)}`
+        : (o.delivery_address || '').trim().toLowerCase();
+    if (!key) continue;
+    let set = stopsByBatch.get(o.batch_id);
+    if (!set) {
+      set = new Set();
+      stopsByBatch.set(o.batch_id, set);
+    }
+    set.add(key);
+  }
+
+  for (const b of batches) {
+    b.delivery_stops = stopsByBatch.get(b.id)?.size ?? 0;
+  }
+  return batches;
 }
 
 export type BatchStatus = 'accepting' | 'cutoff' | 'preparing' | 'dispatching' | 'completed' | 'cancelled';
@@ -197,7 +260,7 @@ export async function getOrCreateTodayBatches(): Promise<Batch[]> {
   const missingWindows = todayWindows.filter(w => !existingWindowIds.has(w.id));
 
   if (missingWindows.length === 0) {
-    return existingList;
+    return attachStopCounts(existingList);
   }
 
   const batchInserts = missingWindows.map(w => ({
@@ -221,10 +284,10 @@ export async function getOrCreateTodayBatches(): Promise<Batch[]> {
       .select('*, delivery_window:delivery_windows(*)')
       .eq('delivery_date', today)
       .order('created_at', { ascending: true });
-    return (retryBatches || []) as Batch[];
+    return attachStopCounts((retryBatches || []) as Batch[]);
   }
 
-  return [...existingList, ...((newBatches || []) as Batch[])];
+  return attachStopCounts([...existingList, ...((newBatches || []) as Batch[])]);
 }
 
 /**
@@ -373,6 +436,57 @@ export async function getNextAvailableBatch(skipToday = false): Promise<{
 }
 
 /**
+ * Pick the single batch the dispatcher should be looking at right now.
+ *
+ * Priority order: batches with active orders beat empty batches; then by
+ * status (dispatching > preparing > cutoff > accepting); then by earliest
+ * delivery_window.delivery_start (zero-padded HH:MM, so localeCompare is safe).
+ * Returns null if no today's batch is in any of those statuses.
+ */
+export async function getActiveDispatchBatch(): Promise<Batch | null> {
+  const PRIORITY: Record<BatchStatus, number> = {
+    dispatching: 4,
+    preparing: 3,
+    cutoff: 2,
+    accepting: 1,
+    completed: 0,
+    cancelled: 0,
+  };
+
+  const candidates = (await getOrCreateTodayBatches())
+    .filter(b => PRIORITY[b.status] > 0);
+
+  if (candidates.length === 0) return null;
+
+  // Look up active order counts so we can demote empty batches.
+  const supabase = createServiceClient();
+  const { data: rows } = await supabase
+    .from('orders')
+    .select('batch_id')
+    .in('batch_id', candidates.map(b => b.id))
+    .eq('order_type', 'delivery')
+    .in('status', ['confirmed', 'preparing', 'ready', 'out_for_delivery']);
+  const activeCounts = new Map<string, number>();
+  for (const r of (rows || []) as Array<{ batch_id: string }>) {
+    if (!r.batch_id) continue;
+    activeCounts.set(r.batch_id, (activeCounts.get(r.batch_id) ?? 0) + 1);
+  }
+
+  candidates.sort((a, b) => {
+    const aHas = (activeCounts.get(a.id) ?? 0) > 0 ? 1 : 0;
+    const bHas = (activeCounts.get(b.id) ?? 0) > 0 ? 1 : 0;
+    if (aHas !== bHas) return bHas - aHas;
+    const p = PRIORITY[b.status] - PRIORITY[a.status];
+    if (p !== 0) return p;
+    const aStart = a.delivery_window?.delivery_start ?? '99:99';
+    const bStart = b.delivery_window?.delivery_start ?? '99:99';
+    return aStart.localeCompare(bStart);
+  });
+
+  return candidates[0];
+}
+
+/**
  * Get a batch by ID with its delivery window
  */
 export async function getBatchById(batchId: string): Promise<Batch | null> {
@@ -386,56 +500,6 @@ export async function getBatchById(batchId: string): Promise<Batch | null> {
 
   if (error || !data) return null;
   return data as Batch;
-}
-
-/**
- * Assign an order to the next available batch
- * Returns the batch info for the order response
- */
-export async function assignOrderToBatch(orderId: string): Promise<{
-  batchId: string;
-  deliveryDate: string;
-  deliveryWindow: string;
-  isPreorder: boolean;
-} | null> {
-  const { batch, isPreorder, deliveryDate, deliveryWindow } = await getNextAvailableBatch();
-
-  if (!batch) {
-    console.error('No available batch for order:', orderId);
-    return null;
-  }
-
-  const supabase = createServiceClient();
-
-  const { error } = await supabase
-    .from('orders')
-    .update({
-      batch_id: batch.id,
-      delivery_date: deliveryDate,
-      delivery_window: deliveryWindow,
-    })
-    .eq('id', orderId);
-
-  if (error) {
-    console.error('Error assigning order to batch:', error);
-    return null;
-  }
-
-  // Note: total_orders is incremented by the DB trigger on insert,
-  // but since we're updating after insert, we need to handle this manually
-  // if the trigger only fires on INSERT. The trigger handles INSERT, so
-  // we need to also update the batch count here since we're doing UPDATE.
-  await supabase
-    .from('batches')
-    .update({ total_orders: batch.total_orders + 1 })
-    .eq('id', batch.id);
-
-  return {
-    batchId: batch.id,
-    deliveryDate,
-    deliveryWindow,
-    isPreorder,
-  };
 }
 
 /**
@@ -537,7 +601,7 @@ export async function getBatchesForRange(startDate: string, endDate: string): Pr
 
   const { data, error } = await supabase
     .from('batches')
-    .select('*, delivery_window:delivery_windows(*), orders(count)')
+    .select('*, delivery_window:delivery_windows(*)')
     .gte('delivery_date', startDate)
     .lte('delivery_date', endDate)
     .order('delivery_date', { ascending: false })
@@ -548,9 +612,7 @@ export async function getBatchesForRange(startDate: string, endDate: string): Pr
     return [];
   }
 
-  // Attach live order count to each batch
-  return (data || []).map((b: any) => ({
-    ...b,
-    total_orders: b.orders?.[0]?.count ?? b.total_orders,
-  })) as Batch[];
+  // total_orders is now maintained by the trigger as the count of active
+  // orders, so we trust it directly. delivery_stops is computed live.
+  return attachStopCounts((data || []) as Batch[]);
 }

@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
       window_name: batch.delivery_window?.name || 'Batch',
       status: batch.status,
       total_orders: batch.total_orders,
+      delivery_stops: batch.delivery_stops ?? 0,
       max_capacity: batch.max_capacity,
       delivery_window: batch.delivery_window
         ? `${batch.delivery_window.delivery_start} – ${batch.delivery_window.delivery_end}`

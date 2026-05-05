@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { formatReceipt } from '@/lib/print/format-receipt';
 import { generateESCPOS } from '@/lib/print/escpos-generator';
+import { logPrintAudit } from '@/lib/print/audit-log';
 
 export async function GET(
   request: NextRequest,
@@ -72,6 +73,20 @@ export async function GET(
       .single();
 
     if (printError) {
+      // Pending row already exists for this order — expected if a real print
+      // hasn't gone through yet. Surface it as a 'duplicate_blocked' rather
+      // than a hard failure.
+      if ((printError as { code?: string }).code === '23505') {
+        diagnostics.steps[4].status = 'duplicate_blocked';
+        diagnostics.steps[4].message = 'A pending print job already exists for this order';
+        await logPrintAudit({
+          event: 'duplicate_blocked',
+          source: 'kitchen_test',
+          orderId: order.id,
+          details: { reason: 'pending_already_exists' },
+        }, supabase);
+        return NextResponse.json(diagnostics);
+      }
       diagnostics.steps[4].status = 'failed';
       diagnostics.steps[4].error = printError.message;
       diagnostics.steps[4].errorDetails = printError;
@@ -79,6 +94,12 @@ export async function GET(
     }
     diagnostics.steps[4].status = 'success';
     diagnostics.steps[4].jobId = insertedJob.id;
+    await logPrintAudit({
+      event: 'queued',
+      source: 'kitchen_test',
+      orderId: order.id,
+      printJobId: insertedJob.id,
+    }, supabase);
 
     // Step 6: Verify job in queue
     diagnostics.steps.push({ step: 6, name: 'Verify job in queue', status: 'testing' });

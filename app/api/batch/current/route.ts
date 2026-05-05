@@ -8,6 +8,7 @@ export async function GET() {
 
     const response = batches.map(batch => {
       const dw = batch.delivery_window;
+      const stops = batch.delivery_stops ?? 0;
       return {
         batch_id: batch.id,
         delivery_date: batch.delivery_date,
@@ -16,7 +17,11 @@ export async function GET() {
           : '',
         window_name: dw?.name || 'Batch',
         status: batch.status,
+        // Active orders in batch (used for capacity bar)
         orders_placed: batch.total_orders,
+        total_orders: batch.total_orders,
+        // Distinct delivery stops (used as the headline number)
+        delivery_stops: stops,
         max_capacity: batch.max_capacity,
         capacity_percent: batch.max_capacity > 0
           ? Math.round((batch.total_orders / batch.max_capacity) * 100)

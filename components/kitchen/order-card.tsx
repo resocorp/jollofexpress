@@ -142,10 +142,23 @@ export function OrderCard({ order }: OrderCardProps) {
               <User className="h-4 w-4" />
               <span className="font-medium">{order.customer_name}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Phone className="h-4 w-4" />
-              <span>{formatPhoneNumber(order.customer_phone)}</span>
-            </div>
+            {order.customer_phone_alt ? (
+              <>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                  <span>WhatsApp: {formatPhoneNumber(order.customer_phone)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                  <span>Calling: {formatPhoneNumber(order.customer_phone_alt)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Phone className="h-4 w-4" />
+                <span>{formatPhoneNumber(order.customer_phone)}</span>
+              </div>
+            )}
             {order.order_type === 'delivery' && order.delivery_address && (
               <div className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -224,14 +237,21 @@ export function OrderCard({ order }: OrderCardProps) {
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span>{order.customer_name}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{formatPhoneNumber(order.customer_phone)}</span>
-                </div>
-                {order.customer_phone_alt && (
+                {order.customer_phone_alt ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>WhatsApp: {formatPhoneNumber(order.customer_phone)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>Calling: {formatPhoneNumber(order.customer_phone_alt)}</span>
+                    </div>
+                  </>
+                ) : (
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatPhoneNumber(order.customer_phone_alt)} (Alt)</span>
+                    <span>{formatPhoneNumber(order.customer_phone)}</span>
                   </div>
                 )}
               </div>

@@ -66,10 +66,12 @@ export async function apiRequest<T>(
     'Content-Type': 'application/json',
   };
   
-  // Automatically add auth token for admin, kitchen, notifications, tracking, and expense routes
+  // Automatically add auth token for admin, kitchen, dispatch, notifications,
+  // tracking, and expense routes
   if (
     endpoint.startsWith('/api/admin') ||
     endpoint.startsWith('/api/kitchen') ||
+    endpoint.startsWith('/api/dispatch') ||
     endpoint.startsWith('/api/notifications') ||
     endpoint.startsWith('/api/tracking') ||
     endpoint.startsWith('/api/expenses') ||

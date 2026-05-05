@@ -120,7 +120,10 @@
     @apply bg-background text-foreground;
   }
 
-  /* Dark mode overrides for hardcoded light backgrounds */
+  /* Dark-mode safety net for hardcoded light Tailwind colors used in admin/kitchen/rider
+     surfaces that don't yet declare their own dark: variants. Customer-facing components
+     should declare dark: variants directly (these overrides do NOT apply to gradient stops
+     like from-*-50 or hover variants, so explicit dark: is still required there). */
   .dark .bg-gray-50 { background-color: #1F2233 !important; }
   .dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.1) !important; }
   .dark .bg-green-50 { background-color: rgba(16, 185, 129, 0.1) !important; }

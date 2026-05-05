@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
 import { useCartStore } from '@/store/cart-store';
 import { useCreateOrder } from '@/hooks/use-orders';
@@ -70,10 +71,28 @@ export function CheckoutForm({
       orderType: 'delivery',
       name: savedInfo?.name || '',
       phone: savedInfo?.phone || '',
+      phoneAlt: savedInfo?.phoneAlt || savedInfo?.phone || '',
+      // Unticked by default — user explicitly clicks "Same as calling" to mirror.
+      // Restore as ticked only when previously saved values were identical.
+      phoneAltDifferent: !(
+        savedInfo?.phoneAlt &&
+        savedInfo?.phone &&
+        savedInfo.phoneAlt === savedInfo.phone
+      ),
       email: savedInfo?.email || '',
       fullAddress: savedInfo?.fullAddress || '',
     },
   });
+
+  const phoneAltDifferent = watch('phoneAltDifferent');
+  const watchedPhoneAlt = watch('phoneAlt');
+
+  // When "Same as calling" is ticked, keep WhatsApp value mirrored from Calling.
+  useEffect(() => {
+    if (!phoneAltDifferent) {
+      setValue('phone', watchedPhoneAlt || '', { shouldValidate: false });
+    }
+  }, [phoneAltDifferent, watchedPhoneAlt, setValue]);
 
   // Check if returning customer (has saved info)
   const isReturningCustomer = !!savedInfo?.name && !!savedInfo?.phone && !!savedInfo?.fullAddress;
@@ -86,10 +105,11 @@ export function CheckoutForm({
   // Determine which field needs attention
   const getNextEmptyRequiredField = useCallback(() => {
     if (!watchedName?.trim()) return 'name';
-    if (!watchedPhone?.trim()) return 'phone';
+    if (!watchedPhoneAlt?.trim()) return 'phoneAlt';
+    if (phoneAltDifferent && !watchedPhone?.trim()) return 'phone';
     if (!watchedAddress?.trim()) return 'fullAddress';
     return null;
-  }, [watchedName, watchedPhone, watchedAddress]);
+  }, [watchedName, watchedPhoneAlt, phoneAltDifferent, watchedPhone, watchedAddress]);
 
   // Check if should show field highlights (localStorage persistence)
   useEffect(() => {
@@ -202,6 +222,7 @@ export function CheckoutForm({
         localStorage.setItem('jollof_customer_info', JSON.stringify({
           name: data.name,
           phone: data.phone,
+          phoneAlt: data.phoneAlt || '',
           email: data.email || '',
           fullAddress: data.fullAddress || '',
         }));
@@ -394,16 +415,45 @@ export function CheckoutForm({
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
 
-          {/* Phone */}
+          {/* Calling Number — always shown, always required */}
           <div className={`space-y-1 ${showFieldHighlight ? 'field-attention' : ''}`}>
-            <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
+            <Label htmlFor="phoneAlt">Calling Number <span className="text-destructive">*</span></Label>
+            <Input
+              id="phoneAlt"
+              {...register('phoneAlt')}
+              placeholder="08012345678"
+              className={`${errors.phoneAlt ? 'border-destructive' : ''} ${highlightedField === 'phoneAlt' ? 'field-highlighted' : ''}`}
+            />
+            {errors.phoneAlt && <p className="text-sm text-destructive">{errors.phoneAlt.message}</p>}
+          </div>
+
+          {/* WhatsApp Number — always shown, with "Same as calling" toggle */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="phone">WhatsApp Number <span className="text-destructive">*</span></Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="phoneSame"
+                  checked={!phoneAltDifferent}
+                  onCheckedChange={(checked) => {
+                    setValue('phoneAltDifferent', checked !== true, { shouldValidate: true });
+                  }}
+                />
+                <Label htmlFor="phoneSame" className="text-sm font-normal cursor-pointer">
+                  Same as calling
+                </Label>
+              </div>
+            </div>
             <Input
               id="phone"
               {...register('phone')}
               placeholder="08012345678"
-              className={`${errors.phone ? 'border-destructive' : ''} ${highlightedField === 'phone' ? 'field-highlighted' : ''}`}
+              disabled={!phoneAltDifferent}
+              className={errors.phone && phoneAltDifferent ? 'border-destructive' : ''}
             />
-            {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
+            {phoneAltDifferent && errors.phone && (
+              <p className="text-sm text-destructive">{errors.phone.message}</p>
+            )}
           </div>
 
           {/* Email - optional */}
@@ -422,11 +472,14 @@ export function CheckoutForm({
           {/* Address */}
           <div className={`space-y-1 ${showFieldHighlight ? 'field-attention' : ''}`}>
             <Label htmlFor="fullAddress">Delivery Address <span className="text-destructive">*</span></Label>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Please help us get to you fast — describe how to find your place, include popular landmarks nearby (e.g. close to a school, church, filling station, junction), gate colour or building description, and please stay active on your phone so the rider can reach you.
+            </p>
             <Textarea
               id="fullAddress"
               {...register('fullAddress')}
-              placeholder="Full address with landmark"
-              rows={2}
+              placeholder="e.g. 12 Zik Avenue, opposite Total filling station, blue gate next to Zenith Bank — call when you reach the junction"
+              rows={3}
               className={`${errors.fullAddress ? 'border-destructive' : ''} ${highlightedField === 'fullAddress' ? 'field-highlighted' : ''}`}
             />
             {errors.fullAddress && <p className="text-sm text-destructive">{errors.fullAddress.message}</p>}

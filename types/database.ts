@@ -1,6 +1,6 @@
 // Database types matching the PostgreSQL schema
 
-export type UserRole = 'customer' | 'kitchen' | 'admin';
+export type UserRole = 'customer' | 'kitchen' | 'admin' | 'customer_care_agent';
 export type OrderStatus = 'pending' | 'scheduled' | 'confirmed' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled';
 export type PaymentStatus = 'pending' | 'success' | 'failed' | 'refunded';
 export type OrderType = 'delivery' | 'carryout';
@@ -23,6 +23,8 @@ export interface User {
   phone: string;
   name: string;
   role: UserRole;
+  disabled?: boolean;
+  must_change_password?: boolean;
   created_at: string;
   updated_at: string;
 }

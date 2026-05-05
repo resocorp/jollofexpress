@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { verifyAdminAuth } from '@/lib/auth/admin-auth';
 
-// GET - List all orders with filters (requires admin/kitchen auth)
+const READ_ROLES = ['admin', 'kitchen', 'customer_care_agent'] as const;
+
+// GET - List all orders with filters (admin / kitchen / customer_care_agent)
 export async function GET(request: NextRequest) {
   // Verify authentication
-  const authResult = await verifyAdminAuth(request);
+  const authResult = await verifyAdminAuth(request, [...READ_ROLES]);
   if (!authResult.authenticated) {
     return authResult.response;
   }
