@@ -6,6 +6,16 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { phoneVariants, normalizePhone, recordLidForPhone } from '@/lib/whatsapp/identity';
 import { clearAwaitingFeedback } from '@/lib/ai/session-log';
 import { scoreFeedback } from '@/lib/ai/sentiment';
+import {
+  getActiveDeliveryWindows,
+  getNextAvailableBatch,
+  formatTimeDisplay,
+  formatDeliveryWindow,
+  getTomorrowDateString,
+  getCurrentDayOfWeek,
+  getCurrentTimeMinutes,
+  timeToMinutes,
+} from '@/lib/batch/batch-service';
 
 const FEEDBACK_LOOKUP_WINDOW_DAYS = 14;
 
@@ -50,7 +60,8 @@ export const tools: Anthropic.Messages.Tool[] = [
   {
     name: 'get_delivery_info',
     description:
-      'Get information about delivery windows, fees, and areas. Use when a customer asks about delivery times, fees, or whether we deliver to their area.',
+      'Get current, live delivery information: today\'s delivery windows with their order cutoff times and delivery time ranges, which windows are still open vs. closed right now, the delivery slot an order placed right now would fall into, and delivery areas/fees. ' +
+      'You MUST call this before telling a customer ANY delivery time, cutoff time, or "order by" time — never answer those from memory or from earlier messages in the chat, as the schedule changes.',
     input_schema: {
       type: 'object' as const,
       properties: {},
@@ -402,17 +413,62 @@ async function checkOrderStatus(orderNumber?: string, phone?: string): Promise<s
 }
 
 // ---- get_delivery_info ----
+// Live, time-aware delivery info. Returns ONLY the windows that actually run
+// today (days_of_week filtered), each labelled open/closed against the current
+// Nigeria time, plus the authoritative "if you order now" slot from the same
+// getNextAvailableBatch() the website checkout uses — so chat and site agree.
 async function getDeliveryInfo(): Promise<string> {
   const supabase = createServiceClient();
 
-  const { data: windows } = await supabase
-    .from('delivery_windows')
-    .select('name, order_open_time, cutoff_time, delivery_start, delivery_end, is_active, days_of_week')
-    .eq('is_active', true)
-    .order('display_order', { ascending: true });
+  const windows = await getActiveDeliveryWindows();
+  const today = getCurrentDayOfWeek();
+  const nowMin = getCurrentTimeMinutes();
 
-  if (!windows?.length) {
-    return 'No delivery windows are currently active. We may be closed or only accepting carryout.';
+  // Only windows that actually operate today, earliest cutoff first.
+  const todayWindows = windows
+    .filter((w) => !w.days_of_week || w.days_of_week.includes(today))
+    .sort((a, b) => timeToMinutes(a.cutoff_time) - timeToMinutes(b.cutoff_time));
+
+  let text: string;
+  if (!todayWindows.length) {
+    text = 'No delivery windows run today — we are closed today.\n';
+  } else {
+    text = "Today's delivery windows (Nigeria/Lagos time):\n";
+    for (const w of todayWindows) {
+      const cutoffMin = timeToMinutes(w.cutoff_time);
+      let status: string;
+      if (nowMin < cutoffMin) {
+        const mins = cutoffMin - nowMin;
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        const left = h > 0 ? `${h}h ${m}m` : `${m}m`;
+        status = `OPEN — order by ${formatTimeDisplay(w.cutoff_time)} (${left} left)`;
+      } else {
+        status = `CLOSED for today — cutoff ${formatTimeDisplay(w.cutoff_time)} has passed`;
+      }
+      text += `- ${w.name}: ${status}. Delivery ${formatDeliveryWindow(
+        w.delivery_start,
+        w.delivery_end
+      )}.\n`;
+    }
+  }
+
+  // Authoritative "order right now" slot — identical source to website checkout.
+  const next = await getNextAvailableBatch();
+  if (next.batch && next.deliveryWindow) {
+    let when: string;
+    if (!next.isPreorder) when = 'today';
+    else if (next.deliveryDate === getTomorrowDateString()) when = 'tomorrow';
+    else when = `on ${next.deliveryDate}`;
+    text += `\nAn order placed right now would be delivered ${when}, ${next.deliveryWindow}.`;
+    if (next.isPreorder) {
+      text +=
+        " (All of today's windows have already closed — this is the next available slot.)";
+    }
+    text += '\n';
+  } else {
+    text +=
+      '\nWe are not accepting orders right now — there is no upcoming delivery window available.\n';
   }
 
   const { data: regions } = await supabase
@@ -420,13 +476,8 @@ async function getDeliveryInfo(): Promise<string> {
     .select('name, base_fee, is_active')
     .eq('is_active', true);
 
-  let text = 'Delivery Windows:\n';
-  for (const w of windows) {
-    text += `- ${w.name}: Orders open ${w.order_open_time} - Cutoff ${w.cutoff_time}, Delivery ${w.delivery_start} - ${w.delivery_end}\n`;
-  }
-
   if (regions?.length) {
-    text += '\nDelivery Areas & Fees:\n';
+    text += '\nDelivery areas & fees:\n';
     for (const r of regions) {
       text += `- ${r.name}: NGN ${r.base_fee}\n`;
     }

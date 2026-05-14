@@ -156,14 +156,14 @@ export function getTomorrowDateString(): string {
 /**
  * Get current day of week (0=Sunday, 1=Monday, ..., 6=Saturday) in Nigeria timezone
  */
-function getCurrentDayOfWeek(): number {
+export function getCurrentDayOfWeek(): number {
   return getNowInNigeria().getDay();
 }
 
 /**
  * Convert HH:MM time string to minutes since midnight
  */
-function timeToMinutes(timeStr: string): number {
+export function timeToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
 }
@@ -171,7 +171,7 @@ function timeToMinutes(timeStr: string): number {
 /**
  * Get current time in minutes since midnight (Nigeria timezone)
  */
-function getCurrentTimeMinutes(): number {
+export function getCurrentTimeMinutes(): number {
   const now = getNowInNigeria();
   return now.getHours() * 60 + now.getMinutes();
 }
