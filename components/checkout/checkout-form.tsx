@@ -182,17 +182,6 @@ export function CheckoutForm({
       return;
     }
 
-    // Mandatory location for delivery orders (GPS or map-pin)
-    if (
-      data.orderType === 'delivery' &&
-      (!customerLocation?.latitude || !customerLocation?.longitude)
-    ) {
-      toast.error('Please share your location or drop a pin on the map to continue.');
-      setHighlightedField('location');
-      setShowFieldHighlight(true);
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       // Prepare order items
@@ -485,19 +474,13 @@ export function CheckoutForm({
             {errors.fullAddress && <p className="text-sm text-destructive">{errors.fullAddress.message}</p>}
           </div>
 
-          {/* Location Sharing - Required for delivery */}
           <div className="pt-2">
             <LocationShareButton
-              required={orderType === 'delivery'}
-              highlight={highlightedField === 'location' && showFieldHighlight}
               onLocationCaptured={(location) => {
                 setCustomerLocation(location ? {
                   latitude: location.latitude,
                   longitude: location.longitude,
                 } : null);
-                if (location && highlightedField === 'location') {
-                  setHighlightedField(null);
-                }
               }}
             />
           </div>

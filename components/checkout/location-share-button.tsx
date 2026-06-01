@@ -1,22 +1,9 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { MapPin, Check, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const LocationMap = dynamic(
-  () => import('./location-map').then((mod) => mod.LocationMap),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-[250px] rounded-lg bg-gray-100 animate-pulse flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-      </div>
-    ),
-  }
-);
 
 interface LocationData {
   latitude: number;
@@ -27,13 +14,7 @@ interface LocationData {
 interface LocationShareButtonProps {
   onLocationCaptured: (location: LocationData | null) => void;
   className?: string;
-  required?: boolean;
-  highlight?: boolean;
 }
-
-// Awka, Anambra — sensible default when GPS is denied / desktop users
-const DEFAULT_LAT = 6.2103;
-const DEFAULT_LNG = 7.0707;
 
 const LOCATION_ANIMATION_KEY = 'jollof_location_animation_count';
 const MAX_ANIMATION_VIEWS = 5;
@@ -41,14 +22,11 @@ const MAX_ANIMATION_VIEWS = 5;
 export function LocationShareButton({
   onLocationCaptured,
   className,
-  required = false,
-  highlight = false,
 }: LocationShareButtonProps) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [location, setLocation] = useState<LocationData | null>(null);
   const [showAnimation, setShowAnimation] = useState(false);
-  const [showMapPicker, setShowMapPicker] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -66,8 +44,7 @@ export function LocationShareButton({
   const handleGetLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setStatus('error');
-      setErrorMessage('Location not supported by your browser. Drop a pin on the map instead.');
-      setShowMapPicker(true);
+      setErrorMessage("Your browser doesn't support location sharing. You can continue without it.");
       return;
     }
 
@@ -89,18 +66,17 @@ export function LocationShareButton({
         setStatus('error');
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setErrorMessage('Location permission denied. Drop a pin on the map instead.');
+            setErrorMessage('Location permission denied. You can continue without it.');
             break;
           case error.POSITION_UNAVAILABLE:
-            setErrorMessage('Location unavailable. Drop a pin on the map instead.');
+            setErrorMessage('Location unavailable. You can continue without it.');
             break;
           case error.TIMEOUT:
-            setErrorMessage('Location request timed out. Drop a pin on the map instead.');
+            setErrorMessage('Location request timed out. You can continue without it.');
             break;
           default:
-            setErrorMessage('Unable to get location. Drop a pin on the map instead.');
+            setErrorMessage("Couldn't get your location. You can continue without it.");
         }
-        setShowMapPicker(true);
         onLocationCaptured(null);
       },
       {
@@ -115,30 +91,10 @@ export function LocationShareButton({
     setLocation(null);
     setStatus('idle');
     setErrorMessage('');
-    setShowMapPicker(false);
     onLocationCaptured(null);
   }, [onLocationCaptured]);
 
-  const handleLocationChange = useCallback(
-    (lat: number, lng: number) => {
-      const updatedLocation: LocationData = { latitude: lat, longitude: lng };
-      setLocation(updatedLocation);
-      setStatus('success');
-      onLocationCaptured(updatedLocation);
-    },
-    [onLocationCaptured]
-  );
-
-  const handleShowMapPicker = useCallback(() => {
-    setShowMapPicker(true);
-    setErrorMessage('');
-  }, []);
-
   const hasLocation = status === 'success' && location;
-  const mapVisible = hasLocation || showMapPicker;
-  const mapLat = location?.latitude ?? DEFAULT_LAT;
-  const mapLng = location?.longitude ?? DEFAULT_LNG;
-  const missing = required && !hasLocation;
 
   return (
     <div className={cn('space-y-3', className)}>
@@ -163,41 +119,28 @@ export function LocationShareButton({
             </Button>
           </>
         ) : (
-          <div className="w-full space-y-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleGetLocation}
-              disabled={status === 'loading'}
-              className={cn(
-                'w-full justify-start gap-2',
-                missing && highlight && 'border-red-500 text-red-700 ring-2 ring-red-200',
-                missing && !highlight && 'border-red-300',
-                showAnimation && status === 'idle' && 'location-btn-animated'
-              )}
-            >
-              {status === 'loading' ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Getting location...</span>
-                </>
-              ) : (
-                <>
-                  <MapPin className="h-4 w-4" />
-                  <span>Share my location</span>
-                </>
-              )}
-            </Button>
-            {!showMapPicker && status !== 'loading' && (
-              <button
-                type="button"
-                onClick={handleShowMapPicker}
-                className="text-xs text-primary underline hover:no-underline"
-              >
-                or drop a pin on the map
-              </button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGetLocation}
+            disabled={status === 'loading'}
+            className={cn(
+              'w-full justify-start gap-2',
+              showAnimation && status === 'idle' && 'location-btn-animated'
             )}
-          </div>
+          >
+            {status === 'loading' ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Getting location...</span>
+              </>
+            ) : (
+              <>
+                <MapPin className="h-4 w-4" />
+                <span>Share my location</span>
+              </>
+            )}
+          </Button>
         )}
       </div>
 
@@ -205,17 +148,9 @@ export function LocationShareButton({
         <p className="text-xs text-red-600">{errorMessage}</p>
       )}
 
-      {mapVisible && (
-        <LocationMap
-          latitude={mapLat}
-          longitude={mapLng}
-          onLocationChange={handleLocationChange}
-        />
-      )}
-
       {!hasLocation && (
-        <p className={cn('text-xs', missing ? 'text-red-600' : 'text-muted-foreground')}>
-          📍 {required ? 'Required: ' : ''}Share your GPS location or tap the map to drop a pin.
+        <p className="text-xs text-muted-foreground">
+          📍 Optional — sharing your GPS helps the rider find you faster.
         </p>
       )}
     </div>

@@ -44,6 +44,7 @@ const orderSchema = z.object({
     selected_addons: z.array(z.object({
       name: z.string(),
       price: z.number(),
+      quantity: z.number().int().positive().default(1),
     })).optional(),
     special_instructions: z.string().max(200).optional(),
     subtotal: z.number().positive(),
@@ -70,19 +71,6 @@ const orderSchema = z.object({
         code: z.ZodIssueCode.custom,
         message: 'Delivery address must be at least 4 characters',
         path: ['delivery_address'],
-      });
-    }
-
-    // Mandatory GPS/pin coordinates for delivery — required for proximity alerts
-    // and auto-complete geofence.
-    if (
-      typeof data.customer_latitude !== 'number' ||
-      typeof data.customer_longitude !== 'number'
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Delivery location (GPS or map pin) is required',
-        path: ['customer_latitude'],
       });
     }
   }
