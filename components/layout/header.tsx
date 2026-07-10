@@ -11,6 +11,7 @@ import { useRestaurantInfo } from '@/hooks/use-settings';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { CartSheet } from '@/components/cart/cart-sheet';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { AnnouncementMarquee } from '@/components/layout/announcement-marquee';
 
 export function Header() {
   const itemCount = useCartStore((state) => state.getItemCount());
@@ -25,6 +26,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+      <AnnouncementMarquee />
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4 max-w-[1400px]">
         {/* Left: Menu Icon */}
         <div className="flex items-center w-20 sm:w-24">

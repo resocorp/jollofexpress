@@ -448,6 +448,11 @@ export interface DeliveryRegionGroupWithRegions extends DeliveryRegionGroup {
 
 export interface PaymentSettings {
   tax_rate: number;
+  accept_cash?: boolean;
+  accept_card?: boolean;
+  accept_transfer?: boolean;
+  payments_blocked?: boolean;
+  blocked_message?: string;
 }
 
 export interface OrderSettings {

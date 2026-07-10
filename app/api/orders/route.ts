@@ -160,7 +160,32 @@ export async function POST(request: NextRequest) {
     }
 
     const orderData: OrderData = validationResult.data;
-    
+
+    // HARD BLOCK: reject if the owner has paused ordering/payments (manual kill switch).
+    // Authoritative gate — runs before any Paystack transaction is initialized,
+    // even if a client bypasses the checkout UI.
+    const settingsClient = createServiceClient();
+    const { data: paySetting } = await settingsClient
+      .from('settings')
+      .select('value')
+      .eq('key', 'payment_settings')
+      .single();
+    const paymentConfig = (paySetting?.value ?? {}) as {
+      payments_blocked?: boolean;
+      blocked_message?: string;
+    };
+    if (paymentConfig.payments_blocked) {
+      return NextResponse.json(
+        {
+          error: 'Ordering paused',
+          message:
+            paymentConfig.blocked_message?.trim() ||
+            "We're not accepting orders right now. Please check back soon.",
+        },
+        { status: 503 }
+      );
+    }
+
     // Debug logging for order pricing (without sensitive data)
     console.log('[ORDER CREATE] Pricing breakdown:', {
       subtotal: orderData.subtotal,

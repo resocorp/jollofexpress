@@ -176,6 +176,15 @@ export function CheckoutForm({
       calculated_total: subtotal + deliveryFee + tax - discount
     });
 
+    // Owner has paused ordering — block before doing anything (server also enforces this)
+    if (paymentSettings?.payments_blocked) {
+      toast.error(
+        paymentSettings.blocked_message?.trim() ||
+          "We're not accepting orders right now. Please check back soon."
+      );
+      return;
+    }
+
     // Validate minimum order (only if delivery settings are loaded)
     if (data.orderType === 'delivery' && deliverySettings && isBelowMinimum) {
       toast.error(`Minimum order amount is ${formatCurrency(minOrder)} for delivery`);
@@ -332,6 +341,20 @@ export function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit, handleFormError)} className="space-y-6">
+      {/* Payments blocked (owner kill switch) */}
+      {paymentSettings?.payments_blocked && (
+        <Alert className="border-2 border-red-400 bg-red-50 dark:border-red-500/40 dark:bg-red-500/10">
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <AlertTitle className="text-lg font-bold text-red-900 dark:text-red-200">
+            Ordering is paused
+          </AlertTitle>
+          <AlertDescription className="mt-2 text-red-800 dark:text-red-300">
+            {paymentSettings.blocked_message?.trim() ||
+              "We're not accepting orders right now. Please check back soon."}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Batch Delivery Confirmation */}
       {deliveryWindow && restaurantClosed && (
         <Alert className="border-2 border-purple-400 bg-purple-50 dark:border-purple-500/40 dark:bg-purple-500/10">

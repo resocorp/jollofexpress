@@ -28,6 +28,8 @@ export async function GET() {
       accept_cash: settings.accept_cash ?? true,
       accept_card: settings.accept_card ?? true,
       accept_transfer: settings.accept_transfer ?? false,
+      payments_blocked: settings.payments_blocked ?? false,
+      blocked_message: settings.blocked_message ?? '',
     });
 
   } catch (error) {

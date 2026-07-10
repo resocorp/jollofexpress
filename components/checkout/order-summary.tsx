@@ -36,6 +36,7 @@ export function OrderSummaryWithButton({
   const { items, discount, promoCode, getSubtotal, setPromoCode } = useCartStore();
   const { data: deliverySettings } = useDeliverySettings();
   const { data: paymentSettings } = usePaymentSettings();
+  const paymentsBlocked = paymentSettings?.payments_blocked ?? false;
   const validatePromo = useValidatePromo();
   const { deliveryDate, deliveryWindow, isPreorder, restaurantClosed } = useOrderWindow();
   const [promoInput, setPromoInput] = useState(promoCode || '');
@@ -346,14 +347,16 @@ export function OrderSummaryWithButton({
             type="button"
             onClick={onSubmit}
             size="lg" 
-            disabled={isSubmitting || isBelowMinimum || isLoadingSettings}
-            className={`w-full min-h-[72px] bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-500 text-white font-bold shadow-lg hover:shadow-xl transition-all rounded-xl ${showPaymentAnimation && !isSubmitting ? 'checkout-btn-animated' : ''}`}
+            disabled={isSubmitting || isBelowMinimum || isLoadingSettings || paymentsBlocked}
+            className={`w-full min-h-[72px] bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-500 text-white font-bold shadow-lg hover:shadow-xl transition-all rounded-xl ${showPaymentAnimation && !isSubmitting && !paymentsBlocked ? 'checkout-btn-animated' : ''}`}
           >
             {isSubmitting ? (
               <div className="flex items-center gap-2">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span>Processing...</span>
               </div>
+            ) : paymentsBlocked ? (
+              <span className="text-xl font-extrabold">Ordering paused</span>
             ) : (
               <div className="flex flex-col items-center gap-0.5 w-full">
                 <span className="text-xl font-extrabold">Pay {formatCurrency(total)}</span>

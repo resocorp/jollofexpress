@@ -37,6 +37,8 @@ const paymentSettingsSchema = z.object({
   accept_cash: z.boolean().optional(),
   accept_card: z.boolean().optional(),
   accept_transfer: z.boolean().optional(),
+  payments_blocked: z.boolean().optional(),
+  blocked_message: z.string().max(200).optional(),
 });
 
 const operatingHoursSchema = z.object({

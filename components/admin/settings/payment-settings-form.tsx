@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { useUpdateSettings } from '@/hooks/use-settings';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -20,16 +22,14 @@ const paymentSettingsSchema = z.object({
   accept_cash: z.boolean(),
   accept_card: z.boolean(),
   accept_transfer: z.boolean(),
+  payments_blocked: z.boolean(),
+  blocked_message: z.string().max(200, 'Message cannot exceed 200 characters'),
 });
 
 type FormData = z.infer<typeof paymentSettingsSchema>;
 
 interface PaymentSettingsFormProps {
-  data?: PaymentSettings & {
-    accept_cash?: boolean;
-    accept_card?: boolean;
-    accept_transfer?: boolean;
-  };
+  data?: PaymentSettings;
 }
 
 export function PaymentSettingsForm({ data }: PaymentSettingsFormProps) {
@@ -48,12 +48,15 @@ export function PaymentSettingsForm({ data }: PaymentSettingsFormProps) {
       accept_cash: data?.accept_cash ?? true,
       accept_card: data?.accept_card ?? true,
       accept_transfer: data?.accept_transfer ?? false,
+      payments_blocked: data?.payments_blocked ?? false,
+      blocked_message: data?.blocked_message ?? '',
     },
   });
 
   const acceptCash = watch('accept_cash');
   const acceptCard = watch('accept_card');
   const acceptTransfer = watch('accept_transfer');
+  const paymentsBlocked = watch('payments_blocked');
 
   const onSubmit = async (formData: FormData) => {
     // Validate at least one payment method is selected
@@ -76,6 +79,73 @@ export function PaymentSettingsForm({ data }: PaymentSettingsFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Block Payments / Pause Ordering kill switch */}
+      <div
+        className={`rounded-lg border p-4 ${
+          paymentsBlocked ? 'border-red-300 bg-red-50' : ''
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="text-base">Pause Ordering</Label>
+            <p className="text-sm text-muted-foreground">
+              {paymentsBlocked
+                ? 'Customers cannot place orders or pay right now'
+                : 'Customers can place orders and pay normally'}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span
+              className={`text-sm font-medium ${
+                paymentsBlocked ? 'text-red-600' : 'text-green-600'
+              }`}
+            >
+              {paymentsBlocked ? 'Blocked' : 'Accepting'}
+            </span>
+            <Controller
+              name="payments_blocked"
+              control={control}
+              render={({ field }) => (
+                <Switch checked={field.value} onCheckedChange={field.onChange} />
+              )}
+            />
+          </div>
+        </div>
+
+        {paymentsBlocked && (
+          <div className="mt-4 space-y-2">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+              <p className="text-sm font-medium text-red-800">
+                ⚠️ Ordering is paused
+              </p>
+              <p className="mt-1 text-xs text-red-700">
+                No new orders or payments will be accepted until you turn this off.
+                Turn this on when you&apos;re closed for the day, at capacity, or
+                during an event.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="blocked_message">Message shown to customers</Label>
+              <Textarea
+                id="blocked_message"
+                rows={2}
+                placeholder="We're closed for a private event — back tomorrow!"
+                {...register('blocked_message')}
+                className={errors.blocked_message ? 'border-red-500' : ''}
+              />
+              {errors.blocked_message && (
+                <p className="text-sm text-red-600">
+                  {errors.blocked_message.message}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Leave blank to use the default message.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Tax Rate */}
       <div className="space-y-2">
         <Label htmlFor="tax_rate">Tax Rate (%)</Label>

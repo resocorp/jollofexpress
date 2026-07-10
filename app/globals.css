@@ -213,8 +213,35 @@
 }
 
 @layer components {
+  /* Scrolling announcement marquee (e.g. "ordering paused" banner) */
+  @keyframes marquee-scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .marquee-track {
+    display: inline-flex;
+    white-space: nowrap;
+    animation: marquee-scroll 20s linear infinite;
+    will-change: transform;
+  }
+
+  .marquee-track:hover {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+      animation: none;
+    }
+  }
+
   /* Checkout Guidance Animations */
-  
+
   /* Pulse glow animation for buttons */
   @keyframes pulse-glow {
     0%, 100% {
