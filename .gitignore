@@ -103,3 +103,4 @@ MIGRATE_*.md
 /inspect-affected-sessions.mjs
 /list-failed-ai-replies.mjs
 /lookup-order.mjs
+.gstack/
