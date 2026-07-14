@@ -167,23 +167,55 @@ export function CountdownTimer() {
           </span>
         </div>
         {showCapacity && (
-          <div className="w-full max-w-xs mt-1">
-            <div className="mb-1 text-center">
-              <span className={`text-[11px] sm:text-xs font-medium ${capTextClass}`}>
+          <div className="w-full max-w-sm mt-1.5">
+            <div className="mb-1.5 text-center">
+              <span className={`text-xs sm:text-sm font-semibold ${capTextClass}`}>
                 {capLabel}
               </span>
             </div>
-            <div className={`w-full h-2 rounded-full overflow-hidden ${capTrackClass}`}>
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${capBarClass}`}
-                style={{ width: `${capPct}%` }}
+            <motion.div
+              className={`relative w-full h-3.5 sm:h-4 rounded-full overflow-hidden ${capTrackClass}`}
+              animate={
+                capCritical
+                  ? {
+                      boxShadow: [
+                        '0 0 0 0 rgba(239,68,68,0.0)',
+                        '0 0 0 5px rgba(239,68,68,0.18)',
+                        '0 0 0 0 rgba(239,68,68,0.0)',
+                      ],
+                    }
+                  : undefined
+              }
+              transition={
+                capCritical
+                  ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+                  : undefined
+              }
+            >
+              <motion.div
+                className={`relative h-full rounded-full overflow-hidden ${capBarClass}`}
+                initial={{ width: 0 }}
+                animate={{ width: `${capPct}%` }}
+                transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
                 role="progressbar"
                 aria-valuenow={capPct}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-label="Delivery window capacity"
-              />
-            </div>
+              >
+                {/* sweeping shimmer across the fill */}
+                <motion.div
+                  className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/50 to-transparent"
+                  animate={{ x: ['-130%', '230%'] }}
+                  transition={{
+                    duration: 1.8,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                    repeatDelay: 0.7,
+                  }}
+                />
+              </motion.div>
+            </motion.div>
           </div>
         )}
         {upcomingOtherBatches.length > 0 && (
