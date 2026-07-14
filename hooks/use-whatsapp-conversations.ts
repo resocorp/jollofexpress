@@ -9,7 +9,12 @@ import { createClient } from '@/lib/supabase/client';
 import type { SessionMessage } from '@/lib/ai/session-log';
 
 export interface ConversationListItem {
+  // `phone` is the session key (may be a bare LID for unresolved inbound).
   phone: string;
+  // `display_phone` is the resolved Nigerian E.164 when a whatsapp_lid_map
+  // entry exists; falls back to `phone` otherwise. Render this to users.
+  display_phone: string;
+  is_unresolved_lid: boolean;
   customer_name: string | null;
   last_message_preview: string;
   last_message_source: string | null;
@@ -26,6 +31,8 @@ export interface ConversationListItem {
 
 export interface ConversationDetail {
   phone: string;
+  display_phone: string;
+  is_unresolved_lid: boolean;
   customer_name: string | null;
   messages: SessionMessage[];
   last_activity: string | null;

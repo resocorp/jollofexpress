@@ -31,10 +31,18 @@ export function ConversationDetail({ phone }: Props) {
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold text-slate-100">
-                {conversation.customer_name || conversation.phone}
+                {conversation.customer_name || conversation.display_phone}
               </p>
               {conversation.customer_name && (
-                <p className="text-xs text-slate-400">{conversation.phone}</p>
+                <p className="text-xs text-slate-400">{conversation.display_phone}</p>
+              )}
+              {conversation.is_unresolved_lid && (
+                <p
+                  className="text-[11px] text-amber-300/80"
+                  title="WhatsApp delivered this chat on a LID identifier without a phone. Replies still work; the real number will appear once it's resolved."
+                >
+                  Unverified — phone not resolved yet
+                </p>
               )}
             </div>
           </div>

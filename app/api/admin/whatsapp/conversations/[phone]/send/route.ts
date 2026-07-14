@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { verifyAdminOrAgent } from '@/lib/auth/admin-auth';
 import { createServiceClient } from '@/lib/supabase/service';
 import { appendStaffMessage } from '@/lib/ai/session-log';
-import { sendWhatsAppMedia, sendWhatsAppText } from '@/lib/whatsapp/send';
+import { sendWhatsAppMedia, sendWhatsAppText, type SendTarget } from '@/lib/whatsapp/send';
 
 const sendSchema = z.object({
   message: z.string().max(4096).optional().default(''),
@@ -84,10 +84,36 @@ export async function POST(
       mediaPublicUrlForUi = longUrl?.signedUrl ?? null;
     }
 
+    // Resolve the outbound target.
+    //
+    // The session is keyed by `phone`, but for inbound conversations that
+    // arrived on an `@lid` JID and weren't yet mapped to a phone (no senderPn,
+    // no prior whatsapp_lid_map entry), `phone` is the bare LID digits and
+    // does NOT exist on `@s.whatsapp.net`. Two-step resolve:
+    //   1. If `<phone>@lid` is in whatsapp_lid_map, use the mapped phone
+    //      (clean Nigerian E.164 → goes through normal /send phone path).
+    //   2. Else if `phone` doesn't look Nigerian-formattable, send to
+    //      `<phone>@lid` directly so Baileys' internal LID/PN store routes it.
+    //   3. Else (normal phone), keep the legacy phone-only call.
+    let sendTarget: SendTarget = { phone };
+    const looksLikeNigerianPhone = /^234[0-9]{10}$|^0[0-9]{10}$/.test(phone);
+    if (!looksLikeNigerianPhone) {
+      const { data: mapRow } = await supabase
+        .from('whatsapp_lid_map')
+        .select('phone')
+        .eq('lid_jid', `${phone}@lid`)
+        .maybeSingle();
+      if (mapRow?.phone) {
+        sendTarget = { phone: mapRow.phone };
+      } else {
+        sendTarget = { jid: `${phone}@lid` };
+      }
+    }
+
     // Send via Baileys.
     const sendResult = mediaSignedUrl
-      ? await sendWhatsAppMedia(phone, mediaSignedUrl, message)
-      : await sendWhatsAppText(phone, message);
+      ? await sendWhatsAppMedia(sendTarget, mediaSignedUrl, message)
+      : await sendWhatsAppText(sendTarget, message);
 
     if (!sendResult.success) {
       return NextResponse.json(

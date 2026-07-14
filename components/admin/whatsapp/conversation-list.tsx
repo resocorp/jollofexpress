@@ -110,7 +110,7 @@ export function ConversationList({
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-medium truncate">
-                        {c.customer_name || c.phone}
+                        {c.customer_name || c.display_phone}
                       </span>
                       <span className="text-xs text-muted-foreground shrink-0 ml-2">
                         {timeAgo(c.last_activity)}
@@ -121,6 +121,14 @@ export function ConversationList({
                     </p>
                     <div className="flex items-center gap-1 mt-1.5">
                       <Badge className={cn('text-xs', status.className)}>{status.label}</Badge>
+                      {c.is_unresolved_lid && (
+                        <Badge
+                          className="text-xs bg-zinc-600/30 text-zinc-300"
+                          title="Customer phone not yet resolved — replies still work, but the number may not match an order until they message in again."
+                        >
+                          Unverified
+                        </Badge>
+                      )}
                       {c.is_mine && (
                         <Badge className="text-xs bg-blue-500/20 text-blue-300">Mine</Badge>
                       )}

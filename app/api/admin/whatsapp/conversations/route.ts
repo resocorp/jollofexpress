@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminOrAgent } from '@/lib/auth/admin-auth';
 import { createServiceClient } from '@/lib/supabase/service';
 import type { SessionMessage } from '@/lib/ai/session-log';
+import { phoneVariants } from '@/lib/whatsapp/identity';
 
 interface SessionRow {
   id: string;
@@ -47,21 +48,60 @@ export async function GET(request: NextRequest) {
     const rows = (sessions ?? []) as SessionRow[];
     const now = Date.now();
 
-    // Resolve customer names from the most recent matching order per phone.
-    const phones = rows.map((r) => r.phone);
-    const customerNameByPhone = new Map<string, string>();
-    if (phones.length) {
+    // Resolve any session keyed by a bare LID to its real phone via the
+    // whatsapp_lid_map cache. Sessions whose `phone` is already a Nigerian
+    // E.164 stay unchanged; bare-LID sessions get a `display_phone` so the
+    // panel can render the actual customer number, and so the customer-name
+    // lookup against `orders.customer_phone` can hit.
+    const sessionPhones = rows.map((r) => r.phone);
+    const mappedPhoneBySessionPhone = new Map<string, string>();
+    if (sessionPhones.length) {
+      const lidJids = sessionPhones.map((p) => `${p}@lid`);
+      const { data: lidRows } = await supabase
+        .from('whatsapp_lid_map')
+        .select('lid_jid, phone')
+        .in('lid_jid', lidJids);
+      for (const r of lidRows ?? []) {
+        const sessionPhone = r.lid_jid.replace(/@lid$/, '');
+        mappedPhoneBySessionPhone.set(sessionPhone, r.phone);
+      }
+    }
+
+    // Build the lookup keys for orders.customer_phone — uses every plausible
+    // formatting of the resolved phone (or the raw session phone when no map).
+    const orderLookupSet = new Set<string>();
+    const variantsBySessionPhone = new Map<string, string[]>();
+    for (const r of rows) {
+      const resolved = mappedPhoneBySessionPhone.get(r.phone) || r.phone;
+      const variants = phoneVariants(resolved);
+      // Also include the raw session phone (covers non-LID sessions whose
+      // checkout phone may differ from the WhatsApp normalized form).
+      if (!variants.includes(r.phone)) variants.push(r.phone);
+      variantsBySessionPhone.set(r.phone, variants);
+      for (const v of variants) orderLookupSet.add(v);
+    }
+
+    const customerNameByVariant = new Map<string, string>();
+    if (orderLookupSet.size) {
       const { data: orderRows } = await supabase
         .from('orders')
         .select('customer_phone, customer_name, created_at')
-        .in('customer_phone', phones)
+        .in('customer_phone', Array.from(orderLookupSet))
         .order('created_at', { ascending: false });
       for (const o of orderRows ?? []) {
-        if (o.customer_phone && !customerNameByPhone.has(o.customer_phone)) {
-          customerNameByPhone.set(o.customer_phone, o.customer_name);
+        if (o.customer_phone && !customerNameByVariant.has(o.customer_phone)) {
+          customerNameByVariant.set(o.customer_phone, o.customer_name);
         }
       }
     }
+    const customerNameForSessionPhone = (sessionPhone: string): string | null => {
+      const variants = variantsBySessionPhone.get(sessionPhone) ?? [sessionPhone];
+      for (const v of variants) {
+        const name = customerNameByVariant.get(v);
+        if (name) return name;
+      }
+      return null;
+    };
 
     // Resolve assigned agent names.
     const agentIds = Array.from(
@@ -82,10 +122,15 @@ export async function GET(request: NextRequest) {
       const isMuted = !!row.ai_muted_until && new Date(row.ai_muted_until).getTime() > now;
       const isClaimed = !!row.assigned_agent_id;
       const isMine = row.assigned_agent_id === auth.user.id;
+      const mappedPhone = mappedPhoneBySessionPhone.get(row.phone) || null;
+      const looksLikeNigerianPhone = /^234[0-9]{10}$/.test(row.phone);
+      const isUnresolvedLid = !mappedPhone && !looksLikeNigerianPhone;
 
       return {
         phone: row.phone,
-        customer_name: customerNameByPhone.get(row.phone) || null,
+        display_phone: mappedPhone || row.phone,
+        is_unresolved_lid: isUnresolvedLid,
+        customer_name: customerNameForSessionPhone(row.phone),
         last_message_preview: lastMessage ? truncate(lastMessage.content, 80) : '',
         last_message_source: lastMessage?.source || null,
         last_activity: row.last_activity,

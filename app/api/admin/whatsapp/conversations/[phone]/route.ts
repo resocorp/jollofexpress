@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminOrAgent } from '@/lib/auth/admin-auth';
 import { createServiceClient } from '@/lib/supabase/service';
 import type { SessionMessage } from '@/lib/ai/session-log';
+import { phoneVariants } from '@/lib/whatsapp/identity';
 
 export async function GET(
   request: NextRequest,
@@ -32,11 +33,26 @@ export async function GET(
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    // Fetch the customer's recent orders for the context sidebar.
+    // If the session is keyed by a bare LID, look up the canonical phone via
+    // whatsapp_lid_map so we can hydrate customer name + recent orders.
+    const { data: lidMap } = await supabase
+      .from('whatsapp_lid_map')
+      .select('phone')
+      .eq('lid_jid', `${phone}@lid`)
+      .maybeSingle();
+    const mappedPhone: string | null = lidMap?.phone ?? null;
+    const looksLikeNigerianPhone = /^234[0-9]{10}$/.test(phone);
+    const isUnresolvedLid = !mappedPhone && !looksLikeNigerianPhone;
+    const displayPhone = mappedPhone || phone;
+
+    // Fetch the customer's recent orders for the context sidebar. Using
+    // phoneVariants so checkout-format differences (e.g. "+234…", "0…") match.
+    const orderLookup = phoneVariants(displayPhone);
+    if (!orderLookup.includes(phone)) orderLookup.push(phone);
     const { data: orders } = await supabase
       .from('orders')
       .select('id, order_number, status, total_amount, customer_name, created_at, batch_id')
-      .eq('customer_phone', phone)
+      .in('customer_phone', orderLookup)
       .order('created_at', { ascending: false })
       .limit(5);
 
@@ -70,6 +86,8 @@ export async function GET(
     return NextResponse.json({
       conversation: {
         phone: session.phone,
+        display_phone: displayPhone,
+        is_unresolved_lid: isUnresolvedLid,
         customer_name: customerName,
         messages: decorated,
         last_activity: session.last_activity,

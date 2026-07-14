@@ -199,8 +199,13 @@ async function initWhatsApp() {
     defaultQueryTimeoutMs: 0,
     keepAliveIntervalMs: 30000,
     retryRequestDelayMs: 500,
-    // Skip history sync so messages arrive immediately via messages.upsert
-    shouldSyncHistoryMessage: () => false,
+    // Use Baileys' default `shouldSyncHistoryMessage` (everything except FULL).
+    // INITIAL_BOOTSTRAP + RECENT are required for the LID/PN mapping store to
+    // populate at connect; suppressing them caused customers to land in
+    // whatsapp_ai_sessions keyed by bare LIDs and produced Bad-MAC session
+    // errors during disconnect/reconnect cycles. The AI handler subscribes
+    // only to messages.upsert (history sync uses messaging-history.set) and
+    // the per-message age filter below caps anything that leaks through.
     markOnlineOnConnect: true,
   });
 
@@ -493,62 +498,103 @@ async function handleAIChat(remoteJid, phone, text, image) {
 // ============================================
 
 /**
+ * Resolve the outbound JID + a human-readable label for logging.
+ *
+ * Accepts either a raw phone (legacy callers like order notifications) or an
+ * explicit `jid` (admin reply path, when the conversation is keyed by a bare
+ * LID we couldn't yet resolve to a phone). Returns null when neither is usable.
+ *
+ * For `@lid` JIDs we skip the `onWhatsApp` existence check — that API returns
+ * `exists:false` for LID-only contacts, but `sock.sendMessage(<lid>@lid, …)`
+ * still routes correctly via Baileys' internal LID/PN mapping store.
+ */
+function resolveOutboundTarget({ phone, jid }) {
+  if (typeof jid === 'string' && jid) {
+    if (jid.endsWith('@lid')) {
+      return { jid, label: jid, requireExistsCheck: false };
+    }
+    if (jid.endsWith('@s.whatsapp.net')) {
+      return { jid, label: jid.replace(/@s\.whatsapp\.net$/, ''), requireExistsCheck: true };
+    }
+  }
+  if (typeof phone === 'string' && phone) {
+    const formatted = formatPhoneNumber(phone);
+    return {
+      jid: `${formatted}@s.whatsapp.net`,
+      label: formatted,
+      requireExistsCheck: true,
+    };
+  }
+  return null;
+}
+
+/**
  * POST /send - Send a single WhatsApp message
+ *
+ * Body: { phone?, jid?, message }
+ *   - `phone` — Nigerian phone (legacy; gets formatPhoneNumber + onWhatsApp gate)
+ *   - `jid`   — explicit JID (`<digits>@s.whatsapp.net` or `<lid>@lid`); skips
+ *               the onWhatsApp gate when it's a `@lid`
+ * One of `phone` or `jid` is required.
  */
 app.post('/send', async (req, res) => {
   try {
-    const { phone, message } = req.body;
+    const { phone, jid: jidInput, message } = req.body;
 
-    if (!phone || !message) {
-      return res.status(400).json({ error: 'phone and message are required' });
+    if ((!phone && !jidInput) || !message) {
+      return res.status(400).json({ error: 'phone (or jid) and message are required' });
     }
 
     if (!sock || connectionStatus !== 'connected') {
-      return res.status(503).json({ 
-        error: 'WhatsApp not connected', 
-        status: connectionStatus 
+      return res.status(503).json({
+        error: 'WhatsApp not connected',
+        status: connectionStatus
       });
     }
 
     // Rate limiting
     if (messagesSentLastMinute >= RATE_LIMIT_PER_MINUTE) {
-      return res.status(429).json({ 
+      return res.status(429).json({
         error: 'Rate limit exceeded',
         limit: RATE_LIMIT_PER_MINUTE,
         reset_in_seconds: Math.ceil((60000 - (Date.now() - rateLimitResetTime)) / 1000),
       });
     }
 
-    const formattedPhone = formatPhoneNumber(phone);
-    const jid = `${formattedPhone}@s.whatsapp.net`;
+    const target = resolveOutboundTarget({ phone, jid: jidInput });
+    if (!target) {
+      return res.status(400).json({ error: 'unresolved_target', message: 'Could not derive a JID from phone/jid' });
+    }
+    const { jid, label, requireExistsCheck } = target;
 
-    // Check if number is on WhatsApp
-    const [result] = await sock.onWhatsApp(jid);
-    if (!result?.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'not_on_whatsapp',
-        message: `${phone} is not registered on WhatsApp`,
-      });
+    if (requireExistsCheck) {
+      const [result] = await sock.onWhatsApp(jid);
+      if (!result?.exists) {
+        return res.status(404).json({
+          success: false,
+          error: 'not_on_whatsapp',
+          message: `${label} is not registered on WhatsApp`,
+        });
+      }
     }
 
     const sent = await sock.sendMessage(jid, { text: message });
     rememberOurSentId(sent?.key?.id);
     messagesSentLastMinute++;
 
-    console.log(`📤 Message sent to ${formattedPhone}: ${message.substring(0, 50)}...`);
+    console.log(`📤 Message sent to ${label}: ${message.substring(0, 50)}...`);
 
     return res.json({
       success: true,
       messageId: sent.key.id,
-      phone: formattedPhone,
+      jid,
     });
 
   } catch (error) {
     console.error('Error sending message:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Failed to send message' 
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to send message'
     });
   }
 });
@@ -565,10 +611,10 @@ app.post('/send', async (req, res) => {
  */
 app.post('/send-media', async (req, res) => {
   try {
-    const { phone, mediaUrl, caption } = req.body;
+    const { phone, jid: jidInput, mediaUrl, caption } = req.body;
 
-    if (!phone || !mediaUrl) {
-      return res.status(400).json({ error: 'phone and mediaUrl are required' });
+    if ((!phone && !jidInput) || !mediaUrl) {
+      return res.status(400).json({ error: 'phone (or jid) and mediaUrl are required' });
     }
 
     if (!sock || connectionStatus !== 'connected') {
@@ -586,16 +632,21 @@ app.post('/send-media', async (req, res) => {
       });
     }
 
-    const formattedPhone = formatPhoneNumber(phone);
-    const jid = `${formattedPhone}@s.whatsapp.net`;
+    const target = resolveOutboundTarget({ phone, jid: jidInput });
+    if (!target) {
+      return res.status(400).json({ error: 'unresolved_target', message: 'Could not derive a JID from phone/jid' });
+    }
+    const { jid, label, requireExistsCheck } = target;
 
-    const [onWA] = await sock.onWhatsApp(jid);
-    if (!onWA?.exists) {
-      return res.status(404).json({
-        success: false,
-        error: 'not_on_whatsapp',
-        message: `${phone} is not registered on WhatsApp`,
-      });
+    if (requireExistsCheck) {
+      const [onWA] = await sock.onWhatsApp(jid);
+      if (!onWA?.exists) {
+        return res.status(404).json({
+          success: false,
+          error: 'not_on_whatsapp',
+          message: `${label} is not registered on WhatsApp`,
+        });
+      }
     }
 
     // Fetch the media bytes from the signed URL.
@@ -616,12 +667,12 @@ app.post('/send-media', async (req, res) => {
     rememberOurSentId(sent?.key?.id);
     messagesSentLastMinute++;
 
-    console.log(`📤 Image sent to ${formattedPhone}${caption ? `: ${caption.substring(0, 50)}` : ''}`);
+    console.log(`📤 Image sent to ${label}${caption ? `: ${caption.substring(0, 50)}` : ''}`);
 
     return res.json({
       success: true,
       messageId: sent.key.id,
-      phone: formattedPhone,
+      jid,
     });
   } catch (error) {
     console.error('Error sending media:', error);
