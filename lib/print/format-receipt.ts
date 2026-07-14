@@ -1,6 +1,7 @@
 // Receipt formatter - converts order data to print-ready format
 import type { OrderWithItems } from '@/types/database';
 import { formatPhoneNumber } from '@/lib/formatters';
+import { getAddonLines, type AddonLine } from '@/lib/addons/format';
 
 /**
  * Format currency for thermal printer (using NGN instead of ₦ symbol)
@@ -56,7 +57,7 @@ export interface ReceiptItem {
   name: string;
   description?: string;
   variation?: string;
-  addons: string[];
+  addons: AddonLine[];
   specialInstructions?: string;
   price: number;
 }
@@ -92,9 +93,7 @@ export function formatReceipt(order: OrderWithItems): ReceiptData {
     name: item.item_name,
     description: item.item_description || undefined,
     variation: item.selected_variation?.option || undefined,
-    addons: item.selected_addons?.map(a =>
-      a.price > 0 ? `${a.name} (+NGN${a.price.toFixed(0)})` : a.name
-    ) || [],
+    addons: getAddonLines(item.selected_addons, item.quantity),
     specialInstructions: item.special_instructions || undefined,
     price: item.subtotal,
   })) || [];
@@ -237,11 +236,20 @@ export function formatReceiptText(receipt: ReceiptData): string {
       lines.push(`    • ${item.variation}`);
     }
 
-    // Show addons as bullet points
+    // Show addons with effective count, unit price, and line total
     if (item.addons.length > 0) {
       item.addons.forEach(addon => {
-        lines.push(`    • ${addon}`);
+        const right = formatCurrency(addon.lineTotal);
+        const unitTag = ` @NGN${addon.unitPrice.toFixed(0)}`;
+        const prefix = `    + ${addon.count}x `;
+        const maxNameLen = width - prefix.length - unitTag.length - right.length - 1;
+        const name = addon.name.length > maxNameLen
+          ? addon.name.slice(0, Math.max(1, maxNameLen - 1)) + '…'
+          : addon.name;
+        lines.push(leftRight(prefix + name + unitTag, right));
       });
+      const addonsTotal = item.addons.reduce((sum, a) => sum + a.lineTotal, 0);
+      lines.push(leftRight('    Add-ons total:', formatCurrency(addonsTotal)));
     }
 
     lines.push('');

@@ -127,11 +127,20 @@ export function generateESCPOS(receipt: ReceiptData): Buffer {
       commands.push(`    • ${item.variation}` + LF);
     }
     
-    // Show addons as bullet points
+    // Show addons with effective count, unit price, and line total
     if (item.addons.length > 0) {
       item.addons.forEach(addon => {
-        commands.push(`    • ${addon}` + LF);
+        const right = formatCurrency(addon.lineTotal);
+        const unitTag = ` @NGN${addon.unitPrice.toFixed(0)}`;
+        const prefix = `    + ${addon.count}x `;
+        const maxNameLen = 48 - prefix.length - unitTag.length - right.length - 1;
+        const name = addon.name.length > maxNameLen
+          ? addon.name.slice(0, Math.max(1, maxNameLen - 1)) + '…'
+          : addon.name;
+        commands.push(padRight(prefix + name + unitTag, right, 48) + LF);
       });
+      const addonsTotal = item.addons.reduce((sum, a) => sum + a.lineTotal, 0);
+      commands.push(padRight('    Add-ons total:', formatCurrency(addonsTotal), 48) + LF);
     }
     
     commands.push(LF);

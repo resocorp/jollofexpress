@@ -2,6 +2,7 @@
 
 import { createServiceClient } from '@/lib/supabase/service';
 import { formatCurrency } from '@/lib/formatters';
+import { getAddonLines } from '@/lib/addons/format';
 import type { 
   MenuCategory, 
   MenuItem, 
@@ -385,9 +386,10 @@ Type *MENU* to browse our menu`;
     }
     message += ` - ${formatCurrency(item.subtotal)}\n`;
     
-    if (item.selected_addons && item.selected_addons.length > 0) {
-      item.selected_addons.forEach(addon => {
-        message += `  + ${addon.name}\n`;
+    const addonLines = getAddonLines(item.selected_addons, item.quantity);
+    if (addonLines.length > 0) {
+      addonLines.forEach(addon => {
+        message += `  + ${addon.count}× ${addon.name} — ${formatCurrency(addon.lineTotal)}\n`;
       });
     }
   });

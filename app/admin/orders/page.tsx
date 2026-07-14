@@ -29,6 +29,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { formatCurrency } from '@/lib/formatters';
+import { getAddonLines, getAddonsTotal } from '@/lib/addons/format';
 import { Search, Eye, Package, Clock, CheckCircle, XCircle, Loader2, MapPin } from 'lucide-react';
 import type { OrderWithItems, OrderStatus, PaymentStatus } from '@/types/database';
 import { toast } from 'sonner';
@@ -280,7 +281,9 @@ export default function AdminOrdersPage() {
               <div>
                 <h3 className="font-semibold mb-3">Order Items</h3>
                 <div className="space-y-2">
-                  {selectedOrder.items?.map((item) => (
+                  {selectedOrder.items?.map((item) => {
+                    const addonLines = getAddonLines(item.selected_addons, item.quantity);
+                    return (
                     <div key={item.id} className="flex justify-between items-start p-3 bg-muted rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium">
@@ -291,10 +294,24 @@ export default function AdminOrdersPage() {
                             {item.selected_variation.name}: {item.selected_variation.option}
                           </p>
                         )}
-                        {item.selected_addons && item.selected_addons.length > 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            Add-ons: {item.selected_addons.map(a => a.name).join(', ')}
-                          </p>
+                        {addonLines.length > 0 && (
+                          <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+                            {addonLines.map((addon, i) => (
+                              <div key={i} className="flex justify-between gap-2">
+                                <span>
+                                  + {addon.count}× {addon.name}
+                                  <span className="opacity-70"> @ {formatCurrency(addon.unitPrice)}</span>
+                                </span>
+                                <span className="whitespace-nowrap">{formatCurrency(addon.lineTotal)}</span>
+                              </div>
+                            ))}
+                            <div className="flex justify-between gap-2 font-medium text-foreground">
+                              <span>Add-ons total</span>
+                              <span className="whitespace-nowrap">
+                                {formatCurrency(getAddonsTotal(item.selected_addons, item.quantity))}
+                              </span>
+                            </div>
+                          </div>
                         )}
                         {item.special_instructions && (
                           <p className="text-sm text-muted-foreground italic">
@@ -304,7 +321,8 @@ export default function AdminOrdersPage() {
                       </div>
                       <p className="font-semibold">{formatCurrency(item.subtotal)}</p>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

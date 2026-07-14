@@ -223,7 +223,8 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
             {item.addons.map((addon) => {
               const addonQty = selectedAddonQuantities[addon.id] || 0;
               const isSelected = addonQty > 0;
-              
+              const addonMax = addon.max_quantity ?? 50;
+
               return (
                 <div key={addon.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex-1">
@@ -250,6 +251,7 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
                           </span>
                           <span className="text-sm text-muted-foreground ml-2">
                             +{formatCurrency(addon.price)}
+                            {addon.max_quantity ? ` · Max ${addon.max_quantity}` : ''}
                           </span>
                         </div>
                       </Label>
@@ -279,8 +281,9 @@ export function ItemCustomizationDialog({ item, open, onClose }: ItemCustomizati
                         variant="outline"
                         size="icon"
                         className="h-7 w-7"
+                        disabled={addonQty >= addonMax}
                         onClick={() => {
-                          setSelectedAddonQuantities({ ...selectedAddonQuantities, [addon.id]: Math.min(50, addonQty + 1) });
+                          setSelectedAddonQuantities({ ...selectedAddonQuantities, [addon.id]: Math.min(addonMax, addonQty + 1) });
                         }}
                       >
                         <Plus className="h-3 w-3" />

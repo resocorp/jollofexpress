@@ -75,6 +75,7 @@ export interface ItemAddon {
   name: string;
   price: number;
   is_available: boolean;
+  max_quantity?: number | null; // per-add-on quantity cap; null/undefined = unlimited
   created_at: string;
 }
 
@@ -208,7 +209,7 @@ export interface SelectedVariation {
 export interface SelectedAddon {
   name: string;
   price: number;
-  quantity: number; // Quantity for this addon
+  quantity?: number; // Per-item-unit quantity; absent on legacy rows (treated as 1)
 }
 
 export interface OrderItem {

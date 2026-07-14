@@ -11,6 +11,7 @@ import { useDeliverySettings, usePaymentSettings } from '@/hooks/use-settings';
 import { useValidatePromo } from '@/hooks/use-promo';
 import { useOrderWindow } from '@/hooks/use-order-window';
 import { formatCurrency } from '@/lib/formatters';
+import { getAddonLines, getAddonsTotal } from '@/lib/addons/format';
 import { ShoppingCart, Tag, Bike, Receipt, Loader2, CheckCircle2, XCircle, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -183,7 +184,9 @@ export function OrderSummaryWithButton({
       <CardContent className="space-y-5 p-6">
         {/* Order Items */}
         <div className="space-y-4">
-          {items.map((cartItem, index) => (
+          {items.map((cartItem, index) => {
+            const addonLines = getAddonLines(cartItem.selected_addons, cartItem.quantity);
+            return (
             <motion.div
               key={index}
               initial={{ opacity: 0, x: -20 }}
@@ -206,17 +209,32 @@ export function OrderSummaryWithButton({
                     )}
                   </p>
                 )}
-                {cartItem.selected_addons.length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    + {cartItem.selected_addons.map(a => `${a.name} × ${a.quantity}`).join(', ')}
-                  </p>
+                {addonLines.length > 0 && (
+                  <div className="mt-1 space-y-0.5">
+                    {addonLines.map((addon, i) => (
+                      <div key={i} className="flex justify-between gap-2 text-xs text-muted-foreground">
+                        <span>
+                          + {addon.count}× {addon.name}
+                          <span className="opacity-70"> @ {formatCurrency(addon.unitPrice)}</span>
+                        </span>
+                        <span className="whitespace-nowrap">{formatCurrency(addon.lineTotal)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between gap-2 text-xs font-medium">
+                      <span>Add-ons total</span>
+                      <span className="whitespace-nowrap">
+                        {formatCurrency(getAddonsTotal(cartItem.selected_addons, cartItem.quantity))}
+                      </span>
+                    </div>
+                  </div>
                 )}
               </div>
               <span className="font-bold text-sm text-primary whitespace-nowrap">
                 {formatCurrency(cartItem.subtotal)}
               </span>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
 
         <Separator className="my-4" />
@@ -343,10 +361,10 @@ export function OrderSummaryWithButton({
 
         {/* Single CTA: Total + Delivery Info + Pay Button */}
         <div className="space-y-2">
-          <Button 
+          <Button
             type="button"
             onClick={onSubmit}
-            size="lg" 
+            size="lg"
             disabled={isSubmitting || isBelowMinimum || isLoadingSettings || paymentsBlocked}
             className={`w-full min-h-[72px] bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-500 text-white font-bold shadow-lg hover:shadow-xl transition-all rounded-xl ${showPaymentAnimation && !isSubmitting && !paymentsBlocked ? 'checkout-btn-animated' : ''}`}
           >

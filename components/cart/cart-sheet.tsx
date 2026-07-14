@@ -10,6 +10,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useDeliverySettings } from '@/hooks/use-settings';
 import { useOrderWindow } from '@/hooks/use-order-window';
 import { formatCurrency } from '@/lib/formatters';
+import { getAddonLines, getAddonsTotal } from '@/lib/addons/format';
 
 const CHECKOUT_ANIMATION_KEY = 'jollof_checkout_animation_count';
 const MAX_ANIMATION_VIEWS = 5;
@@ -133,7 +134,9 @@ export function CartSheet() {
 
       {/* Cart Items */}
       <div className="flex-1 overflow-y-auto py-4 space-y-4">
-        {items.map((cartItem, index) => (
+        {items.map((cartItem, index) => {
+          const addonLines = getAddonLines(cartItem.selected_addons, cartItem.quantity);
+          return (
           <div key={index} className="flex gap-4 p-4 border rounded-lg">
             <div className="flex-1">
               <h4 className="font-medium">{cartItem.item.name}</h4>
@@ -149,10 +152,24 @@ export function CartSheet() {
               )}
               
               {/* Addons */}
-              {cartItem.selected_addons.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Add-ons: {cartItem.selected_addons.map(a => `${a.name} × ${a.quantity}`).join(', ')}
-                </p>
+              {addonLines.length > 0 && (
+                <div className="mt-1 space-y-0.5">
+                  {addonLines.map((addon, i) => (
+                    <div key={i} className="flex justify-between gap-2 text-sm text-muted-foreground">
+                      <span>
+                        {addon.count}× {addon.name}
+                        <span className="opacity-70"> @ {formatCurrency(addon.unitPrice)}</span>
+                      </span>
+                      <span className="whitespace-nowrap">{formatCurrency(addon.lineTotal)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between gap-2 text-sm font-medium">
+                    <span>Add-ons total</span>
+                    <span className="whitespace-nowrap">
+                      {formatCurrency(getAddonsTotal(cartItem.selected_addons, cartItem.quantity))}
+                    </span>
+                  </div>
+                </div>
               )}
 
               {/* Quantity Controls */}
@@ -189,7 +206,8 @@ export function CartSheet() {
               </Button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <Separator className="my-4" />

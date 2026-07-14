@@ -2,6 +2,7 @@
 import type { OrderWithItems } from '@/types/database';
 import type { DailySummaryData, KitchenCapacityData } from './types';
 import { formatCurrency } from '@/lib/formatters';
+import { getAddonLines } from '@/lib/addons/format';
 
 /**
  * Format order items for display in messages
@@ -21,6 +22,16 @@ function formatOrderItems(items: OrderWithItems['items']): string {
       // Add description if present
       if (item.item_description) {
         itemText += `\n  _${item.item_description}_`;
+      }
+
+      // Add-ons with effective count and line total
+      const addonLines = getAddonLines(item.selected_addons, item.quantity);
+      if (addonLines.length > 0) {
+        for (const addon of addonLines) {
+          itemText += `\n  + ${addon.count}× ${addon.name} — ${formatCurrency(addon.lineTotal)}`;
+        }
+        const addonsTotal = addonLines.reduce((sum, a) => sum + a.lineTotal, 0);
+        itemText += `\n  _Add-ons total: ${formatCurrency(addonsTotal)}_`;
       }
 
       return itemText;

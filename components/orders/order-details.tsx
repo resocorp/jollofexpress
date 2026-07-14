@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { MapPin, Phone, Mail, User, Home } from 'lucide-react';
 import { formatCurrency, formatPhoneNumber, formatAddress } from '@/lib/formatters';
+import { getAddonLines, getAddonsTotal } from '@/lib/addons/format';
 import type { OrderWithItems } from '@/types/database';
 
 interface OrderDetailsProps {
@@ -86,7 +87,9 @@ export function OrderDetails({ order }: OrderDetailsProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {order.items?.filter(item => item != null).map((item, index) => (
+            {order.items?.filter(item => item != null).map((item, index) => {
+              const addonLines = getAddonLines(item.selected_addons, item.quantity);
+              return (
               <div key={index} className="flex justify-between gap-4">
                 <div className="flex-1">
                   <p className="font-medium">
@@ -97,17 +100,32 @@ export function OrderDetails({ order }: OrderDetailsProps) {
                       {item.selected_variation.option}
                     </p>
                   )}
-                  {item.selected_addons && item.selected_addons.length > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      + {item.selected_addons.map((a) => a.name).join(', ')}
-                    </p>
+                  {addonLines.length > 0 && (
+                    <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+                      {addonLines.map((addon, i) => (
+                        <div key={i} className="flex justify-between gap-2">
+                          <span>
+                            + {addon.count}× {addon.name}
+                            <span className="opacity-70"> @ {formatCurrency(addon.unitPrice)}</span>
+                          </span>
+                          <span className="whitespace-nowrap">{formatCurrency(addon.lineTotal)}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between gap-2 font-medium text-foreground">
+                        <span>Add-ons total</span>
+                        <span className="whitespace-nowrap">
+                          {formatCurrency(getAddonsTotal(item.selected_addons, item.quantity))}
+                        </span>
+                      </div>
+                    </div>
                   )}
                 </div>
                 <span className="font-medium whitespace-nowrap">
                   {formatCurrency(item.subtotal)}
                 </span>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <Separator className="my-4" />

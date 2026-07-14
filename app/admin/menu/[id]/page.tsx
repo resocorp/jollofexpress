@@ -44,6 +44,7 @@ interface Addon {
   name: string;
   price: number;
   is_available: boolean;
+  max_quantity?: number | null; // per-add-on quantity cap; null = unlimited
 }
 
 interface MenuItem {
@@ -232,14 +233,14 @@ export default function EditMenuItemPage() {
 
   // Add-on management
   const addAddon = () => {
-    setAddons([...addons, { name: '', price: 0, is_available: true }]);
+    setAddons([...addons, { name: '', price: 0, is_available: true, max_quantity: null }]);
   };
 
   const removeAddon = (index: number) => {
     setAddons(addons.filter((_, i) => i !== index));
   };
 
-  const updateAddon = (index: number, field: keyof Addon, value: string | number | boolean) => {
+  const updateAddon = (index: number, field: keyof Addon, value: string | number | boolean | null) => {
     const updated = [...addons];
     updated[index] = { ...updated[index], [field]: value };
     setAddons(updated);
@@ -650,6 +651,27 @@ export default function EditMenuItemPage() {
                             updateAddon(index, 'price', parseFloat(e.target.value) || 0)
                           }
                           className="w-24"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm text-muted-foreground">Max</span>
+                        <Input
+                          type="number"
+                          min="1"
+                          step="1"
+                          placeholder="∞"
+                          title="Max quantity a customer can add (blank = unlimited)"
+                          value={addon.max_quantity ?? ''}
+                          onChange={(e) =>
+                            updateAddon(
+                              index,
+                              'max_quantity',
+                              e.target.value === ''
+                                ? null
+                                : parseInt(e.target.value, 10) || null
+                            )
+                          }
+                          className="w-20"
                         />
                       </div>
                       <Button

@@ -682,6 +682,7 @@ async function createOrder(
       option: item.selected_variation.option,
       price_adjustment: item.selected_variation.price_adjustment || 0,
     } : null,
+    selected_addons: item.selected_addons ?? [],
   }));
   
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems);

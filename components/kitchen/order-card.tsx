@@ -15,6 +15,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { formatCurrency, formatKitchenTime, getOrderAgeMinutes, getOrderAgeColor, formatPhoneNumber } from '@/lib/formatters';
+import { getAddonLines, getAddonsTotal } from '@/lib/addons/format';
 import { useUpdateOrderStatus, useReprintOrder } from '@/hooks/use-orders';
 import { toast } from 'sonner';
 import type { OrderWithItems, OrderStatus } from '@/types/database';
@@ -119,7 +120,7 @@ export function OrderCard({ order }: OrderCardProps) {
                 </span>
                 {item.selected_addons && item.selected_addons.length > 0 && (
                   <span className="text-xs text-muted-foreground ml-1">
-                    + {item.selected_addons.map(a => a.name).join(', ')}
+                    + {getAddonLines(item.selected_addons, item.quantity).map(a => `${a.count}× ${a.name}`).join(', ')}
                   </span>
                 )}
                 {item.special_instructions && (
@@ -290,7 +291,9 @@ export function OrderCard({ order }: OrderCardProps) {
             <div className="border-t pt-4">
               <h3 className="font-semibold mb-3">Order Items</h3>
               <div className="space-y-3">
-                {order.items?.filter(item => item != null).map((item, index) => (
+                {order.items?.filter(item => item != null).map((item, index) => {
+                  const addonLines = getAddonLines(item.selected_addons, item.quantity);
+                  return (
                   <div key={index} className="border-b pb-3 last:border-0">
                     <div className="flex justify-between">
                       <span className="font-medium">{item.quantity}x {item.item_name}</span>
@@ -299,14 +302,23 @@ export function OrderCard({ order }: OrderCardProps) {
                     {item.item_description && (
                       <p className="text-xs text-muted-foreground italic mt-0.5">{item.item_description}</p>
                     )}
-                    {item.selected_addons && item.selected_addons.length > 0 && (
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {item.selected_addons.map((a, i) => (
-                          <span key={i}>
-                            {i > 0 && ', '}
-                            {a.name}{a.price > 0 && ` (+${formatCurrency(a.price)})`}
-                          </span>
+                    {addonLines.length > 0 && (
+                      <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+                        {addonLines.map((addon, i) => (
+                          <div key={i} className="flex justify-between gap-2">
+                            <span>
+                              + {addon.count}× {addon.name}
+                              <span className="opacity-70"> @ {formatCurrency(addon.unitPrice)}</span>
+                            </span>
+                            <span className="whitespace-nowrap">{formatCurrency(addon.lineTotal)}</span>
+                          </div>
                         ))}
+                        <div className="flex justify-between gap-2 font-medium text-foreground">
+                          <span>Add-ons total</span>
+                          <span className="whitespace-nowrap">
+                            {formatCurrency(getAddonsTotal(item.selected_addons, item.quantity))}
+                          </span>
+                        </div>
                       </div>
                     )}
                     {item.special_instructions && (
@@ -315,7 +327,8 @@ export function OrderCard({ order }: OrderCardProps) {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Total */}

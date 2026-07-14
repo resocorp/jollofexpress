@@ -166,6 +166,10 @@ export async function POST(request: NextRequest) {
         name: a.name,
         price: a.price,
         is_available: a.is_available ?? true,
+        max_quantity:
+          Number.isInteger(a.max_quantity) && a.max_quantity > 0
+            ? a.max_quantity
+            : null,
       }));
 
       const { error: addonError } = await supabase

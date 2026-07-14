@@ -92,6 +92,7 @@ CREATE TABLE item_addons (
     name TEXT NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     is_available BOOLEAN NOT NULL DEFAULT true,
+    max_quantity INTEGER, -- per-add-on quantity cap; NULL = unlimited
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

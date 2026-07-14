@@ -238,9 +238,10 @@ async function browseMenu(category?: string): Promise<string> {
 
           const itemAddons = addons?.filter((a) => a.item_id === item.id) || [];
           if (itemAddons.length) {
-            text += '\n    Addons:';
+            text += '\n    Addons (optional extras the customer can add to this item):';
             for (const a of itemAddons) {
-              text += `\n      ${a.name}: +NGN ${a.price}`;
+              const maxNote = a.max_quantity ? ` (max ${a.max_quantity} per item)` : '';
+              text += `\n      ${a.name}: +NGN ${a.price}${maxNote}`;
             }
           }
 
