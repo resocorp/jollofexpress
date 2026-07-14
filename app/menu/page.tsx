@@ -13,7 +13,6 @@ import { BottomNav } from '@/components/layout/bottom-nav';
 import { MenuItemCard } from '@/components/menu/menu-item-card-modern';
 import { PromoBanner } from '@/components/menu/christmas-promo-banner';
 import { CountdownTimer } from '@/components/menu/countdown-timer';
-import { HowItWorksStrip } from '@/components/menu/how-it-works-strip';
 import { BatchFAQ } from '@/components/menu/batch-faq';
 // DISABLED: WhatsApp ordering system
 // import { WhatsAppFloat } from '@/components/shared/whatsapp-float';
@@ -57,9 +56,6 @@ export default function MenuPage() {
 
       {/* Countdown Timer */}
       <CountdownTimer />
-
-      {/* How It Works Strip */}
-      <HowItWorksStrip />
 
       {/* Main Content */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-2 max-w-[1400px]">

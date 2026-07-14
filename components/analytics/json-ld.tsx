@@ -5,7 +5,7 @@ export function RestaurantJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'Restaurant',
     name: "myshawarma.express",
-    description: 'Order the best tasting Nigerian-style shawarma delivered fresh to your doorstep in Awka. Fast delivery in 30 minutes!',
+    description: 'Order the best tasting Nigerian-style shawarma delivered fresh to your doorstep in Awka.',
     url: baseUrl,
     logo: `${baseUrl}/logo.png`,
     image: `${baseUrl}/og-image.png`,

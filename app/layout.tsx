@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     default: "myshawarma.express - Shawarma Delivery in Awka",
     template: "%s | myshawarma.express"
   },
-  description: "Order the best tasting Nigerian-style shawarma delivered fresh to your doorstep in Awka. Fast delivery in 30 minutes!",
+  description: "Order the best tasting Nigerian-style shawarma delivered fresh to your doorstep in Awka.",
   keywords: [
     "food delivery", 
     "shawarma", 

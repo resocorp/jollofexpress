@@ -72,7 +72,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Awka's best tasting shawarma! Fresh wraps, juicy meats, and bold Nigerian flavors delivered hot in 30 minutes.
+              Awka's best tasting shawarma! Fresh wraps, juicy meats, and bold Nigerian flavors delivered.
             </p>
             
             {/* Operating Status */}
