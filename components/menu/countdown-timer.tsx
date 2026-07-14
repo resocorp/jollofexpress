@@ -17,6 +17,7 @@ export function CountdownTimer() {
     isLoading,
     allTodayBatches,
     nextBatch,
+    capacityPercent,
   } = useOrderWindow();
 
   // Other batches that are still upcoming (not past cutoff)
@@ -119,6 +120,36 @@ export function CountdownTimer() {
       ? 'text-amber-600 dark:text-amber-400'
       : 'text-green-600 dark:text-green-400';
 
+  // Capacity fill of the window a customer would order into — shown as a % bar
+  // (never the raw order count). Its own color scale, independent of the
+  // time-based countdown color above: a window can have plenty of time left yet
+  // be nearly full.
+  const showCapacity = !!nextBatch && nextBatch.maxCapacity > 0;
+  const capPct = Math.max(0, Math.min(100, Math.round(capacityPercent)));
+  const capCritical = capPct >= 85; // Almost full
+  const capBusy = capPct >= 60 && capPct < 85; // Filling fast
+
+  const capBarClass = capCritical
+    ? 'bg-gradient-to-r from-red-400 to-red-600'
+    : capBusy
+      ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+      : 'bg-gradient-to-r from-green-400 to-emerald-500';
+  const capTrackClass = capCritical
+    ? 'bg-red-100 dark:bg-red-500/20'
+    : capBusy
+      ? 'bg-amber-100 dark:bg-amber-500/20'
+      : 'bg-green-100 dark:bg-green-500/20';
+  const capTextClass = capCritical
+    ? 'text-red-700 dark:text-red-300'
+    : capBusy
+      ? 'text-amber-700 dark:text-amber-300'
+      : 'text-green-700 dark:text-green-300';
+  const capLabel = capCritical
+    ? `Almost full — ordering closes when full · ${capPct}% full`
+    : capBusy
+      ? `Filling fast · ${capPct}% full`
+      : `${capPct}% full`;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -135,6 +166,26 @@ export function CountdownTimer() {
             {countdownFormatted}
           </span>
         </div>
+        {showCapacity && (
+          <div className="w-full max-w-xs mt-1">
+            <div className="mb-1 text-center">
+              <span className={`text-[11px] sm:text-xs font-medium ${capTextClass}`}>
+                {capLabel}
+              </span>
+            </div>
+            <div className={`w-full h-2 rounded-full overflow-hidden ${capTrackClass}`}>
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${capBarClass}`}
+                style={{ width: `${capPct}%` }}
+                role="progressbar"
+                aria-valuenow={capPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Delivery window capacity"
+              />
+            </div>
+          </div>
+        )}
         {upcomingOtherBatches.length > 0 && (
           <span className={`text-[11px] sm:text-xs ${textClass} opacity-70`}>
             Also today: {upcomingOtherBatches[0].windowName} · delivered {upcomingOtherBatches[0].deliveryWindow}
