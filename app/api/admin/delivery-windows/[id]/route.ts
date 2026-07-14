@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { verifyAdminAuth } from '@/lib/auth/admin-auth';
+import { getTodayDateString } from '@/lib/batch/batch-service';
 
 // PATCH - Update a delivery window
 export async function PATCH(
@@ -46,7 +47,33 @@ export async function PATCH(
       return NextResponse.json({ error: error.message || 'Failed to update' }, { status: 500 });
     }
 
-    return NextResponse.json({ window: data });
+    // Propagate a capacity change to this window's already-created batches that
+    // are still accepting orders today or in the future. Batches snapshot
+    // max_capacity at creation time, so without this an admin's edit wouldn't
+    // take effect until the next day's batches are generated. Past batches are
+    // left untouched (historical accuracy), and batches with a manual per-batch
+    // override (override_reason set via /api/admin/batch/[id]) are preserved.
+    let propagatedBatches = 0;
+    if (updates.max_capacity !== undefined) {
+      const { data: propagated, error: propError } = await supabase
+        .from('batches')
+        .update({ max_capacity: updates.max_capacity as number })
+        .eq('delivery_window_id', id)
+        .eq('status', 'accepting')
+        .gte('delivery_date', getTodayDateString())
+        .is('override_reason', null)
+        .select('id');
+
+      if (propError) {
+        // Non-fatal: the window template was updated successfully; only the
+        // propagation to existing batches failed.
+        console.error('Capacity propagation to existing batches failed:', propError);
+      } else {
+        propagatedBatches = propagated?.length ?? 0;
+      }
+    }
+
+    return NextResponse.json({ window: data, propagatedBatches });
   } catch (error) {
     console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
