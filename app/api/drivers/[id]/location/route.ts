@@ -68,15 +68,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               .eq('id', activeShift.vehicle.id);
           }
 
-          // Evaluate geofence (arrival + auto-complete on exit) against this
-          // driver's active deliveries. Non-blocking — failures must not
-          // interfere with returning the position to the caller.
-          try {
-            const { evaluateGeofenceForDriver } = await import('@/lib/delivery/geofence');
-            await evaluateGeofenceForDriver(id, position.latitude, position.longitude);
-          } catch (geoErr) {
-            console.error('Geofence evaluation failed:', geoErr);
-          }
+          // Geofence auto-complete intentionally disabled (2026-05-25) — see
+          // lib/delivery/geofence.ts. Riders mark delivered manually via
+          // /api/rider/deliver/[assignmentId]. This endpoint now only returns
+          // the live position for map display.
 
           return NextResponse.json({
             latitude: position.latitude,

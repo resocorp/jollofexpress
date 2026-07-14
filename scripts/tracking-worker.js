@@ -1,22 +1,20 @@
 /**
- * Tracking Worker
+ * Tracking Worker — DISABLED 2026-05-25
  *
- * Polls driver locations for every driver who currently has an active
- * `out_for_delivery` order, calling the app's location endpoint which
- * fetches the latest Traccar position and runs the geofence state machine
- * (nearby notify → arrival mark → auto-complete on exit).
- *
- * Why a separate worker: previously the geofence only ran when an admin had
- * the batch map page open — so arrivals / auto-completions / nearby
- * notifications were missed whenever nobody was watching the UI. Mirrors
- * `feedback-worker.js` / `print-worker.js` under PM2.
- *
- * Env:
- *   NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SECRET_KEY (or SUPABASE_SERVICE_ROLE_KEY)
- *   TRACKING_WORKER_APP_URL (default http://localhost:3000)
- *   TRACKING_POLL_INTERVAL  (default 15000 ms)
+ * The geofence state machine this worker drove was false-firing
+ * "Order Delivered!" customer notifications on rider QR scan. The geofence
+ * is disabled in lib/delivery/geofence.ts; this worker now has no purpose
+ * and exits immediately. Removed from ecosystem.config.js — stop the live
+ * PM2 process with `sudo -u nodeapp pm2 stop tracking-worker` then
+ * `pm2 save`. To re-enable, restore the body below and re-add the entry
+ * in ecosystem.config.js after fixing the root causes (stale Traccar reads,
+ * tight thresholds, no trip-start guard).
  */
 
+console.log('[tracking] worker disabled — exiting');
+process.exit(0);
+
+// eslint-disable-next-line no-unreachable
 const path = require('path');
 const fs = require('fs');
 

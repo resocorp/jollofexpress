@@ -1,11 +1,13 @@
 // Geofence logic for auto-completing deliveries when a rider enters and then
 // exits the customer's location radius. Driven by driver GPS updates.
 //
-// State machine per order (out_for_delivery with customer coords):
-//   - distance <= NEARBY_RADIUS_M AND not yet notified → send "rider nearby" WhatsApp
-//   - distance <= ARRIVAL_RADIUS_M → set arrived_at_customer = now()
-//   - distance > EXIT_RADIUS_M AND (now - arrived_at_customer) >= MIN_DWELL_MS
-//     → mark completed, set auto_completed_at, fire completion notification
+// DISABLED 2026-05-25: this FSM was false-firing "Order Delivered!" on rider
+// QR scan because the scan flips orders to out_for_delivery, which immediately
+// armed the FSM against stale / coincidental Traccar positions. Riders mark
+// delivered manually via /api/rider/deliver/[assignmentId]. To re-enable,
+// flip GEOFENCE_ENABLED to true (and address the root causes in the
+// investigation notes before doing so).
+const GEOFENCE_ENABLED = false;
 
 import { createServiceClient } from '@/lib/supabase/service';
 
@@ -47,6 +49,10 @@ export async function evaluateGeofenceForDriver(
   driverLat: number,
   driverLng: number
 ): Promise<GeofenceResult[]> {
+  if (!GEOFENCE_ENABLED) {
+    return [];
+  }
+
   const supabase = createServiceClient();
   const results: GeofenceResult[] = [];
 
