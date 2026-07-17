@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { addDays, format, parseISO } from 'date-fns';
 import { createServiceClient } from '@/lib/supabase/service';
 import { verifyAdminAuth } from '@/lib/auth/admin-auth';
+import { resolveAnalyticsWindow } from '@/lib/date-range';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,19 +21,16 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get('period') || '30'; // days
-    const periodDays = parseInt(period);
+    const { from, to, endExclusive } = resolveAnalyticsWindow(searchParams);
 
     const supabase = createServiceClient();
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - periodDays);
-
-    // Fetch orders within the period
+    // Fetch orders within the window
     const { data: orders, error } = await supabase
       .from('orders')
       .select('total, created_at')
-      .gte('created_at', startDate.toISOString())
+      .gte('created_at', from)
+      .lt('created_at', endExclusive)
       .in('status', ['completed', 'ready', 'out_for_delivery', 'preparing', 'confirmed'])
       .order('created_at', { ascending: true });
 
@@ -49,12 +48,10 @@ export async function GET(request: NextRequest) {
       });
     });
 
-    // Convert to array and fill missing dates
+    // Convert to array and fill missing dates across the full [from, to] window
     const trend: RevenueTrendData[] = [];
-    for (let i = 0; i < periodDays; i++) {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
+    for (let cursor = parseISO(from); cursor <= parseISO(to); cursor = addDays(cursor, 1)) {
+      const dateStr = format(cursor, 'yyyy-MM-dd');
       const data = trendMap.get(dateStr) || { revenue: 0, orders: 0 };
       trend.push({
         date: dateStr,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { verifyAdminAuth } from '@/lib/auth/admin-auth';
+import { resolveAnalyticsWindow } from '@/lib/date-range';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,19 +23,16 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get('period') || '30'; // days
-    const periodDays = parseInt(period);
+    const { from, endExclusive } = resolveAnalyticsWindow(searchParams);
 
     const supabase = createServiceClient();
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - periodDays);
-
-    // Fetch all orders in the period
+    // Fetch all orders in the window
     const { data: orders, error } = await supabase
       .from('orders')
       .select('status, estimated_prep_time, created_at, completed_at')
-      .gte('created_at', startDate.toISOString());
+      .gte('created_at', from)
+      .lt('created_at', endExclusive);
 
     if (error) throw error;
 

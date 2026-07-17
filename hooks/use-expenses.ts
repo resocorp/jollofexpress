@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { get, post, patch, del } from '@/lib/api-client';
+import type { DateRange } from '@/lib/date-range';
 import type {
   ExpenseAnalyticsResponse,
   ExpenseWithCategory,
@@ -116,10 +117,12 @@ export function useCreateExpenseBatch() {
   });
 }
 
-export function useExpenseAnalytics(periodDays = 90) {
+export function useExpenseAnalytics(range: DateRange) {
   return useQuery({
-    queryKey: ['expense-analytics', periodDays],
+    queryKey: ['expense-analytics', range.from, range.to],
     queryFn: () =>
-      get<ExpenseAnalyticsResponse>(`/api/admin/analytics/expenses?period=${periodDays}`),
+      get<ExpenseAnalyticsResponse>(
+        `/api/admin/analytics/expenses?from=${range.from}&to=${range.to}`,
+      ),
   });
 }

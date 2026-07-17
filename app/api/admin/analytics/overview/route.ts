@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { format, parseISO, subDays } from 'date-fns';
 import { createServiceClient } from '@/lib/supabase/service';
 import { verifyAdminAuth } from '@/lib/auth/admin-auth';
+import { resolveAnalyticsWindow } from '@/lib/date-range';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,24 +26,19 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get('period') || '30'; // days
-    const periodDays = parseInt(period);
+    const { from, endExclusive, periodDays } = resolveAnalyticsWindow(searchParams);
+
+    // Previous equal-length window immediately preceding `from`: [from - periodDays, from)
+    const previousPeriodStart = format(subDays(parseISO(from), periodDays), 'yyyy-MM-dd');
 
     const supabase = createServiceClient();
-
-    // Calculate date ranges
-    const now = new Date();
-    const currentPeriodStart = new Date(now);
-    currentPeriodStart.setDate(currentPeriodStart.getDate() - periodDays);
-    
-    const previousPeriodStart = new Date(currentPeriodStart);
-    previousPeriodStart.setDate(previousPeriodStart.getDate() - periodDays);
 
     // Fetch current period data
     const { data: currentOrders, error: currentError } = await supabase
       .from('orders')
       .select('total, estimated_prep_time, created_at')
-      .gte('created_at', currentPeriodStart.toISOString())
+      .gte('created_at', from)
+      .lt('created_at', endExclusive)
       .in('status', ['completed', 'ready', 'out_for_delivery', 'preparing', 'confirmed']);
 
     if (currentError) throw currentError;
@@ -50,8 +47,8 @@ export async function GET(request: NextRequest) {
     const { data: previousOrders, error: previousError } = await supabase
       .from('orders')
       .select('total, estimated_prep_time')
-      .gte('created_at', previousPeriodStart.toISOString())
-      .lt('created_at', currentPeriodStart.toISOString())
+      .gte('created_at', previousPeriodStart)
+      .lt('created_at', from)
       .in('status', ['completed', 'ready', 'out_for_delivery', 'preparing', 'confirmed']);
 
     if (previousError) throw previousError;

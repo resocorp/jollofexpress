@@ -19,23 +19,11 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
 import { useExpenseAnalytics } from '@/hooks/use-expenses';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { presetForDays, type DateRange } from '@/lib/date-range';
 import type { ExpenseCycleItem } from '@/types/database';
-
-const PERIODS = [
-  { label: 'Last 30 days', value: 30 },
-  { label: 'Last 90 days', value: 90 },
-  { label: 'Last 180 days', value: 180 },
-  { label: 'Last 365 days', value: 365 },
-];
 
 type SortKey =
   | 'name'
@@ -62,12 +50,12 @@ function overdueState(item: ExpenseCycleItem): 'overdue' | 'due-soon' | 'ok' {
 }
 
 export function CycleAnalysisTable() {
-  const [periodDays, setPeriodDays] = useState<number>(90);
+  const [range, setRange] = useState<DateRange>(() => presetForDays(90).resolve());
   const [sortKey, setSortKey] = useState<SortKey>('totalSpend');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const { data, isLoading } = useExpenseAnalytics(periodDays);
+  const { data, isLoading } = useExpenseAnalytics(range);
 
   const sorted = useMemo(() => {
     const items = [...(data?.cycleItems ?? [])];
@@ -131,18 +119,7 @@ export function CycleAnalysisTable() {
             How many completed orders pass between consecutive purchases of the same item.
           </CardDescription>
         </div>
-        <Select value={String(periodDays)} onValueChange={(v) => setPeriodDays(Number(v))}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PERIODS.map((p) => (
-              <SelectItem key={p.value} value={String(p.value)}>
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <DateRangePicker value={range} onChange={setRange} />
       </CardHeader>
       <CardContent>
         {isLoading ? (

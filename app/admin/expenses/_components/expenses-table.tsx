@@ -38,28 +38,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
 import { ExpenseForm } from '@/components/expenses/expense-form';
 import { useDeleteExpense, useExpenses, type ExpenseFilters } from '@/hooks/use-expenses';
 import { useExpenseCategories } from '@/hooks/use-expense-categories';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { defaultRange, type DateRange } from '@/lib/date-range';
 import { toast } from 'sonner';
 import type { ExpenseWithCategory } from '@/types/database';
 
-function daysAgoISO(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
-}
-
-const RANGE_OPTIONS = [
-  { label: 'Last 7 days', days: 7 },
-  { label: 'Last 30 days', days: 30 },
-  { label: 'Last 90 days', days: 90 },
-  { label: 'Last 365 days', days: 365 },
-];
-
 export function ExpensesTable() {
-  const [rangeDays, setRangeDays] = useState<number>(30);
+  const [range, setRange] = useState<DateRange>(defaultRange);
   const [categoryId, setCategoryId] = useState<string>('all');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -78,13 +67,13 @@ export function ExpensesTable() {
 
   const filters: ExpenseFilters = useMemo(
     () => ({
-      from: daysAgoISO(rangeDays),
-      to: new Date().toISOString().slice(0, 10),
+      from: range.from,
+      to: range.to,
       categoryId: categoryId === 'all' ? undefined : categoryId,
       search: search || undefined,
       limit: 1000,
     }),
-    [rangeDays, categoryId, search],
+    [range, categoryId, search],
   );
 
   const { data: expenses, isLoading } = useExpenses(filters);
@@ -132,18 +121,7 @@ export function ExpensesTable() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
-          <Select value={String(rangeDays)} onValueChange={(v) => setRangeDays(Number(v))}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RANGE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.days} value={String(opt.days)}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <DateRangePicker value={range} onChange={setRange} />
 
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger className="w-[200px]">

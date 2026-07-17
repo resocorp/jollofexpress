@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { verifyAdminAuth } from '@/lib/auth/admin-auth';
+import { resolveAnalyticsWindow } from '@/lib/date-range';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,13 +21,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get('period') || '30'; // days
-    const periodDays = parseInt(period);
+    const { from, endExclusive } = resolveAnalyticsWindow(searchParams);
 
     const supabase = createServiceClient();
-
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - periodDays);
 
     // Fetch order items with their menu item categories
     const { data: orderItems, error } = await supabase
@@ -39,7 +36,8 @@ export async function GET(request: NextRequest) {
         orders!inner(created_at, status),
         menu_items!inner(category_id, menu_categories!inner(name))
       `)
-      .gte('orders.created_at', startDate.toISOString())
+      .gte('orders.created_at', from)
+      .lt('orders.created_at', endExclusive)
       .in('orders.status', ['completed', 'ready', 'out_for_delivery', 'preparing', 'confirmed']);
 
     if (error) throw error;

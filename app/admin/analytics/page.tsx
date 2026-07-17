@@ -19,7 +19,8 @@ import {
 } from '@/hooks/use-analytics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
+import { defaultRange, type DateRange } from '@/lib/date-range';
 import {
   ChartContainer,
   ChartTooltip,
@@ -28,20 +29,14 @@ import {
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { formatCurrency } from '@/lib/formatters';
 
-const PERIOD_OPTIONS = [
-  { value: '7', label: 'Last 7 days' },
-  { value: '30', label: 'Last 30 days' },
-  { value: '90', label: 'Last 90 days' },
-];
-
 export default function AnalyticsPage() {
-  const [period, setPeriod] = useState('30');
+  const [range, setRange] = useState<DateRange>(defaultRange);
 
-  const { data: overview, isLoading: overviewLoading } = useOverviewMetrics(period);
-  const { data: revenueTrend, isLoading: trendLoading } = useRevenueTrend(period);
-  const { data: topItems, isLoading: topItemsLoading } = useTopItems(period);
-  const { data: categoryPerformance, isLoading: categoryLoading } = useCategoryPerformance(period);
-  const { data: kitchenPerformance, isLoading: kitchenLoading } = useKitchenPerformance(period);
+  const { data: overview, isLoading: overviewLoading } = useOverviewMetrics(range);
+  const { data: revenueTrend, isLoading: trendLoading } = useRevenueTrend(range);
+  const { data: topItems, isLoading: topItemsLoading } = useTopItems(range);
+  const { data: categoryPerformance, isLoading: categoryLoading } = useCategoryPerformance(range);
+  const { data: kitchenPerformance, isLoading: kitchenLoading } = useKitchenPerformance(range);
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,15 +48,7 @@ export default function AnalyticsPage() {
             Detailed insights into your restaurant operations
           </p>
         </div>
-        <Tabs value={period} onValueChange={setPeriod}>
-          <TabsList>
-            {PERIOD_OPTIONS.map((option) => (
-              <TabsTrigger key={option.value} value={option.value}>
-                {option.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <DateRangePicker value={range} onChange={setRange} />
       </div>
 
       {/* Overview Metrics */}

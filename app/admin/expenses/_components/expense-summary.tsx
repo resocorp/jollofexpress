@@ -16,26 +16,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
 import { useExpenseAnalytics } from '@/hooks/use-expenses';
 import { formatCurrency } from '@/lib/formatters';
-
-const PERIODS = [
-  { label: 'Last 30 days', value: 30 },
-  { label: 'Last 90 days', value: 90 },
-  { label: 'Last 180 days', value: 180 },
-  { label: 'Last 365 days', value: 365 },
-];
+import { defaultRange, type DateRange } from '@/lib/date-range';
 
 export function ExpenseSummary() {
-  const [periodDays, setPeriodDays] = useState<number>(30);
-  const { data, isLoading } = useExpenseAnalytics(periodDays);
+  const [range, setRange] = useState<DateRange>(defaultRange);
+  const { data, isLoading } = useExpenseAnalytics(range);
 
   const maxCategorySpend = Math.max(
     1,
@@ -46,18 +34,7 @@ export function ExpenseSummary() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Spending summary</h2>
-        <Select value={String(periodDays)} onValueChange={(v) => setPeriodDays(Number(v))}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PERIODS.map((p) => (
-              <SelectItem key={p.value} value={String(p.value)}>
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <DateRangePicker value={range} onChange={setRange} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

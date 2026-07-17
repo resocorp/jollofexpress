@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { get } from '@/lib/api-client';
+import type { DateRange } from '@/lib/date-range';
+
+const qs = (range: DateRange): string => `from=${range.from}&to=${range.to}`;
 
 interface OverviewMetrics {
   totalRevenue: number;
@@ -57,42 +60,45 @@ interface KitchenPerformance {
   prepTimeByHour: { hour: number; avgPrepTime: number; orders: number }[];
 }
 
-export function useOverviewMetrics(period: string = '30') {
+export function useOverviewMetrics(range: DateRange) {
   return useQuery({
-    queryKey: ['analytics', 'overview', period],
-    queryFn: () => get<OverviewMetrics>(`/api/admin/analytics/overview?period=${period}`),
+    queryKey: ['analytics', 'overview', range.from, range.to],
+    queryFn: () => get<OverviewMetrics>(`/api/admin/analytics/overview?${qs(range)}`),
     refetchInterval: 60000, // Refetch every minute
   });
 }
 
-export function useRevenueTrend(period: string = '30') {
+export function useRevenueTrend(range: DateRange) {
   return useQuery({
-    queryKey: ['analytics', 'revenue-trend', period],
-    queryFn: () => get<RevenueTrendData[]>(`/api/admin/analytics/revenue-trend?period=${period}`),
+    queryKey: ['analytics', 'revenue-trend', range.from, range.to],
+    queryFn: () => get<RevenueTrendData[]>(`/api/admin/analytics/revenue-trend?${qs(range)}`),
     refetchInterval: 60000,
   });
 }
 
-export function useTopItems(period: string = '30', limit: number = 10) {
+export function useTopItems(range: DateRange, limit: number = 10) {
   return useQuery({
-    queryKey: ['analytics', 'top-items', period, limit],
-    queryFn: () => get<TopItemsResponse>(`/api/admin/analytics/top-items?period=${period}&limit=${limit}`),
+    queryKey: ['analytics', 'top-items', range.from, range.to, limit],
+    queryFn: () =>
+      get<TopItemsResponse>(`/api/admin/analytics/top-items?${qs(range)}&limit=${limit}`),
     refetchInterval: 60000,
   });
 }
 
-export function useCategoryPerformance(period: string = '30') {
+export function useCategoryPerformance(range: DateRange) {
   return useQuery({
-    queryKey: ['analytics', 'category-performance', period],
-    queryFn: () => get<CategoryPerformance[]>(`/api/admin/analytics/category-performance?period=${period}`),
+    queryKey: ['analytics', 'category-performance', range.from, range.to],
+    queryFn: () =>
+      get<CategoryPerformance[]>(`/api/admin/analytics/category-performance?${qs(range)}`),
     refetchInterval: 60000,
   });
 }
 
-export function useKitchenPerformance(period: string = '30') {
+export function useKitchenPerformance(range: DateRange) {
   return useQuery({
-    queryKey: ['analytics', 'kitchen-performance', period],
-    queryFn: () => get<KitchenPerformance>(`/api/admin/analytics/kitchen-performance?period=${period}`),
+    queryKey: ['analytics', 'kitchen-performance', range.from, range.to],
+    queryFn: () =>
+      get<KitchenPerformance>(`/api/admin/analytics/kitchen-performance?${qs(range)}`),
     refetchInterval: 60000,
   });
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { verifyAdminOnly } from '@/lib/auth/admin-auth';
 import { buildExpenseAnalytics } from '@/lib/expenses/cycle-analysis';
+import { resolveAnalyticsWindow } from '@/lib/date-range';
 import type { ExpenseWithCategory } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -11,14 +12,11 @@ export async function GET(request: NextRequest) {
   if (!auth.authenticated) return auth.response;
 
   const { searchParams } = new URL(request.url);
-  const periodParam = searchParams.get('period') || '90';
-  const periodDays = Math.min(Math.max(parseInt(periodParam, 10) || 90, 1), 730);
+  const { from, to, endExclusive, periodDays } = resolveAnalyticsWindow(searchParams, 90);
+  // Measure "days/orders since last purchase" against the window end, not wall-clock.
+  const now = new Date(`${to}T23:59:59.999Z`);
 
   const supabase = createServiceClient();
-  const now = new Date();
-  const startDate = new Date(now);
-  startDate.setDate(startDate.getDate() - periodDays);
-  const startISODate = startDate.toISOString().slice(0, 10);
 
   // 1. All expenses in window (with category name)
   const { data: expenses, error: expError } = await supabase
@@ -29,7 +27,8 @@ export async function GET(request: NextRequest) {
         category:expense_categories(id, name)
       `,
     )
-    .gte('purchase_date', startISODate)
+    .gte('purchase_date', from)
+    .lte('purchase_date', to)
     .order('purchase_date', { ascending: true });
 
   if (expError) {
@@ -47,7 +46,8 @@ export async function GET(request: NextRequest) {
       .select('completed_at')
       .eq('status', 'completed')
       .not('completed_at', 'is', null)
-      .gte('completed_at', startDate.toISOString())
+      .gte('completed_at', from)
+      .lt('completed_at', endExclusive)
       .order('completed_at', { ascending: true })
       .range(pageStart, pageStart + PAGE_SIZE - 1);
     if (ordError) {
