@@ -7,6 +7,7 @@ import "@/lib/env-validator"; // Validate environment on startup
 import { GoogleAnalytics } from "@/components/analytics";
 import { RestaurantJsonLd, WebsiteJsonLd } from "@/components/analytics";
 import { ChunkErrorHandler } from "@/components/chunk-error-handler";
+import { ShutdownBanner } from "@/components/layout/shutdown-banner";
 
 export const metadata: Metadata = {
   title: {
@@ -124,6 +125,7 @@ export default function RootLayout({
         <ThemeProvider>
           <QueryProvider>
             <ChunkErrorHandler />
+            <ShutdownBanner />
             {children}
             <Toaster />
             <GoogleAnalytics />
