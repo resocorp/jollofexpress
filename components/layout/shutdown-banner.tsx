@@ -10,7 +10,7 @@ const CLOSED_MESSAGE =
   '📢 MyShawarma.express has closed. Thank you for years of orders 🙏';
 
 const CLOSED_SUMMARY = 'MyShawarma.express has closed. Thank you for your orders.';
-const OPEN_SUMMARY = 'MyShawarma.express is closing on 1 August 2026.';
+const OPEN_SUMMARY = 'Today is our last day — MyShawarma.express closes at midnight tonight.';
 
 interface Remaining {
   days: number;
@@ -72,12 +72,12 @@ export function ShutdownBanner() {
     segment = CLOSED_MESSAGE;
   } else if (mounted) {
     const { days, hours, minutes, seconds } = remaining;
-    segment = `📢 We're closing 1 Aug 2026 — order while you still can! Closes in ${days}d ${hours}h ${minutes}m ${String(
+    segment = `📢 Today is our LAST DAY — get your final order in! Kitchen closes in ${days}d ${hours}h ${minutes}m ${String(
       seconds
     ).padStart(2, '0')}s`;
   } else {
     // Pre-mount / SSR: no live digits, so client and server markup match.
-    segment = "📢 We're closing 1 Aug 2026 — order while you still can!";
+    segment = "📢 Today is our LAST DAY — get your final order in!";
   }
 
   return (
